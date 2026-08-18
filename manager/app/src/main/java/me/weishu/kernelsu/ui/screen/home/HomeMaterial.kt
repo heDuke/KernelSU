@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -26,32 +25,26 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.SystemUpdateAlt
 import androidx.compose.material.icons.outlined.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
-import androidx.compose.material3.contentColorFor
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -61,9 +54,11 @@ import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.WarningLevel
 import me.weishu.kernelsu.ui.component.dialog.rememberConfirmDialog
+import me.weishu.kernelsu.ui.component.material.ExpressiveHeroCard
+import me.weishu.kernelsu.ui.component.material.ExpressiveNoticeCard
+import me.weishu.kernelsu.ui.component.material.ExpressivePrimaryBar
 import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
-import me.weishu.kernelsu.ui.component.material.SegmentedColumn
-import me.weishu.kernelsu.ui.component.material.SegmentedListItem
+import me.weishu.kernelsu.ui.component.material.ExpressiveSectionTitle
 import me.weishu.kernelsu.ui.component.material.TonalCard
 import me.weishu.kernelsu.ui.component.material.expressiveTopAppBarColors
 import me.weishu.kernelsu.ui.component.rebootlistpopup.RebootListPopup
@@ -146,7 +141,6 @@ fun HomePagerMaterial(
                 WarningCard(stringResource(id = R.string.grant_root_failed))
             }
             InfoCard(systemInfo = state.systemInfo)
-            LearnMoreCard(onOpenUrl = actions.onOpenUrl)
             Spacer(Modifier.height(bottomInnerPadding))
         }
     }
@@ -240,7 +234,8 @@ private fun HuskyUpdateCard(
                         )
                     }
                     if (available) {
-                        HuskyWideButton(
+                        ExpressivePrimaryBar(
+                            label = stringResource(R.string.husky_update_lkm),
                             onClick = {
                                 flashDialog.showConfirm(
                                     title = confirmTitle,
@@ -248,20 +243,19 @@ private fun HuskyUpdateCard(
                                     confirm = confirmTitle,
                                 )
                             },
+                            modifier = Modifier.weight(1f),
                             enabled = !state.huskyBusy,
                             tonal = false,
                             icon = Icons.Outlined.SystemUpdateAlt,
-                            label = stringResource(R.string.husky_update_lkm),
-                            modifier = Modifier.weight(1f),
                         )
                     } else {
-                        HuskyWideButton(
+                        ExpressivePrimaryBar(
+                            label = stringResource(R.string.husky_check_update),
                             onClick = actions.onCheckHuskyUpdate,
+                            modifier = Modifier.weight(1f),
                             enabled = !state.huskyBusy,
                             tonal = true,
                             icon = Icons.Outlined.SystemUpdateAlt,
-                            label = stringResource(R.string.husky_check_update),
-                            modifier = Modifier.weight(1f),
                         )
                     }
                 }
@@ -280,21 +274,19 @@ private fun HuskyUpdateCard(
                         )
                     }
                 }
-                HuskyWideButton(
+                ExpressivePrimaryBar(
+                    label = stringResource(R.string.husky_open_release),
                     onClick = actions.onOpenHuskyRelease,
                     enabled = !state.huskyBusy,
                     tonal = true,
                     icon = Icons.Outlined.OpenInNew,
-                    label = stringResource(R.string.husky_open_release),
-                    modifier = Modifier.fillMaxWidth(),
                 )
-                HuskyWideButton(
+                ExpressivePrimaryBar(
+                    label = stringResource(R.string.husky_download_lkm),
                     onClick = actions.onDownloadLkmToDownloads,
                     enabled = !state.huskyBusy,
                     tonal = false,
                     icon = Icons.Outlined.Download,
-                    label = stringResource(R.string.husky_download_lkm),
-                    modifier = Modifier.fillMaxWidth(),
                 )
             }
             if (state.showOtaSlotCard) {
@@ -308,7 +300,8 @@ private fun HuskyUpdateCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                HuskyWideButton(
+                ExpressivePrimaryBar(
+                    label = otaAction,
                     onClick = {
                         otaDialog.showConfirm(
                             title = otaTitle,
@@ -316,59 +309,32 @@ private fun HuskyUpdateCard(
                             confirm = otaAction,
                         )
                     },
-                    enabled = true,
+                    enabled = !state.huskyBusy,
                     tonal = true,
                     icon = Icons.Outlined.SystemUpdateAlt,
-                    label = otaAction,
-                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         }
     }
 }
 
-@Composable
-private fun HuskyWideButton(
-    onClick: () -> Unit,
-    enabled: Boolean,
-    tonal: Boolean,
-    icon: ImageVector,
-    label: String,
-    modifier: Modifier = Modifier,
-) {
-    val buttonModifier = modifier.height(56.dp)
-    val content: @Composable RowScope.() -> Unit = {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(ButtonDefaults.IconSize),
-        )
-        Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-        Text(text = label, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    }
-    if (tonal) {
-        FilledTonalButton(
-            onClick = onClick,
-            enabled = enabled,
-            modifier = buttonModifier,
-            content = content,
-        )
-    } else {
-        Button(
-            onClick = onClick,
-            enabled = enabled,
-            modifier = buttonModifier,
-            content = content,
-        )
-    }
-}
-
 private fun huskyReleaseSummary(body: String?): String? {
     val line = body?.lineSequence()
-        ?.map { it.trim() }
-        ?.firstOrNull { it.isNotEmpty() && !it.startsWith("#") && !it.startsWith("```") }
+        ?.map { stripReleaseMarkdown(it) }
+        ?.firstOrNull { it.isNotEmpty() }
         ?: return null
     return if (line.length <= 160) line else line.take(157).trimEnd() + "..."
+}
+
+private fun stripReleaseMarkdown(raw: String): String {
+    var line = raw.trim()
+    line = when {
+        line.startsWith("- ") -> line.removePrefix("- ")
+        line.startsWith("* ") -> line.removePrefix("* ")
+        line.startsWith("#") -> line.trimStart('#').trimStart()
+        else -> line
+    }
+    return line.replace("**", "").replace("`", "").trim()
 }
 
 @Composable
@@ -425,24 +391,35 @@ private fun StatusCard(
 ) {
     val ksuActive = state.ksuVersion != null
     val notInstalled = !ksuActive && state.kernelVersion.isGKI()
+    val versionMismatch = state.showVersionMismatchWarning
 
-    val containerColor = if (ksuActive) {
-        MaterialTheme.colorScheme.secondaryContainer
-    } else {
-        MaterialTheme.colorScheme.errorContainer
+    val containerColor = when {
+        versionMismatch -> MaterialTheme.colorScheme.tertiaryContainer
+        ksuActive -> MaterialTheme.colorScheme.secondaryContainer
+        else -> MaterialTheme.colorScheme.errorContainer
     }
 
     val statusIcon = when {
+        versionMismatch -> Icons.Outlined.Warning
         ksuActive -> Icons.Outlined.CheckCircle
         notInstalled -> Icons.Outlined.Warning
         else -> Icons.Outlined.Block
     }
     val statusTitle = when {
+        versionMismatch -> stringResource(
+            R.string.home_version_mismatch,
+            state.currentManagerVersionCode,
+            state.ksuVersion ?: 0,
+        )
         ksuActive -> stringResource(R.string.home_working)
         notInstalled -> stringResource(R.string.home_not_installed)
         else -> stringResource(R.string.home_unsupported)
     }
     val statusSummary = when {
+        versionMismatch -> stringResource(
+            R.string.home_working_version,
+            "${state.ksuVersion}-${state.kernelUAPIVersion}",
+        )
         ksuActive -> stringResource(R.string.home_working_version, "${state.ksuVersion}-${state.kernelUAPIVersion}")
         notInstalled -> stringResource(R.string.home_click_to_install)
         else -> stringResource(R.string.home_unsupported_reason)
@@ -455,37 +432,23 @@ private fun StatusCard(
         }
     } else ""
 
-    TonalCard(
-        shape = MaterialTheme.shapes.extraLarge,
+    val hasTags = ksuActive && (
+        workingMode.isNotEmpty() || state.isSafeMode || state.isLateLoadMode
+    )
+
+    ExpressiveHeroCard(
+        title = statusTitle,
+        summary = statusSummary,
+        icon = statusIcon,
         containerColor = containerColor,
-        onClick = {
-            if (!state.isLateLoadMode) {
-                actions.onInstallClick()
-            }
+        onClick = if (!state.isLateLoadMode) {
+            { actions.onInstallClick() }
+        } else {
+            null
         },
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp)
-        ) {
-            Icon(
-                imageVector = statusIcon,
-                contentDescription = statusTitle,
-                modifier = Modifier.size(48.dp),
-            )
-            Spacer(Modifier.height(12.dp))
-            Text(
-                text = statusTitle,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Medium,
-            )
-            val hasTags = ksuActive && (
-                workingMode.isNotEmpty() || state.isSafeMode || state.isLateLoadMode
-            )
-            if (hasTags) {
+        tags = if (hasTags) {
+            {
                 FlowRow(
-                    modifier = Modifier.padding(top = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
@@ -512,13 +475,10 @@ private fun StatusCard(
                     }
                 }
             }
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = statusSummary,
-                style = MaterialTheme.typography.bodyLarge,
-            )
-        }
-    }
+        } else {
+            null
+        },
+    )
 }
 
 @Composable
@@ -531,67 +491,16 @@ private fun WarningCard(
         WarningLevel.Error -> MaterialTheme.colorScheme.errorContainer
         WarningLevel.Notice -> MaterialTheme.colorScheme.tertiaryContainer
     }
-    val content = @Composable {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-        ) {
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.contentColorFor(containerColor)
-            )
-        }
+    val icon = when (level) {
+        WarningLevel.Error -> Icons.Outlined.Warning
+        WarningLevel.Notice -> Icons.Outlined.Info
     }
-    if (onClick != null) {
-        TonalCard(
-            containerColor = containerColor,
-            shape = MaterialTheme.shapes.extraLarge,
-            onClick = onClick,
-            content = content,
-        )
-    } else {
-        TonalCard(
-            containerColor = containerColor,
-            shape = MaterialTheme.shapes.extraLarge,
-            content = content,
-        )
-    }
-}
-
-@Composable
-private fun LearnMoreCard(onOpenUrl: (String) -> Unit) {
-    val url = stringResource(R.string.home_learn_kernelsu_url)
-    TonalCard(
-        shape = MaterialTheme.shapes.extraLarge,
-        onClick = { onOpenUrl(url) },
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.home_learn_kernelsu),
-                    style = MaterialTheme.typography.titleMediumEmphasized,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = stringResource(R.string.home_click_to_learn_kernelsu),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Icon(
-                imageVector = Icons.Outlined.OpenInNew,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
+    ExpressiveNoticeCard(
+        message = message,
+        containerColor = containerColor,
+        icon = icon,
+        onClick = onClick,
+    )
 }
 
 @Composable
@@ -610,47 +519,62 @@ private fun InfoCard(systemInfo: SystemInfo) {
         else -> stringResource(R.string.seccomp_status_unknown)
     }
 
-    SegmentedColumn(
-        title = stringResource(R.string.home_device_section),
-        content = listOf(
-            {
-                SegmentedListItem(
-                    headlineContent = { Text(stringResource(R.string.home_manager_version)) },
-                    supportingContent = { Text(systemInfo.managerVersion) },
+    Column {
+        ExpressiveSectionTitle(title = stringResource(R.string.home_device_section))
+        TonalCard(
+            shape = MaterialTheme.shapes.extraLarge,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                InfoRow(
+                    label = stringResource(R.string.home_manager_version),
+                    value = systemInfo.managerVersion,
                 )
-            },
-            {
-                SegmentedListItem(
-                    headlineContent = { Text(stringResource(R.string.home_kernel)) },
-                    supportingContent = { Text(systemInfo.kernelVersion) },
+                InfoRow(
+                    label = stringResource(R.string.home_kernel),
+                    value = systemInfo.kernelVersion,
                 )
-            },
-            {
-                SegmentedListItem(
-                    headlineContent = { Text(stringResource(R.string.home_device_model)) },
-                    supportingContent = { Text(systemInfo.deviceModel) },
+                InfoRow(
+                    label = stringResource(R.string.home_device_model),
+                    value = systemInfo.deviceModel,
                 )
-            },
-            {
-                SegmentedListItem(
-                    headlineContent = { Text(stringResource(R.string.home_fingerprint)) },
-                    supportingContent = { Text(systemInfo.fingerprint) },
+                InfoRow(
+                    label = stringResource(R.string.home_fingerprint),
+                    value = systemInfo.fingerprint,
                 )
-            },
-            {
-                SegmentedListItem(
-                    headlineContent = { Text(stringResource(R.string.home_selinux_status)) },
-                    supportingContent = { Text(selinuxDisplay) },
+                InfoRow(
+                    label = stringResource(R.string.home_selinux_status),
+                    value = selinuxDisplay,
                 )
-            },
-            {
-                SegmentedListItem(
-                    headlineContent = { Text(stringResource(R.string.home_seccomp_status)) },
-                    supportingContent = { Text(seccompDisplay) },
+                InfoRow(
+                    label = stringResource(R.string.home_seccomp_status),
+                    value = seccompDisplay,
                 )
-            },
-        ),
-    )
+            }
+        }
+    }
+}
+
+@Composable
+private fun InfoRow(
+    label: String,
+    value: String,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    }
 }
 
 @Preview(name = "Activated")
@@ -682,6 +606,19 @@ private fun StatusCardPermissivePreview() {
 private fun StatusCardJailbreakPreview() {
     StatusCard(
         state = previewHomeScreenState(ksuVersion = 12345, lkmMode = true, isLateLoadMode = true),
+        actions = HomeActions({}, {})
+    )
+}
+
+@Preview(name = "Version mismatch")
+@Composable
+private fun StatusCardMismatchPreview() {
+    StatusCard(
+        state = previewHomeScreenState(
+            ksuVersion = 12345,
+            lkmMode = true,
+            currentManagerVersionCode = 10000,
+        ),
         actions = HomeActions({}, {})
     )
 }
@@ -726,7 +663,6 @@ private fun HomeScreenPreviewContent(
             )
             HuskyUpdateCard(state = state, actions = actions)
             InfoCard(previewSystemInfo.copy(selinuxStatus = selinuxStatus))
-            LearnMoreCard(onOpenUrl = {})
         }
     }
 }
@@ -761,6 +697,7 @@ private fun previewHomeScreenState(
     isSafeMode: Boolean = false,
     isLateLoadMode: Boolean = false,
     selinuxStatus: String = "Enforcing",
+    currentManagerVersionCode: Long = ksuVersion?.toLong() ?: 10000,
 ) = HomeUiState(
     kernelVersion = KernelVersion(6, 1, 0),
     ksuVersion = ksuVersion,
@@ -774,7 +711,7 @@ private fun previewHomeScreenState(
     isLateLoadMode = isLateLoadMode,
     checkUpdateEnabled = false,
     latestVersionInfo = me.weishu.kernelsu.ui.util.module.LatestVersionInfo(),
-    currentManagerVersionCode = 10000,
+    currentManagerVersionCode = currentManagerVersionCode,
     systemInfo = previewSystemInfo.copy(selinuxStatus = selinuxStatus),
     kernelUAPIVersion = 1,
     managerUAPIVersion = 1,
