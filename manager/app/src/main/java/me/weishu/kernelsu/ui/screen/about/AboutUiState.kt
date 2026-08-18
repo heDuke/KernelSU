@@ -7,7 +7,11 @@ data class AboutUiState(
     val title: String,
     val appName: String,
     val versionName: String,
-    val links: List<LinkInfo>,
+    val packageName: String,
+    val blurb: String,
+    val source: AboutLink,
+    val creditsTitle: String,
+    val credits: List<AboutLink>,
 )
 
 @Immutable

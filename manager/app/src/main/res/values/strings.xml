@@ -324,4 +324,21 @@
     <string name="husky_ota_slot_summary">Reinstall KernelSU LKM onto the inactive slot, then reboot into the updated system.</string>
     <string name="husky_ota_slot_confirm">This will flash LKM to the inactive A/B slot. Continue only after the OTA has finished installing.</string>
     <string name="husky_ota_slot_action">Install to inactive slot</string>
+    <string name="about_blurb">husky LKM maintenance fork based on KernelSU</string>
+    <string name="about_source">Source code</string>
+    <string name="about_source_summary" translatable="false">github.com/heDuke/KernelSU</string>
+    <string name="about_credits">Credits</string>
+    <string name="about_credit_kernelsu" translatable="false">KernelSU</string>
+    <string name="about_credit_kernelsu_summary">tiann/KernelSU — the KernelSU project</string>
+    <string name="about_credit_kas">Kernel-Assisted Superuser</string>
+    <string name="about_credit_kas_summary">The KernelSU idea</string>
+    <string name="about_credit_magisk" translatable="false">Magisk</string>
+    <string name="about_credit_magisk_summary">The powerful root tool</string>
+    <string name="about_credit_genuine" translatable="false">genuine</string>
+    <string name="about_credit_genuine_summary">APK v2 signature validation</string>
+    <string name="about_credit_diamorphine" translatable="false">Diamorphine</string>
+    <string name="about_credit_diamorphine_summary">Some rootkit skills</string>
+    <string name="settings_about">About HuskySU</string>
+    <string name="settings_about_summary">Version, credits, and source</string>
+    <string name="settings_appearance">Appearance</string>
 </resources>

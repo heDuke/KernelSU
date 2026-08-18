@@ -318,4 +318,16 @@
     <string name="husky_ota_slot_summary">将 KernelSU LKM 安装到非活动槽位，然后重启进入已更新的系统。</string>
     <string name="husky_ota_slot_confirm">将向非活动 A/B 槽刷入 LKM。请确认系统 OTA 已安装完成后再继续。</string>
     <string name="husky_ota_slot_action">安装到非活动槽</string>
+    <string name="about_blurb">基于 KernelSU 的 husky LKM 维护分支</string>
+    <string name="about_source">源代码</string>
+    <string name="about_credits">鸣谢</string>
+    <string name="about_credit_kernelsu_summary">tiann/KernelSU — KernelSU 项目</string>
+    <string name="about_credit_kas">kernel-assisted-superuser</string>
+    <string name="about_credit_kas_summary">KernelSU 的灵感</string>
+    <string name="about_credit_magisk_summary">强大的 root 工具箱</string>
+    <string name="about_credit_genuine_summary">apk v2 签名验证</string>
+    <string name="about_credit_diamorphine_summary">一些 rootkit 技巧</string>
+    <string name="settings_about">关于 HuskySU</string>
+    <string name="settings_about_summary">版本、鸣谢与源码</string>
+    <string name="settings_appearance">外观</string>
 </resources>

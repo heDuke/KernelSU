@@ -125,6 +125,7 @@ fun SettingPagerMaterial(
             )
             SegmentedColumn(
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 13.dp),
+                title = stringResource(id = R.string.settings_appearance),
                 content = listOf(
                     {
                         SegmentedDropdownItem(
@@ -322,32 +323,44 @@ fun SettingPagerMaterial(
 
             SegmentedColumn(
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 13.dp),
-                content = listOf(
-                    {
-                        SegmentedListItem(
-                            onClick = { showBottomSheet = true },
-                            headlineContent = { Text(stringResource(id = R.string.send_log)) },
-                            leadingContent = {
-                                Icon(
-                                    Icons.Filled.BugReport,
-                                    stringResource(id = R.string.send_log)
-                                )
-                            },
-                        )
-                    },
-                    {
-                        SegmentedListItem(
-                            onClick = actions.onOpenAbout,
-                            headlineContent = { Text(stringResource(id = R.string.about)) },
-                            leadingContent = {
-                                Icon(
-                                    Icons.Filled.ContactPage,
-                                    stringResource(id = R.string.about)
-                                )
-                            },
-                        )
-                    }
-                )
+                content = listOf {
+                    SegmentedListItem(
+                        onClick = { showBottomSheet = true },
+                        headlineContent = { Text(stringResource(id = R.string.send_log)) },
+                        leadingContent = {
+                            Icon(
+                                Icons.Filled.BugReport,
+                                stringResource(id = R.string.send_log)
+                            )
+                        },
+                    )
+                }
+            )
+
+            SegmentedColumn(
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 13.dp),
+                title = stringResource(id = R.string.about),
+                content = listOf {
+                    SegmentedListItem(
+                        onClick = actions.onOpenAbout,
+                        headlineContent = { Text(stringResource(id = R.string.settings_about)) },
+                        supportingContent = {
+                            Text(stringResource(id = R.string.settings_about_summary))
+                        },
+                        leadingContent = {
+                            Icon(
+                                Icons.Filled.ContactPage,
+                                stringResource(id = R.string.settings_about)
+                            )
+                        },
+                        trailingContent = {
+                            Icon(
+                                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                null
+                            )
+                        }
+                    )
+                }
             )
 
             Spacer(modifier = Modifier.height(8.dp))

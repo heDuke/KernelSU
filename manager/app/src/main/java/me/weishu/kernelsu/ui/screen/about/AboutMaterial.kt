@@ -16,6 +16,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.OpenInNew
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,12 +32,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.FixedScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
 import me.weishu.kernelsu.ui.component.material.SegmentedColumn
 import me.weishu.kernelsu.ui.component.material.SegmentedListItem
+import me.weishu.kernelsu.ui.component.material.TonalCard
 import me.weishu.kernelsu.ui.component.material.TopBarBackButton
 import me.weishu.kernelsu.ui.component.material.expressiveTopAppBarColors
 
@@ -64,47 +70,74 @@ fun AboutScreenMaterial(
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
         ) {
             item {
-                Column(
+                TonalCard(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp)
-                        .padding(vertical = 48.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 8.dp, bottom = 13.dp)
                 ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
+                    Column(
                         modifier = Modifier
-                            .size(80.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color.White)
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 28.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                            contentDescription = null,
-                            contentScale = FixedScale(1f)
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color.White)
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                                contentDescription = state.appName,
+                                contentScale = FixedScale(1f)
+                            )
+                        }
+                        Text(
+                            modifier = Modifier.padding(top = 16.dp),
+                            text = state.appName,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            modifier = Modifier.padding(top = 4.dp),
+                            text = state.versionName,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            modifier = Modifier.padding(top = 2.dp),
+                            text = state.packageName,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontFamily = FontFamily.Monospace,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            modifier = Modifier.padding(top = 16.dp),
+                            text = state.blurb,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
                         )
                     }
-                    Text(
-                        modifier = Modifier.padding(top = 12.dp),
-                        text = state.appName,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = MaterialTheme.typography.headlineMedium.fontSize
-                    )
-                    Text(
-                        text = state.versionName,
-                        fontSize = MaterialTheme.typography.bodyMedium.fontSize
-                    )
                 }
             }
             item {
                 SegmentedColumn(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    content = state.links.map { linkInfo ->
+                    content = listOf {
+                        AboutLinkItem(link = state.source, onOpenLink = actions.onOpenLink)
+                    }
+                )
+            }
+            item {
+                SegmentedColumn(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    title = state.creditsTitle,
+                    content = state.credits.map { credit ->
                         {
-                            SegmentedListItem(
-                                onClick = { actions.onOpenLink(linkInfo.url) },
-                                headlineContent = { Text(linkInfo.fullText) }
-                            )
+                            AboutLinkItem(link = credit, onOpenLink = actions.onOpenLink)
                         }
                     }
                 )
@@ -117,4 +150,23 @@ fun AboutScreenMaterial(
             }
         }
     }
+}
+
+@Composable
+private fun AboutLinkItem(
+    link: AboutLink,
+    onOpenLink: (String) -> Unit,
+) {
+    SegmentedListItem(
+        onClick = { onOpenLink(link.url) },
+        headlineContent = { Text(link.title) },
+        supportingContent = { Text(link.summary) },
+        trailingContent = {
+            Icon(
+                imageVector = Icons.Outlined.OpenInNew,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    )
 }
