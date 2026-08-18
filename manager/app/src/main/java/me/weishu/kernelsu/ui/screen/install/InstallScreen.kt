@@ -72,13 +72,36 @@ fun InstallScreen() {
     val selectFileTip = stringResource(id = R.string.select_file_tip, defaultPartition)
     val selectFileTipNoGki = stringResource(id = R.string.select_file_tip_nogki)
     val downloadFileMsg = stringResource(id = R.string.download_dialog_msg)
-    val installMethodOptions = remember(rootAvailable, isAbDevice, isGkiDevice, selectFileTip, selectFileTipNoGki, downloadFileMsg) {
+    val selectFileSummary = if (isGkiDevice) selectFileTip else selectFileTipNoGki
+    val canDirectInstall = rootAvailable && isGkiDevice
+    LaunchedEffect(canDirectInstall, installMethod) {
+        when {
+            installMethod is InstallMethod.DownloadFile -> {
+                installMethod = if (canDirectInstall) InstallMethod.DirectInstall else null
+                downloadDialogShown = false
+            }
+            installMethod == null && canDirectInstall -> {
+                installMethod = InstallMethod.DirectInstall
+            }
+        }
+    }
+    val installMethodOptions = remember(
+        rootAvailable,
+        isAbDevice,
+        isGkiDevice,
+        selectFileSummary,
+        advancedOptionsShown,
+        installMethod,
+    ) {
         buildList {
-            add(InstallMethod.SelectFile(summary = if (isGkiDevice) selectFileTip else selectFileTipNoGki))
-            add(InstallMethod.DownloadFile(summary = downloadFileMsg))
-            if (rootAvailable && isGkiDevice) {
+            if (canDirectInstall) {
                 add(InstallMethod.DirectInstall)
                 if (isAbDevice) add(InstallMethod.DirectInstallToInactiveSlot)
+                if (installMethod is InstallMethod.SelectFile && !advancedOptionsShown) {
+                    add(InstallMethod.SelectFile(summary = selectFileSummary))
+                }
+            } else {
+                add(InstallMethod.SelectFile(summary = selectFileSummary))
             }
         }
     }
@@ -227,6 +250,8 @@ fun InstallScreen() {
         enableAdb = enableAdb,
         forceBackup = forceBackup,
         canForceBackup = installMethod is InstallMethod.SelectFile,
+        showAdvancedSelectFile = canDirectInstall,
+        selectFileSummary = selectFileSummary,
     )
     val actions = InstallScreenActions(
         onBack = dropUnlessResumed { navigator.pop() },

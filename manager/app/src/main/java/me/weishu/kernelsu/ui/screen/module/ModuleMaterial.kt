@@ -57,7 +57,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Download
@@ -281,16 +280,6 @@ fun ModulePagerMaterial(
                 onSearchTextChange = actions.onSearchTextChange,
                 onClearClick = actions.onClearSearch,
                 snackbarHostState = snackBarHost,
-                navigationIcon = {
-                    IconButton(
-                        onClick = { actions.onOpenRepo() }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Cloud,
-                            contentDescription = stringResource(id = R.string.module_repos)
-                        )
-                    }
-                },
                 actions = {
                     RebootListPopup()
 

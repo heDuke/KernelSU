@@ -179,6 +179,14 @@ internal fun InstallScreenMaterial(
                         onClick = actions.onAdvancedOptionsClicked
                     )
                 }
+                item(visible = uiState.advancedOptionsShown && uiState.showAdvancedSelectFile) {
+                    SegmentedRadioItem(
+                        title = stringResource(R.string.select_file),
+                        summary = uiState.selectFileSummary,
+                        selected = uiState.installMethod is InstallMethod.SelectFile,
+                        onClick = actions.onSelectBootImage,
+                    )
+                }
                 item(visible = uiState.advancedOptionsShown) {
                     SegmentedCheckboxItem(
                         title = stringResource(id = R.string.allow_shell),

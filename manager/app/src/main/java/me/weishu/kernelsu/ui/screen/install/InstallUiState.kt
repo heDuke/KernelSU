@@ -20,6 +20,8 @@ internal data class InstallUiState(
     val enableAdb: Boolean,
     val forceBackup: Boolean,
     val canForceBackup: Boolean,
+    val showAdvancedSelectFile: Boolean,
+    val selectFileSummary: String?,
 )
 
 @Immutable

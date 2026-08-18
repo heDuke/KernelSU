@@ -69,7 +69,6 @@ data class ModuleActions(
     val onRequestUninstallConfirmation: (Module) -> Unit,
     val onDismissConfirmRequest: () -> Unit,
     val onConfirmUpdate: (ModuleConfirmRequest.Update) -> Unit,
-    val onOpenRepo: () -> Unit,
     val onToggleSortActionFirst: () -> Unit,
     val onToggleSortEnabledFirst: () -> Unit,
     val onOpenWebUi: (Module) -> Unit,
