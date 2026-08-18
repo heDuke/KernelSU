@@ -266,6 +266,8 @@ private fun huskyReleaseSummary(body: String?): String? {
 private fun OtaSlotCard(actions: HomeActions) {
     val confirmTitle = stringResource(R.string.husky_ota_slot_title)
     val confirmText = stringResource(R.string.husky_ota_slot_confirm)
+    val confirmAction = stringResource(R.string.husky_ota_slot_action)
+    val summary = stringResource(R.string.husky_ota_slot_summary)
     val dialog = rememberConfirmDialog(onConfirm = actions.onInstallInactiveSlot)
     TonalCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -275,7 +277,7 @@ private fun OtaSlotCard(actions: HomeActions) {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = stringResource(R.string.husky_ota_slot_summary),
+                text = summary,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -285,12 +287,12 @@ private fun OtaSlotCard(actions: HomeActions) {
                     dialog.showConfirm(
                         title = confirmTitle,
                         content = confirmText,
-                        confirm = stringResource(R.string.husky_ota_slot_action),
+                        confirm = confirmAction,
                     )
                 },
                 modifier = Modifier.align(Alignment.End),
             ) {
-                Text(stringResource(R.string.husky_ota_slot_action))
+                Text(confirmAction)
             }
         }
     }
