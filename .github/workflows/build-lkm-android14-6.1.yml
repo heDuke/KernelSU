@@ -1,0 +1,17 @@
+name: Build LKM android14-6.1 only
+
+on:
+  workflow_dispatch:
+    inputs:
+      ddk_release:
+        description: 'DDK release tag for ghcr.io/ylarod/ddk-min'
+        required: false
+        default: '20260313'
+        type: string
+
+jobs:
+  build-lkm:
+    uses: ./.github/workflows/ddk-lkm.yml
+    with:
+      kmi: android14-6.1
+      ddk_release: ${{ inputs.ddk_release || '20260313' }}
