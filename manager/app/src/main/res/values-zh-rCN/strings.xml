@@ -334,4 +334,11 @@
     <string name="settings_about">关于 HuskySU</string>
     <string name="settings_about_summary">版本、鸣谢与源码</string>
     <string name="settings_appearance">外观</string>
+    <string name="settings_section_updates">更新</string>
+    <string name="settings_section_advanced">高级</string>
+    <string name="settings_advanced_show">显示高级设置</string>
+    <string name="settings_advanced_hide">隐藏高级设置</string>
+    <string name="settings_section_danger">危险操作</string>
+    <string name="settings_module_repo">模块仓库</string>
+    <string name="settings_module_repo_summary">浏览并下载社区模块</string>
 </resources>

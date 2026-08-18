@@ -345,4 +345,11 @@
     <string name="settings_about">About HuskySU</string>
     <string name="settings_about_summary">Version, credits, and source</string>
     <string name="settings_appearance">Appearance</string>
+    <string name="settings_section_updates">Updates</string>
+    <string name="settings_section_advanced">Advanced</string>
+    <string name="settings_advanced_show">Show advanced settings</string>
+    <string name="settings_advanced_hide">Hide advanced settings</string>
+    <string name="settings_section_danger">Danger zone</string>
+    <string name="settings_module_repo">Module repository</string>
+    <string name="settings_module_repo_summary">Browse and download community modules</string>
 </resources>
