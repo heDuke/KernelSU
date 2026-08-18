@@ -1,6 +1,6 @@
 [English](README.md) | [Español](README_ES.md) | **简体中文** | [繁體中文](README_TW.md) | [日本語](README_JP.md) | [한국어](README_KR.md) | [Polski](README_PL.md) | [Português (Brasil)](README_PT-BR.md) | [Türkçe](README_TR.md) | [Русский](README_RU.md) | [Tiếng Việt](README_VI.md) | [Indonesia](README_ID.md) | [עברית](README_IW.md) | [हिंदी](README_IN.md) | [Italiano](README_IT.md)
 
-> **本仓库 fork 另提供 [HuskySU](../README.md)**：面向 Pixel 8 Pro（`husky`）的 LKM 维护版（包名 `me.weishu.kernelsu.husky.fork`）。设备说明见 [husky.md](husky.md)。以下为上游 KernelSU 项目说明（**鸣谢保留**）。
+> **本仓库 fork 另提供 [HuskySU](../README_CN.md)**（[English](../README.md)）：面向 Pixel 8 Pro（`husky`）的 LKM 维护版（包名 `me.weishu.kernelsu.husky.fork`），含 Material 3 Expressive 界面、应用内 LKM 更新、环境检测与 `husky-v*` 发布。设备说明见 [husky.md](husky.md)。以下为上游 KernelSU 项目说明（**鸣谢保留**）。
 
 # KernelSU
 

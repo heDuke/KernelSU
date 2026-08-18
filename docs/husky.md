@@ -8,14 +8,20 @@ Device branch: **`husky-lkm`**.
 | Package | `me.weishu.kernelsu.husky.fork` |
 | KMI | `android14-6.1` |
 | Release assets | `HuskySU.apk`, `android14-6.1_kernelsu.ko` |
+| Latest tags | [`husky-v*`](https://github.com/heDuke/KernelSU/releases) |
+
+Project overview: [README.md](../README.md) / [README_CN.md](../README_CN.md).
 
 ## Build / publish
 
-GitHub → Actions → **Husky LKM Release** → Run workflow (`create_release` checked).
+GitHub → Actions → **Husky LKM Release** → **Run workflow** with **`create_release` checked**.
 
 Requires repository Secrets: `KEYSTORE`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`.
 
-Produces a GitHub Release tagged `husky-v*`.
+| Trigger | Builds | Creates GitHub Release |
+|---------|--------|-------------------------|
+| `push` to `husky-lkm` | Yes | **No** |
+| `workflow_dispatch` + `create_release` | Yes | **Yes** (`husky-v*`) |
 
 ## First-time flash (PC)
 
@@ -42,7 +48,19 @@ Remove older KernelSU / `.pr` managers first (different package id).
 
 ## Later updates
 
-Prefer **in-app** check against husky Releases (download `.ko` + flash via Manager when rooted).
+Prefer **in-app**:
+
+1. Home → husky LKM card / **Align** (when an update is available)
+2. Or Environment check → open details → align
+3. Keep manager and driver `versionCode` matched after installing a new APK
+
+## In-app features (fork)
+
+- **Environment check** (Settings + home summary): BL / AVB, Root/LKM, manager↔driver, Zygisk/LSPosed, SSL-unpin module scan, copy report
+- **Module pending**: multi-select batch download → flash (recommended / updatable)
+- **Module repository**: Settings and Module tab entry
+- **OTA inactive slot**: Home husky card section (confirm before flash)
+- **Appearance**: theme mode + dynamic color only
 
 ## Appearance
 
@@ -53,7 +71,9 @@ Settings → Appearance:
 
 ## OTA
 
-After system OTA, use “install to inactive slot” (when available in Manager), then reboot — or re-patch a new factory `init_boot`.
+After system OTA, use “install to inactive slot” on the Home husky card (when shown), then reboot — or re-patch a new factory `init_boot`.
+
+Align / env-check **does not** auto-flash the inactive slot.
 
 ## Rollback
 
@@ -67,4 +87,4 @@ Do **not** pass the production cert as `KSU_EXPECTED_SIZE2` / `HASH2` — that e
 
 ## Credits
 
-Based on [KernelSU](https://github.com/tiann/KernelSU). Full upstream thanks: [docs/README.md](README.md#credits) / [README_CN.md](README_CN.md#鸣谢).
+Based on [KernelSU](https://github.com/tiann/KernelSU). Full upstream thanks: [README.md](README.md#credits) / [README_CN.md](README_CN.md#鸣谢).
