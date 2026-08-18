@@ -1,0 +1,18 @@
+[
+  {
+    "id": "zygisksu",
+    "name": "ZygiskNext",
+    "description": "Zygisk implementation for KernelSU / APatch",
+    "downloadUrl": "",
+    "homepage": "https://github.com/Dr-TSNG/ZygiskNext",
+    "note": "Fill downloadUrl when pinning a release asset for husky."
+  },
+  {
+    "id": "lsposed",
+    "name": "LSPosed (Zygisk)",
+    "description": "Requires a working Zygisk provider",
+    "downloadUrl": "",
+    "homepage": "https://github.com/LSPosed/LSPosed",
+    "note": "Optional; enable only after ZygiskNext."
+  }
+]

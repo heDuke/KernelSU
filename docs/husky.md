@@ -59,6 +59,12 @@ After system OTA, use “install to inactive slot” (when available in Manager)
 
 Flash stock `init_boot` from the matching factory image.
 
+## Production signing note
+
+Husky LKM builds bind the **primary** manager certificate (`KSU_EXPECTED_SIZE` / `KSU_EXPECTED_HASH`) to the HuskySU keystore and set `KSU_MANAGER_PACKAGE=me.weishu.kernelsu.husky.fork`.
+
+Do **not** pass the production cert as `KSU_EXPECTED_SIZE2` / `HASH2` — that enables PR dual-sign support and triggers the in-app warning that the kernel is not a production build.
+
 ## Credits
 
 Based on [KernelSU](https://github.com/tiann/KernelSU). Full upstream thanks: [docs/README.md](README.md#credits) / [README_CN.md](README_CN.md#鸣谢).
