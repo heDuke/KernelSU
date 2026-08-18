@@ -1,5 +1,6 @@
 package me.weishu.kernelsu.ui.screen.flash
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.captionBar
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
@@ -22,6 +24,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.SystemUpdateAlt
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,6 +37,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -40,8 +47,11 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.KeyEventBlocker
+import me.weishu.kernelsu.ui.component.material.ExpressiveHeroCard
+import me.weishu.kernelsu.ui.component.material.ExpressivePrimaryBar
 import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
 import me.weishu.kernelsu.ui.component.material.SnackBarHost
+import me.weishu.kernelsu.ui.component.material.TonalCard
 import me.weishu.kernelsu.ui.component.material.TopBarBackButton
 import me.weishu.kernelsu.ui.component.material.expressiveTopAppBarColors
 
@@ -119,22 +129,78 @@ fun FlashScreenMaterial(
                     end = innerPadding.calculateEndPadding(layoutDirection),
                 )
                 .verticalScroll(scrollState)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             LaunchedEffect(state.text) {
                 scrollState.animateScrollTo(scrollState.maxValue)
             }
             Spacer(Modifier.height(innerPadding.calculateTopPadding()))
-            Text(
-                modifier = Modifier.padding(8.dp),
-                text = state.text,
-                style = MaterialTheme.typography.bodySmall,
-                fontFamily = FontFamily.Monospace,
-            )
+            FlashStatusHero(status = state.flashingStatus)
+            FlashLogCard(text = state.text)
+            if (state.showRebootAction) {
+                ExpressivePrimaryBar(
+                    label = stringResource(state.rebootLabelRes),
+                    onClick = actions.onReboot,
+                    icon = Icons.Filled.Refresh,
+                )
+            }
             Spacer(
                 Modifier.height(
                     16.dp + 54.dp + navBars.calculateBottomPadding() + captionBar.calculateBottomPadding()
                 )
             )
         }
+    }
+}
+
+@Composable
+private fun FlashStatusHero(status: FlashingStatus) {
+    val titleRes: Int
+    val summaryRes: Int
+    val icon: ImageVector
+    val containerColor: Color
+    when (status) {
+        FlashingStatus.FLASHING -> {
+            titleRes = R.string.flashing
+            summaryRes = R.string.flash_running_summary
+            icon = Icons.Outlined.SystemUpdateAlt
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        }
+        FlashingStatus.SUCCESS -> {
+            titleRes = R.string.flash_success
+            summaryRes = R.string.flash_success_summary
+            icon = Icons.Outlined.CheckCircle
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        }
+        FlashingStatus.FAILED -> {
+            titleRes = R.string.flash_failed
+            summaryRes = R.string.flash_failed_summary
+            icon = Icons.Outlined.Warning
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        }
+    }
+    ExpressiveHeroCard(
+        title = stringResource(titleRes),
+        summary = stringResource(summaryRes),
+        icon = icon,
+        containerColor = containerColor,
+    )
+}
+
+@Composable
+private fun FlashLogCard(text: String) {
+    TonalCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
+    ) {
+        Text(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            fontFamily = FontFamily.Monospace,
+        )
     }
 }

@@ -22,6 +22,7 @@ fun ExecuteModuleActionScreen(moduleId: String, fromShortcut: Boolean = false) {
     var text by rememberSaveable { mutableStateOf("") }
     val logContent = remember { StringBuilder() }
     var isComplete by rememberSaveable { mutableStateOf(false) }
+    var succeeded by rememberSaveable { mutableStateOf(false) }
     val snackbarHost = remember { SnackbarHostState() }
     val exitExecute = {
         if (fromShortcut && activity != null) {
@@ -52,13 +53,17 @@ fun ExecuteModuleActionScreen(moduleId: String, fromShortcut: Boolean = false) {
         logContent = logContent,
         fromShortcut = fromShortcut,
         onTextUpdate = { text = it },
-        onComplete = { isComplete = true },
+        onComplete = { success ->
+            succeeded = success
+            isComplete = true
+        },
         onExit = exitExecute
     )
 
     val state = ExecuteModuleActionUiState(
         text = text,
         isComplete = isComplete,
+        succeeded = succeeded,
     )
     val actions = ExecuteModuleActionScreenActions(
         onBack = dropUnlessResumed { navigator.pop() },

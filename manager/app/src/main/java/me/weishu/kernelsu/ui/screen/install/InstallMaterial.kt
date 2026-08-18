@@ -3,10 +3,13 @@ package me.weishu.kernelsu.ui.screen.install
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -19,10 +22,15 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.InstallMobile
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -32,12 +40,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.dialog.rememberConfirmDialog
+import me.weishu.kernelsu.ui.component.material.ExpressiveHeroCard
+import me.weishu.kernelsu.ui.component.material.ExpressivePrimaryBar
 import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
 import me.weishu.kernelsu.ui.component.material.SegmentedCheckboxItem
 import me.weishu.kernelsu.ui.component.material.SegmentedColumn
@@ -79,6 +91,8 @@ internal fun InstallScreenMaterial(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(13.dp)
         ) {
+            InstallHeroCard(state = uiState)
+
             SelectInstallMethod(
                 state = uiState,
                 onSelected = actions.onSelectMethod,
@@ -204,15 +218,67 @@ internal fun InstallScreenMaterial(
                     )
                 }
             }
-            Button(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+            ExpressivePrimaryBar(
+                label = stringResource(R.string.install_next),
+                onClick = actions.onNext,
                 enabled = uiState.installMethod != null,
-                onClick = actions.onNext
-            ) { Text(stringResource(R.string.install_next)) }
+                icon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+            Spacer(
+                Modifier.height(
+                    16.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                )
+            )
         }
     }
+}
+
+@Composable
+private fun InstallHeroCard(state: InstallUiState) {
+    val title: String
+    val summary: String
+    val icon: ImageVector
+    val containerColor: Color
+    when (state.installMethod) {
+        is InstallMethod.DirectInstall -> {
+            title = stringResource(R.string.direct_install)
+            summary = stringResource(R.string.install_hero_direct_summary)
+            icon = Icons.Outlined.CheckCircle
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        }
+        is InstallMethod.DirectInstallToInactiveSlot -> {
+            title = stringResource(R.string.install_inactive_slot)
+            summary = stringResource(R.string.install_hero_inactive_summary)
+            icon = Icons.Outlined.Warning
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        }
+        is InstallMethod.SelectFile -> {
+            title = stringResource(R.string.select_file)
+            summary = stringResource(R.string.install_hero_file_summary)
+            icon = Icons.Outlined.InstallMobile
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        }
+        is InstallMethod.DownloadFile -> {
+            title = stringResource(R.string.download_file)
+            summary = stringResource(R.string.install_hero_download_summary)
+            icon = Icons.Outlined.Download
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        }
+        null -> {
+            title = stringResource(R.string.install_hero_choose)
+            summary = stringResource(R.string.install_hero_choose_summary)
+            icon = Icons.Outlined.Info
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+        }
+    }
+    ExpressiveHeroCard(
+        title = title,
+        summary = summary,
+        icon = icon,
+        containerColor = containerColor,
+        modifier = Modifier.padding(horizontal = 16.dp),
+    )
 }
 
 @Composable

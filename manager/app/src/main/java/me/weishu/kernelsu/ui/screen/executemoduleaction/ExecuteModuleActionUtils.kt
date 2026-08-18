@@ -27,7 +27,7 @@ fun ExecuteModuleActionEffect(
     logContent: StringBuilder,
     fromShortcut: Boolean,
     onTextUpdate: (String) -> Unit,
-    onComplete: () -> Unit = {},
+    onComplete: (Boolean) -> Unit = {},
     onExit: () -> Unit
 ) {
     val context = LocalContext.current
@@ -88,7 +88,7 @@ fun ExecuteModuleActionEffect(
                 Toast.LENGTH_SHORT
             ).show()
         }
-        onComplete()
+        onComplete(actionResult)
     }
 }
 

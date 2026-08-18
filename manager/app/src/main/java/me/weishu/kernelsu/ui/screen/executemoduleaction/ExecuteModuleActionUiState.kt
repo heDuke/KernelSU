@@ -6,6 +6,7 @@ import androidx.compose.runtime.Immutable
 data class ExecuteModuleActionUiState(
     val text: String,
     val isComplete: Boolean = false,
+    val succeeded: Boolean = false,
 )
 
 @Immutable

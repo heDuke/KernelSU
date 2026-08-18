@@ -131,6 +131,8 @@
     <string name="module_downloading">Downloading module: %s</string>
     <string name="module_start_downloading">Start downloading: %s</string>
     <string name="module_action_success">Module action executed successfully.</string>
+    <string name="module_action_failed">Module action failed</string>
+    <string name="module_action_running_summary">The module script is running. Volume keys are ignored until it finishes.</string>
     <string name="new_version_available">New version %s is available, click to upgrade!</string>
     <string name="launch_app">Launch</string>
     <string name="force_stop_app">Force stop</string>
@@ -183,6 +185,12 @@
     <string name="jailbreak_flash_warning">You are in **Jailbreak mode**. Flashing a partition on a device with a **locked bootloader** will break AVB (Android Verified Boot) and may cause the device to **fail to boot**.\n\nMake sure your bootloader is unlocked before proceeding!</string>
     <string name="jailbreak_flash_warning_countdown">Continue (%1$d)</string>
     <string name="install_next">Next</string>
+    <string name="install_hero_choose">Choose an install method</string>
+    <string name="install_hero_choose_summary">Direct install patches the current boot partition. Other methods patch an image or the inactive slot after OTA.</string>
+    <string name="install_hero_direct_summary">Patches the current boot partition in place. Recommended when root is available.</string>
+    <string name="install_hero_inactive_summary">Forces the next reboot onto the inactive slot. Use only after an OTA finishes.</string>
+    <string name="install_hero_file_summary">Patch a selected boot image, then flash it with recovery or fastboot.</string>
+    <string name="install_hero_download_summary">Download an OTA or factory image and patch the selected partition.</string>
     <string name="install_select_partition">Select partition</string>
     <string name="install_upload_lkm_file">Use local LKM file</string>
     <string name="install_force_backup">Backup as stock image</string>
@@ -200,6 +208,9 @@
     <string name="flashing">Flashing</string>
     <string name="flash_success">Flash success</string>
     <string name="flash_failed">Flash failed</string>
+    <string name="flash_running_summary">Keep this screen open. Volume keys are ignored until flashing finishes.</string>
+    <string name="flash_success_summary">Reboot to apply the new image.</string>
+    <string name="flash_failed_summary">Save the log and review the output before retrying.</string>
     <string name="selected_lkm">Selected LKM: %s</string>
     <string name="save_log">Save logs</string>
     <string name="log_saved">Logs saved</string>
