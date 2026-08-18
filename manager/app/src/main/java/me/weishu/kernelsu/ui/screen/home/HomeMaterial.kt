@@ -24,12 +24,12 @@ import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -45,6 +45,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -79,6 +80,7 @@ fun HomePagerMaterial(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(13.dp)
         ) {
+            HuskyLkmCard(state = state, actions = actions)
             if (state.checkUpdateEnabled) {
                 UpdateCard(state = state, actions = actions)
             }
@@ -140,6 +142,121 @@ fun HomePagerMaterial(
             Spacer(Modifier.height(bottomInnerPadding))
         }
     }
+}
+
+@Composable
+private fun HuskyLkmCard(
+    state: HomeUiState,
+    actions: HomeActions,
+) {
+    val release = state.huskyRelease
+    val flashDialog = rememberConfirmDialog(onConfirm = actions.onUpdateLkm)
+    val confirmTitle = stringResource(R.string.husky_update_lkm)
+    val confirmText = stringResource(R.string.husky_update_confirm, release?.tag ?: "")
+    val available = state.huskyUpdateStatus == HuskyUpdateStatus.Available &&
+        !release?.lkmDownloadUrl.isNullOrEmpty()
+
+    val title: String
+    val summary: String
+    when {
+        !state.canDirectInstallLkm -> {
+            title = stringResource(R.string.husky_not_installed_title)
+            summary = stringResource(R.string.husky_not_installed_guidance)
+        }
+        state.huskyUpdateStatus == HuskyUpdateStatus.Error -> {
+            title = stringResource(R.string.husky_update_card_title)
+            summary = state.huskyError ?: stringResource(R.string.husky_update_card_summary)
+        }
+        state.huskyUpdateStatus == HuskyUpdateStatus.UpToDate && release != null -> {
+            title = stringResource(R.string.husky_update_card_title)
+            summary = stringResource(R.string.husky_update_up_to_date, release.tag)
+        }
+        available -> {
+            title = stringResource(R.string.husky_update_available, release?.tag ?: "")
+            summary = huskyReleaseSummary(release?.body)
+                ?: stringResource(R.string.husky_update_card_summary)
+        }
+        else -> {
+            title = stringResource(R.string.husky_update_card_title)
+            summary = stringResource(R.string.husky_update_card_summary)
+        }
+    }
+
+    val containerColor = if (available && state.canDirectInstallLkm) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.surfaceBright
+    }
+
+    TonalCard(containerColor = containerColor) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 12.dp)
+        ) {
+            Text(text = title, style = MaterialTheme.typography.titleSmall)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = summary,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 6,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.height(12.dp))
+            if (state.canDirectInstallLkm) {
+                Button(
+                    onClick = {
+                        if (available) {
+                            flashDialog.showConfirm(
+                                title = confirmTitle,
+                                content = confirmText,
+                                confirm = confirmTitle,
+                            )
+                        } else {
+                            actions.onCheckHuskyUpdate()
+                        }
+                    },
+                    enabled = !state.huskyBusy,
+                    modifier = Modifier.align(Alignment.End),
+                ) {
+                    Text(
+                        if (available) {
+                            stringResource(R.string.husky_update_lkm)
+                        } else {
+                            stringResource(R.string.husky_check_update)
+                        }
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier.align(Alignment.End),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = actions.onOpenHuskyRelease,
+                        enabled = !state.huskyBusy,
+                    ) {
+                        Text(stringResource(R.string.husky_open_release))
+                    }
+                    Button(
+                        onClick = actions.onDownloadLkmToDownloads,
+                        enabled = !state.huskyBusy,
+                    ) {
+                        Text(stringResource(R.string.husky_download_lkm))
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun huskyReleaseSummary(body: String?): String? {
+    val line = body?.lineSequence()
+        ?.map { it.trim() }
+        ?.firstOrNull { it.isNotEmpty() && !it.startsWith("#") && !it.startsWith("```") }
+        ?: return null
+    return if (line.length <= 160) line else line.take(157).trimEnd() + "..."
 }
 
 @Composable
@@ -234,18 +351,6 @@ private fun StatusCard(
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                     backgroundColor = MaterialTheme.colorScheme.primary
                 )
-            }
-        } else if (notInstalled && state.isSELinuxPermissive) {
-            {
-                Button(
-                    onClick = actions.onJailbreakClick,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                        contentColor = MaterialTheme.colorScheme.onError
-                    )
-                ) {
-                    Text(stringResource(R.string.home_jailbreak))
-                }
             }
         } else null
 

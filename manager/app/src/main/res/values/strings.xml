@@ -306,4 +306,18 @@
     <string name="nav_rail_collapse">Collapse navigation rail</string>
     <string name="settings_navigation_badge">Navigation badge</string>
     <string name="settings_navigation_badge_summary">Show granted app and enabled module counts on the navigation bar</string>
+    <string name="husky_check_update">Check for updates</string>
+    <string name="husky_update_lkm">Update kernel module</string>
+    <string name="husky_update_card_title">Husky LKM</string>
+    <string name="husky_update_card_summary">Check husky GitHub Releases for a new kernel module.</string>
+    <string name="husky_update_available">New husky LKM %s is available</string>
+    <string name="husky_update_up_to_date">Already on the latest husky LKM (%s)</string>
+    <string name="husky_update_check_failed">Failed to check husky updates: %s</string>
+    <string name="husky_update_no_release">No husky release with android14-6.1_kernelsu.ko was found</string>
+    <string name="husky_update_confirm">This will patch the current boot image with husky LKM %s using direct install. Continue?</string>
+    <string name="husky_not_installed_title">Kernel module not installed</string>
+    <string name="husky_not_installed_guidance">First-time install needs a PC: patch stock init_boot with the husky LKM, then flash it with fastboot. You can open the release page or save the .ko to Downloads.</string>
+    <string name="husky_open_release">Open release page</string>
+    <string name="husky_download_lkm">Download LKM</string>
+    <string name="husky_lkm_saved">Saved %s to Downloads</string>
 </resources>

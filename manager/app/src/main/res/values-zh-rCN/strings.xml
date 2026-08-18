@@ -300,4 +300,18 @@
     <string name="nav_rail_collapse">收起导航栏</string>
     <string name="settings_navigation_badge">导航栏角标</string>
     <string name="settings_navigation_badge_summary">在导航栏显示已授权应用和已启用模块数量</string>
+    <string name="husky_check_update">检查更新</string>
+    <string name="husky_update_lkm">更新内核模块</string>
+    <string name="husky_update_card_title">Husky LKM</string>
+    <string name="husky_update_card_summary">检查 husky GitHub Releases 是否有新的内核模块。</string>
+    <string name="husky_update_available">发现新的 husky LKM %s</string>
+    <string name="husky_update_up_to_date">已是最新 husky LKM（%s）</string>
+    <string name="husky_update_check_failed">检查 husky 更新失败：%s</string>
+    <string name="husky_update_no_release">未找到包含 android14-6.1_kernelsu.ko 的 husky 发布</string>
+    <string name="husky_update_confirm">将通过直接安装用 husky LKM %s 修补当前启动镜像。是否继续？</string>
+    <string name="husky_not_installed_title">未安装内核模块</string>
+    <string name="husky_not_installed_guidance">首次安装需要电脑：用 husky LKM 修补原厂 init_boot，再用 fastboot 刷入。你可以打开发布页，或将 .ko 保存到下载目录。</string>
+    <string name="husky_open_release">打开发布页</string>
+    <string name="husky_download_lkm">下载 LKM</string>
+    <string name="husky_lkm_saved">已将 %s 保存到下载目录</string>
 </resources>

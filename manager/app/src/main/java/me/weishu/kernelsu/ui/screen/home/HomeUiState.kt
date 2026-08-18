@@ -2,7 +2,17 @@ package me.weishu.kernelsu.ui.screen.home
 
 import androidx.compose.runtime.Immutable
 import me.weishu.kernelsu.KernelVersion
+import me.weishu.kernelsu.data.model.HuskyRelease
 import me.weishu.kernelsu.ui.util.module.LatestVersionInfo
+
+enum class HuskyUpdateStatus {
+    Idle,
+    Checking,
+    Available,
+    UpToDate,
+    Error,
+    Downloading,
+}
 
 @Immutable
 data class HomeUiState(
@@ -23,10 +33,10 @@ data class HomeUiState(
     val latestVersionInfo: LatestVersionInfo,
     val currentManagerVersionCode: Long,
     val systemInfo: SystemInfo,
+    val huskyRelease: HuskyRelease? = null,
+    val huskyUpdateStatus: HuskyUpdateStatus = HuskyUpdateStatus.Idle,
+    val huskyError: String? = null,
 ) {
-    val isSELinuxPermissive: Boolean
-        get() = systemInfo.selinuxStatus == "Permissive"
-
     val isFullFeatured: Boolean
         get() = isManager && !requiresNewKernel && isRootAvailable
 
@@ -53,11 +63,21 @@ data class HomeUiState(
 
     val hasUpdate: Boolean
         get() = latestVersionInfo.versionCode > currentManagerVersionCode
+
+    val canDirectInstallLkm: Boolean
+        get() = isRootAvailable && ksuVersion != null
+
+    val huskyBusy: Boolean
+        get() = huskyUpdateStatus == HuskyUpdateStatus.Checking ||
+            huskyUpdateStatus == HuskyUpdateStatus.Downloading
 }
 
 @Immutable
 data class HomeActions(
     val onInstallClick: () -> Unit,
     val onOpenUrl: (String) -> Unit,
-    val onJailbreakClick: () -> Unit = {},
+    val onCheckHuskyUpdate: () -> Unit = {},
+    val onUpdateLkm: () -> Unit = {},
+    val onDownloadLkmToDownloads: () -> Unit = {},
+    val onOpenHuskyRelease: () -> Unit = {},
 )
