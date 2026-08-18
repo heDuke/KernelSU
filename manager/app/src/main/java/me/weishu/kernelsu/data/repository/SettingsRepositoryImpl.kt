@@ -54,10 +54,6 @@ class SettingsRepositoryImpl : SettingsRepository {
         get() = prefs.getInt("color_mode", 0)
         set(value) = prefs.edit { putInt("color_mode", value) }
 
-    override var miuixMonet: Boolean
-        get() = prefs.getBoolean("miuix_monet", false)
-        set(value) = prefs.edit { putBoolean("miuix_monet", value) }
-
     override var keyColor: Int
         get() = prefs.getInt("key_color", HuskySeedColorArgb)
         set(value) = prefs.edit { putInt("key_color", value) }
@@ -77,14 +73,6 @@ class SettingsRepositoryImpl : SettingsRepository {
     override var enableBlur: Boolean
         get() = prefs.getBoolean("enable_blur", false)
         set(value) = prefs.edit { putBoolean("enable_blur", value) }
-
-    override var enableFloatingBottomBar: Boolean
-        get() = prefs.getBoolean("enable_floating_bottom_bar", false)
-        set(value) = prefs.edit { putBoolean("enable_floating_bottom_bar", value) }
-
-    override var enableFloatingBottomBarBlur: Boolean
-        get() = prefs.getBoolean("enable_floating_bottom_bar_blur", false)
-        set(value) = prefs.edit { putBoolean("enable_floating_bottom_bar_blur", value) }
 
     override var enableNavigationBadge: Boolean
         get() = prefs.getBoolean("enable_navigation_badge", true)

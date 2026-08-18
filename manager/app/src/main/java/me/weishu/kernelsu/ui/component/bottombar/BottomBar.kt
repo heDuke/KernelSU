@@ -152,7 +152,7 @@ internal fun badgeFor(index: Int, state: NavigationBadgeState): NavBadge? = when
 }
 
 @Composable
-fun useNavigationRail(enableFloatingBottomBar: Boolean = false): Boolean {
+fun useNavigationRail(): Boolean {
     return shouldShowSplitPane()
 }
 

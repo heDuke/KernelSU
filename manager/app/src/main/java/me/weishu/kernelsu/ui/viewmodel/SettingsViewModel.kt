@@ -40,11 +40,8 @@ class SettingsViewModel(
             val themeMode = appSettings.colorMode.value
             val keyColor = appSettings.keyColor
             val dynamicColor = keyColor == 0
-            val miuixMonet = repo.miuixMonet
             val enablePredictiveBack = repo.enablePredictiveBack
             val enableBlur = repo.enableBlur
-            val enableFloatingBottomBar = repo.enableFloatingBottomBar
-            val enableFloatingBottomBarBlur = repo.enableFloatingBottomBarBlur
             val enableNavigationBadge = repo.enableNavigationBadge
             val pageScale = repo.pageScale
             val enableWebDebugging = repo.enableWebDebugging
@@ -80,12 +77,9 @@ class SettingsViewModel(
                     checkModuleUpdate = checkModuleUpdate,
                     themeMode = themeMode,
                     dynamicColor = dynamicColor,
-                    miuixMonet = miuixMonet,
                     keyColor = keyColor,
                     enablePredictiveBack = enablePredictiveBack,
                     enableBlur = enableBlur,
-                    enableFloatingBottomBar = enableFloatingBottomBar,
-                    enableFloatingBottomBarBlur = enableFloatingBottomBarBlur,
                     enableNavigationBadge = enableNavigationBadge,
                     pageScale = pageScale,
                     enableWebDebugging = enableWebDebugging,
@@ -142,16 +136,6 @@ class SettingsViewModel(
     fun setEnableBlur(enabled: Boolean) {
         repo.enableBlur = enabled
         _uiState.update { it.copy(enableBlur = enabled) }
-    }
-
-    fun setEnableFloatingBottomBar(enabled: Boolean) {
-        repo.enableFloatingBottomBar = enabled
-        _uiState.update { it.copy(enableFloatingBottomBar = enabled) }
-    }
-
-    fun setEnableFloatingBottomBarBlur(enabled: Boolean) {
-        repo.enableFloatingBottomBarBlur = enabled
-        _uiState.update { it.copy(enableFloatingBottomBarBlur = enabled) }
     }
 
     fun setEnableNavigationBadge(enabled: Boolean) {

@@ -56,9 +56,7 @@
     <string name="show_system_apps">Kuva süsteemirakendused</string>
     <string name="module_magisk_conflict">Moodulid pole saadaval Magiski konflikti tõttu!</string>
     <string name="home_click_to_learn_kernelsu">Õpi KernelSUd paigaldama ja mooduleid kasutama</string>
-    <string name="home_support_title">Toeta meid</string>
     <string name="profile_groups">Grupid</string>
-    <string name="home_support_content">KernelSU on, ja alati jääb, tasuta ning avatud lähtekoodiga kättesaadavaks. Sellegipoolest võid sa näidata, et hoolid, ning teha annetuse.</string>
     <string name="profile_template">Mall</string>
     <string name="about_source_code">Vaata lähtekoodi %1$sis<br/>
 Liitu meie %2$si kanaliga</string>

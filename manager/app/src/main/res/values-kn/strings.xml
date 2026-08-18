@@ -7,7 +7,6 @@
     <string name="module_uninstall_success">%s ಅನ್‌ಇನ್‌ಸ್ಟಾಲ್ ಮಾಡಲಾಗಿದೆ</string>
     <string name="profile_umount_modules">Umount ಮಾಡ್ಯೂಲ್‌ಗಳು</string>
     <string name="send_log">ಲಾಗ್ ಕಳುಹಿಸಿ</string>
-    <string name="home_support_title">ನಮ್ಮನ್ನು ಬೆಂಬಲಿಸಿ</string>
     <string name="profile_namespace_inherited">ಪಿತ್ರಾರ್ಜಿತ</string>
     <string name="module_magisk_conflict">ಮಾಡ್ಯೂಲ್‌ಗಳನ್ನು ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಲಾಗಿದೆ ಏಕೆಂದರೆ ಇದು ಮ್ಯಾಜಿಸ್ಕ್‌ನೊಂದಿಗೆ ಸಂಘರ್ಷವಾಗಿದೆ!</string>
     <string name="module_changelog">ಚೇಂಜ್ಲಾಗ್</string>
@@ -29,7 +28,6 @@
     <string name="require_kernel_version">ಪ್ರಸ್ತುತ KernelSU ಆವೃತ್ತಿ %1$d ಮ್ಯಾನೇಜರ್ ಸರಿಯಾಗಿ ಕಾರ್ಯನಿರ್ವಹಿಸಲು ತುಂಬಾ ಕಡಿಮೆಯಾಗಿದೆ. ದಯವಿಟ್ಟು ಆವೃತ್ತಿ %2$d ಅಥವಾ ಹೆಚ್ಚಿನದಕ್ಕೆ ಅಪ್‌ಗ್ರೇಡ್ ಮಾಡಿ!</string>
     <string name="reboot_userspace">ಸಾಫ್ಟ್ ರೀಬೂಟ್</string>
     <string name="profile_name">ಪ್ರೊಫೈಲ್ ಹೆಸರು</string>
-    <string name="home_support_content">KernelSU ಉಚಿತ ಮತ್ತು ಮುಕ್ತ ಮೂಲವಾಗಿದೆ ಮತ್ತು ಯಾವಾಗಲೂ ಇರುತ್ತದೆ. ಆದಾಗ್ಯೂ ನೀವು ದೇಣಿಗೆ ನೀಡುವ ಮೂಲಕ ನೀವು ಕಾಳಜಿ ವಹಿಸುತ್ತೀರಿ ಎಂದು ನಮಗೆ ತೋರಿಸಬಹುದು.</string>
     <string name="uninstall">ಅನ್‌ಇನ್‌ಸ್ಟಾಲ್</string>
     <string name="profile_namespace">ಮೌಂಟ್ ನೇಮ್‌ಸ್ಪೇಸ್</string>
     <string name="profile_selinux_rules">ನಿಯಮಗಳು</string>

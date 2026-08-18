@@ -8,7 +8,6 @@
     <string name="profile_umount_modules">הסרת טעינת מודולים</string>
     <string name="send_log">שלח לוג</string>
     <string name="selinux_status_disabled">מושבת</string>
-    <string name="home_support_title">תמכו בנו</string>
     <string name="profile_namespace_inherited">ירושה</string>
     <string name="module_magisk_conflict">מודולים מושבתים מכיוון שהם מתנגשים עם זה של Magisk!</string>
     <string name="module_changelog">יומן שינויים</string>
@@ -35,7 +34,6 @@
     <string name="reboot_recovery">הפעלה מחדש לריקברי</string>
     <string name="reboot_userspace">רך Reboot</string>
     <string name="profile_name">שם פרופיל</string>
-    <string name="home_support_content">KernelSU הוא, ותמיד יהיה, חינמי וקוד פתוח. עם זאת, תוכל להראות לנו שאכפת לך על ידי תרומה.</string>
     <string name="uninstall">הסרה</string>
     <string name="profile_namespace">טעינת מרחב שמות</string>
     <string name="module_install">התקנה</string>
