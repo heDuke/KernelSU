@@ -96,8 +96,10 @@ jobs:
     with:
       kmi: android14-6.1
       ddk_release: ${{ inputs.ddk_release || '20260313' }}
-      expected_size2: ${{ needs.prepare-signing.outputs.expected_size }}
-      expected_hash2: ${{ needs.prepare-signing.outputs.expected_hash }}
+      # Primary production slot only — do NOT set SIZE2/HASH2 (that marks PR/non-production kernel)
+      expected_size: ${{ needs.prepare-signing.outputs.expected_size }}
+      expected_hash: ${{ needs.prepare-signing.outputs.expected_hash }}
+      manager_package: me.weishu.kernelsu.husky.fork
 
   build-ksuinit:
     uses: ./.github/workflows/ksuinit.yml
