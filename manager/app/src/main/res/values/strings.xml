@@ -63,6 +63,16 @@
     <string name="module_installed_section">Installed</string>
     <string name="module_recommended_homepage">Homepage</string>
     <string name="module_recommended_no_download">No download is pinned. Open the homepage to get this module.</string>
+    <string name="module_pending_section">Pending</string>
+    <string name="module_pending_title">Pending actions</string>
+    <string name="module_pending_summary_count">%d items need attention</string>
+    <string name="module_pending_update">Update available</string>
+    <string name="module_pending_install">Recommended install</string>
+    <string name="module_pending_uninstall">Pending uninstall</string>
+    <string name="module_pending_uninstall_hint">These modules will be removed after reboot. They are not included in batch install.</string>
+    <string name="module_pending_process">Process selected</string>
+    <string name="module_pending_max">You can select up to %d modules</string>
+    <string name="module_pending_download_failed">Failed to download %s</string>
     <string name="module">Module</string>
     <string name="module_install_prompt_with_name">The following modules will be installed: %1$s</string>
     <string name="module_sort_action_first">Action first</string>

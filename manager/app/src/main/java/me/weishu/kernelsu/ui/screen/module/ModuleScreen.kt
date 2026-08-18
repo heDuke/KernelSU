@@ -2,6 +2,7 @@ package me.weishu.kernelsu.ui.screen.module
 
 import android.Manifest
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -181,6 +182,49 @@ fun ModulePager(
             }
         },
         onOpenModuleRepo = { navigator.push(Route.ModuleRepo) },
+        onTogglePendingSelection = { id ->
+            viewModel.togglePendingSelection(id)
+        },
+        onProcessSelectedPending = {
+            val snapshot = viewModel.uiState.value
+            val items = snapshot.selectedPendingItems
+            if (items.isNotEmpty() && !snapshot.isBatchProcessing && snapshot.installButtonVisible) {
+                scope.launch {
+                    viewModel.setBatchProcessing(true)
+                    try {
+                        val uris = ArrayList<Uri>(items.size)
+                        for (item in items) {
+                            val uri = download(
+                                url = item.downloadUrl,
+                                fileName = item.fileName,
+                                onDownloading = {
+                                    viewModel.emitEffect(
+                                        ModuleEffect.Toast(
+                                            resource.getString(R.string.module_downloading).format(item.name)
+                                        )
+                                    )
+                                },
+                            )
+                            if (uri == null) {
+                                viewModel.emitEffect(
+                                    ModuleEffect.Toast(
+                                        resource.getString(R.string.module_pending_download_failed).format(item.name)
+                                    )
+                                )
+                                return@launch
+                            }
+                            uris.add(uri)
+                        }
+                        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                            navigator.push(Route.Flash(FlashIt.FlashModules(uris)))
+                            viewModel.markNeedRefresh()
+                        }
+                    } finally {
+                        viewModel.setBatchProcessing(false)
+                    }
+                }
+            }
+        },
     )
 
     ModulePagerMaterial(

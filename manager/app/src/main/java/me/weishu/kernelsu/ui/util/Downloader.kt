@@ -17,7 +17,7 @@ suspend fun download(
     onDownloaded: (Uri) -> Unit = {},
     onDownloading: () -> Unit = {},
     onProgress: (Int) -> Unit = {}
-) {
+): Uri? {
     onDownloading()
 
     val downloadId = DownloadManager.enqueue(
@@ -27,13 +27,14 @@ suspend fun download(
         onCompleted = onDownloaded,
     )
 
-    DownloadManager.downloads
+    val terminal = DownloadManager.downloads
         .onEach { map -> map[downloadId]?.let { onProgress(it.progress) } }
         .first { map ->
             val status = map[downloadId]?.status
             status == DownloadManager.Status.COMPLETED ||
                 status == DownloadManager.Status.FAILED
-        }
+        }[downloadId]
+    return terminal?.resultUri.takeIf { terminal?.status == DownloadManager.Status.COMPLETED }
 }
 
 fun checkNewVersion(): LatestVersionInfo {

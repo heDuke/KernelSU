@@ -33,10 +33,12 @@ import me.weishu.kernelsu.data.repository.SettingsRepository
 import me.weishu.kernelsu.data.repository.SettingsRepositoryImpl
 import me.weishu.kernelsu.ksuApp
 import me.weishu.kernelsu.ui.component.SearchStatus
+import me.weishu.kernelsu.ui.screen.module.MAX_MODULE_PENDING_SELECTION
 import me.weishu.kernelsu.ui.screen.module.ModuleConfirmDialogState
 import me.weishu.kernelsu.ui.screen.module.ModuleConfirmRequest
 import me.weishu.kernelsu.ui.screen.module.ModuleEffect
 import me.weishu.kernelsu.ui.screen.module.ModuleUiState
+import me.weishu.kernelsu.ui.screen.module.reconcilePendingSelection
 import me.weishu.kernelsu.ui.util.PinyinUtil
 import me.weishu.kernelsu.ui.util.hasMagisk
 import me.weishu.kernelsu.ui.util.module.fetchModuleDetail
@@ -117,7 +119,7 @@ class ModuleViewModel(
                     emptyList()
                 }
             }
-            _uiState.update { it.copy(recommendedModules = list) }
+            _uiState.update { it.copy(recommendedModules = list).reconcilePendingSelection() }
         }
     }
 
@@ -260,7 +262,7 @@ class ModuleViewModel(
             _uiState.update {
                 it.copy(
                     modules = parsedModules,
-                )
+                ).reconcilePendingSelection()
             }
             // Trigger recalculation of moduleList
             updateModuleList(resort)
@@ -353,7 +355,7 @@ class ModuleViewModel(
                 changedEntries.forEach { (id, info) ->
                     newMap[id] = info
                 }
-                state.copy(updateInfo = newMap)
+                state.copy(updateInfo = newMap).reconcilePendingSelection()
             }
         }
     }
@@ -384,6 +386,30 @@ class ModuleViewModel(
 
     fun dismissConfirmRequest() {
         _uiState.update { it.copy(confirmDialogState = null) }
+    }
+
+    fun togglePendingSelection(id: String) {
+        val state = _uiState.value
+        if (state.isBatchProcessing) return
+        val item = state.pendingItems.find { it.id == id } ?: return
+        if (!item.selectable) return
+        if (id in state.selectedPendingIds) {
+            _uiState.update { it.copy(selectedPendingIds = it.selectedPendingIds - id) }
+            return
+        }
+        if (state.selectedPendingIds.size >= MAX_MODULE_PENDING_SELECTION) {
+            emitEffect(
+                ModuleEffect.Toast(
+                    ksuApp.resources.getString(R.string.module_pending_max, MAX_MODULE_PENDING_SELECTION)
+                )
+            )
+            return
+        }
+        _uiState.update { it.copy(selectedPendingIds = it.selectedPendingIds + id) }
+    }
+
+    fun setBatchProcessing(processing: Boolean) {
+        _uiState.update { it.copy(isBatchProcessing = processing) }
     }
 
     fun emitEffect(effect: ModuleEffect) {

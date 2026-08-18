@@ -40,6 +40,7 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -60,10 +61,14 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.SystemUpdateAlt
 import androidx.compose.material.icons.outlined.TravelExplore
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuGroup
@@ -140,6 +145,9 @@ import me.weishu.kernelsu.ui.component.ObserveAsEvents
 import me.weishu.kernelsu.ui.component.ScrollToTopOnChange
 import me.weishu.kernelsu.ui.component.dialog.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.dialog.rememberLoadingDialog
+import me.weishu.kernelsu.ui.component.material.ExpressiveHeroCard
+import me.weishu.kernelsu.ui.component.material.ExpressiveNoticeCard
+import me.weishu.kernelsu.ui.component.material.ExpressivePrimaryBar
 import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
 import me.weishu.kernelsu.ui.component.material.ExpressiveSectionTitle
 import me.weishu.kernelsu.ui.component.material.ExpressiveSwitch
@@ -482,9 +490,13 @@ fun ModulePagerMaterial(
                 listState = listState,
                 displayModules = uiState.moduleList,
                 recommendedModules = uiState.visibleRecommendedModules,
+                pendingItems = uiState.pendingItems,
+                selectedPendingIds = uiState.selectedPendingIds,
+                isBatchProcessing = uiState.isBatchProcessing,
+                showPendingCard = true,
                 updateInfoMap = uiState.updateInfo,
                 actions = actions,
-                installRecommendedEnabled = uiState.installButtonVisible,
+                installRecommendedEnabled = uiState.installButtonVisible && !uiState.isBatchProcessing,
                 showEmptyPlaceholder = true,
                 onClickModule = { module ->
                     if (module.hasWebUi) {
@@ -519,6 +531,10 @@ private fun ModuleList(
     listState: LazyListState = rememberLazyListState(),
     displayModules: List<Module>,
     recommendedModules: List<RecommendedModule> = emptyList(),
+    pendingItems: List<ModulePendingItem> = emptyList(),
+    selectedPendingIds: Set<String> = emptySet(),
+    isBatchProcessing: Boolean = false,
+    showPendingCard: Boolean = false,
     updateInfoMap: Map<String, ModuleUpdateInfo>,
     actions: ModuleActions,
     installRecommendedEnabled: Boolean = false,
@@ -538,6 +554,21 @@ private fun ModuleList(
             bottom = 16.dp + bottomInnerPadding + 56.dp + 16.dp
         ),
     ) {
+        if (showPendingCard && pendingItems.isNotEmpty()) {
+            item(key = "pending_todo", contentType = "pending_todo") {
+                Column {
+                    ExpressiveSectionTitle(title = stringResource(R.string.module_pending_section))
+                    PendingTodoCard(
+                        items = pendingItems,
+                        selectedIds = selectedPendingIds,
+                        isBatchProcessing = isBatchProcessing,
+                        installEnabled = installRecommendedEnabled,
+                        onToggle = actions.onTogglePendingSelection,
+                        onProcessSelected = actions.onProcessSelectedPending,
+                    )
+                }
+            }
+        }
         if (recommendedModules.isNotEmpty()) {
             item(key = "recommended_header", contentType = "section_header") {
                 ExpressiveSectionTitle(title = stringResource(R.string.module_recommended))
@@ -558,7 +589,7 @@ private fun ModuleList(
                     )
                 }
             }
-        } else if (showEmptyPlaceholder && displayModules.isEmpty()) {
+        } else if (showEmptyPlaceholder && displayModules.isEmpty() && pendingItems.isEmpty()) {
             item(key = "module_empty", contentType = "empty") {
                 Box(
                     modifier = Modifier
@@ -758,6 +789,145 @@ private fun ModuleShortcutSheet(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun PendingTodoCard(
+    items: List<ModulePendingItem>,
+    selectedIds: Set<String>,
+    isBatchProcessing: Boolean,
+    installEnabled: Boolean,
+    onToggle: (String) -> Unit,
+    onProcessSelected: () -> Unit,
+) {
+    val haptic = LocalHapticFeedback.current
+    val selectable = items.filter { it.selectable }
+    val uninstalls = items.filter { it.kind == ModulePendingKind.Uninstall }
+    val selectedCount = selectedIds.size
+    val atLimit = selectedCount >= MAX_MODULE_PENDING_SELECTION
+    val busy = isBatchProcessing || !installEnabled
+
+    val rows: @Composable () -> Unit = {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            selectable.forEach { item ->
+                val selected = item.id in selectedIds
+                val enabled = !isBatchProcessing && installEnabled && (selected || !atLimit)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .toggleable(
+                            value = selected,
+                            enabled = enabled,
+                            role = Role.Checkbox,
+                            onValueChange = {
+                                haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                                onToggle(item.id)
+                            },
+                        )
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Checkbox(
+                        checked = selected,
+                        onCheckedChange = null,
+                        enabled = enabled,
+                    )
+                    Column(modifier = Modifier.padding(start = 8.dp)) {
+                        Text(
+                            text = item.name,
+                            style = MaterialTheme.typography.titleSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = stringResource(
+                                if (item.kind == ModulePendingKind.Update) {
+                                    R.string.module_pending_update
+                                } else {
+                                    R.string.module_pending_install
+                                }
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+            uninstalls.forEach { item ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Info,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                    )
+                    Column {
+                        Text(
+                            text = item.name,
+                            style = MaterialTheme.typography.titleSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = stringResource(R.string.module_pending_uninstall),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+            if (selectable.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                ExpressivePrimaryBar(
+                    label = stringResource(R.string.module_pending_process),
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                        onProcessSelected()
+                    },
+                    enabled = !busy && selectedCount > 0,
+                    icon = Icons.Outlined.Download,
+                )
+            }
+        }
+    }
+
+    if (selectable.isNotEmpty()) {
+        ExpressiveHeroCard(
+            title = stringResource(R.string.module_pending_title),
+            summary = buildString {
+                append(stringResource(R.string.module_pending_summary_count, items.size))
+                append('\n')
+                append(stringResource(R.string.module_pending_max, MAX_MODULE_PENDING_SELECTION))
+            },
+            icon = if (isBatchProcessing) null else Icons.Outlined.SystemUpdateAlt,
+            iconContent = if (isBatchProcessing) {
+                {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(48.dp),
+                        strokeWidth = 3.dp,
+                    )
+                }
+            } else {
+                null
+            },
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            footer = { rows() },
+        )
+    } else {
+        ExpressiveNoticeCard(
+            message = stringResource(R.string.module_pending_uninstall_hint),
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+            icon = Icons.Outlined.Info,
+            action = { rows() },
+        )
     }
 }
 
