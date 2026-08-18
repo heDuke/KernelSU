@@ -14,6 +14,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -38,6 +39,7 @@ fun ModulePager(
     val navigator = LocalNavigator.current
     val context = LocalContext.current
     val resource = LocalResources.current
+    val uriHandler = LocalUriHandler.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val viewModel = viewModel<ModuleViewModel>()
     val scope = rememberCoroutineScope()
@@ -149,6 +151,34 @@ fun ModulePager(
         onExecuteModuleAction = { module ->
             navigator.push(Route.ExecuteModuleAction(module.id))
             viewModel.markNeedRefresh()
+        },
+        onOpenRecommendedHomepage = { module ->
+            if (module.homepage.isNotBlank()) {
+                uriHandler.openUri(module.homepage)
+            }
+        },
+        onInstallRecommended = { module ->
+            if (module.downloadUrl.isNotBlank()) {
+                scope.launch {
+                    download(
+                        url = module.downloadUrl,
+                        fileName = module.zipFileName,
+                        onDownloaded = { uri ->
+                            if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                                navigator.push(Route.Flash(FlashIt.FlashModules(listOf(uri))))
+                                viewModel.markNeedRefresh()
+                            }
+                        },
+                        onDownloading = {
+                            viewModel.emitEffect(
+                                ModuleEffect.Toast(
+                                    resource.getString(R.string.module_downloading).format(module.name)
+                                )
+                            )
+                        },
+                    )
+                }
+            }
         },
     )
 

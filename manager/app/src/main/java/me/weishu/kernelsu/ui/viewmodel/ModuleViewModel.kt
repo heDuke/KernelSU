@@ -27,6 +27,8 @@ import me.weishu.kernelsu.data.model.Module
 import me.weishu.kernelsu.data.model.ModuleUpdateInfo
 import me.weishu.kernelsu.data.repository.ModuleRepository
 import me.weishu.kernelsu.data.repository.ModuleRepositoryImpl
+import me.weishu.kernelsu.data.repository.RecommendedModuleRepository
+import me.weishu.kernelsu.data.repository.RecommendedModuleRepositoryImpl
 import me.weishu.kernelsu.data.repository.SettingsRepository
 import me.weishu.kernelsu.data.repository.SettingsRepositoryImpl
 import me.weishu.kernelsu.ksuApp
@@ -49,7 +51,8 @@ import me.weishu.kernelsu.ui.util.uninstallModule as uninstallModuleUtil
 
 class ModuleViewModel(
     private val repo: ModuleRepository = ModuleRepositoryImpl(),
-    private val settingsRepo: SettingsRepository = SettingsRepositoryImpl()
+    private val settingsRepo: SettingsRepository = SettingsRepositoryImpl(),
+    private val recommendedRepo: RecommendedModuleRepository = RecommendedModuleRepositoryImpl(),
 ) : ViewModel() {
 
     companion object {
@@ -103,6 +106,19 @@ class ModuleViewModel(
             )
         }
         updateModuleList()
+        loadRecommendedModules()
+    }
+
+    fun loadRecommendedModules() {
+        viewModelScope.launch {
+            val list = withContext(Dispatchers.IO) {
+                recommendedRepo.getRecommendedModules().getOrElse {
+                    Log.e(TAG, "loadRecommendedModules: ", it)
+                    emptyList()
+                }
+            }
+            _uiState.update { it.copy(recommendedModules = list) }
+        }
     }
 
     fun toggleSortActionFirst() {

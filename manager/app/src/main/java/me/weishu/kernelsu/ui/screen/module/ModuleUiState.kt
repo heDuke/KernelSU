@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.compose.runtime.Immutable
 import me.weishu.kernelsu.data.model.Module
 import me.weishu.kernelsu.data.model.ModuleUpdateInfo
+import me.weishu.kernelsu.data.model.RecommendedModule
 import me.weishu.kernelsu.ui.component.SearchStatus
 
 sealed interface ModuleConfirmRequest {
@@ -54,9 +55,18 @@ data class ModuleUiState(
     val isSafeMode: Boolean = false,
     val magiskInstalled: Boolean = false,
     val confirmDialogState: ModuleConfirmDialogState? = null,
+    val recommendedModules: List<RecommendedModule> = emptyList(),
 ) {
     val installButtonVisible: Boolean
         get() = !(isSafeMode || magiskInstalled)
+
+    val visibleRecommendedModules: List<RecommendedModule>
+        get() {
+            val installedIds = modules.asSequence()
+                .filter { !it.remove }
+                .mapTo(HashSet()) { it.id }
+            return recommendedModules.filter { it.id !in installedIds }
+        }
 }
 
 @Immutable
@@ -77,4 +87,6 @@ data class ModuleActions(
     val onUndoUninstallModule: (Module) -> Unit,
     val onOpenFlash: (List<Uri>) -> Unit,
     val onExecuteModuleAction: (Module) -> Unit,
+    val onOpenRecommendedHomepage: (RecommendedModule) -> Unit,
+    val onInstallRecommended: (RecommendedModule) -> Unit,
 )

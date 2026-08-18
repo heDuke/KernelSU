@@ -133,6 +133,7 @@ import kotlinx.coroutines.launch
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.data.model.Module
 import me.weishu.kernelsu.data.model.ModuleUpdateInfo
+import me.weishu.kernelsu.data.model.RecommendedModule
 import me.weishu.kernelsu.data.repository.isSoftRebootPreferred
 import me.weishu.kernelsu.ui.component.ObserveAsEvents
 import me.weishu.kernelsu.ui.component.ScrollToTopOnChange
@@ -455,8 +456,11 @@ fun ModulePagerMaterial(
                 modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
                 listState = listState,
                 displayModules = uiState.moduleList,
+                recommendedModules = uiState.visibleRecommendedModules,
                 updateInfoMap = uiState.updateInfo,
                 actions = actions,
+                installRecommendedEnabled = uiState.installButtonVisible,
+                showEmptyPlaceholder = true,
                 onClickModule = { module ->
                     if (module.hasWebUi) {
                         actions.onOpenWebUi(module)
@@ -489,8 +493,11 @@ private fun ModuleList(
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
     displayModules: List<Module>,
+    recommendedModules: List<RecommendedModule> = emptyList(),
     updateInfoMap: Map<String, ModuleUpdateInfo>,
     actions: ModuleActions,
+    installRecommendedEnabled: Boolean = false,
+    showEmptyPlaceholder: Boolean = false,
     onClickModule: (Module) -> Unit,
     onModuleAddShortcut: (Module, ShortcutType) -> Unit,
     closeSearch: () -> Unit? = {},
@@ -506,6 +513,46 @@ private fun ModuleList(
             bottom = 16.dp + bottomInnerPadding + 56.dp + 16.dp
         ),
     ) {
+        if (recommendedModules.isNotEmpty()) {
+            item(key = "recommended_header", contentType = "section_header") {
+                Text(
+                    text = stringResource(R.string.module_recommended),
+                    style = MaterialTheme.typography.titleMediumEmphasized,
+                    modifier = Modifier.padding(top = 4.dp, start = 4.dp, end = 4.dp),
+                )
+            }
+            items(recommendedModules, key = { "rec_${it.id}" }, contentType = { "recommended" }) { module ->
+                RecommendedModuleItem(
+                    module = module,
+                    installEnabled = installRecommendedEnabled,
+                    onOpenHomepage = { actions.onOpenRecommendedHomepage(module) },
+                    onInstall = { actions.onInstallRecommended(module) },
+                )
+            }
+            if (displayModules.isNotEmpty()) {
+                item(key = "installed_header", contentType = "section_header") {
+                    Text(
+                        text = stringResource(R.string.module_installed_section),
+                        style = MaterialTheme.typography.titleMediumEmphasized,
+                        modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp),
+                    )
+                }
+            }
+        } else if (showEmptyPlaceholder && displayModules.isEmpty()) {
+            item(key = "module_empty", contentType = "empty") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        stringResource(R.string.module_empty),
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+        }
         items(displayModules, key = { it.id }, contentType = { "module" }) { module ->
             val scope = rememberCoroutineScope()
             val moduleUpdateInfo = updateInfoMap[module.id] ?: ModuleUpdateInfo.Empty
@@ -687,6 +734,89 @@ private fun ModuleShortcutSheet(
                         } else {
                             stringResource(id = android.R.string.ok)
                         }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecommendedModuleItem(
+    module: RecommendedModule,
+    installEnabled: Boolean,
+    onOpenHomepage: () -> Unit,
+    onInstall: () -> Unit,
+) {
+    val noteText = if (!module.hasDownload) {
+        stringResource(R.string.module_recommended_no_download)
+    } else {
+        module.note
+    }
+
+    TonalCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp, 14.dp, 16.dp, 10.dp)
+        ) {
+            Text(
+                text = module.name,
+                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.titleMedium,
+                lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
+            )
+            if (module.description.isNotBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = module.description,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            if (noteText.isNotBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = noteText,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider(thickness = Dp.Hairline)
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (module.homepage.isNotBlank()) {
+                    OutlinedButton(
+                        onClick = onOpenHomepage,
+                        modifier = Modifier.defaultMinSize(52.dp, 32.dp),
+                        contentPadding = ButtonDefaults.TextButtonContentPadding,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.module_recommended_homepage),
+                            fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
+                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                        )
+                    }
+                }
+                FilledTonalButton(
+                    onClick = onInstall,
+                    enabled = installEnabled && module.hasDownload,
+                    modifier = Modifier.defaultMinSize(52.dp, 32.dp),
+                    contentPadding = ButtonDefaults.TextButtonContentPadding,
+                ) {
+                    Icon(
+                        modifier = Modifier.size(20.dp),
+                        imageVector = Icons.Outlined.Download,
+                        contentDescription = null,
+                    )
+                    Text(
+                        modifier = Modifier.padding(start = 7.dp),
+                        text = stringResource(R.string.module_install),
+                        fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
+                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
                     )
                 }
             }

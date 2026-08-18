@@ -3,9 +3,9 @@
     "id": "zygisksu",
     "name": "ZygiskNext",
     "description": "Zygisk implementation for KernelSU / APatch",
-    "downloadUrl": "",
+    "downloadUrl": "https://github.com/Dr-TSNG/ZygiskNext/releases/download/v1.4.5/Zygisk-Next-1.4.5-836-b13d58a-release.zip",
     "homepage": "https://github.com/Dr-TSNG/ZygiskNext",
-    "note": "Fill downloadUrl when pinning a release asset for husky."
+    "note": "Pinned ZygiskNext v1.4.5 module zip."
   },
   {
     "id": "lsposed",
@@ -13,6 +13,6 @@
     "description": "Requires a working Zygisk provider",
     "downloadUrl": "",
     "homepage": "https://github.com/LSPosed/LSPosed",
-    "note": "Optional; enable only after ZygiskNext."
+    "note": "Optional; enable only after ZygiskNext. No pinned download — open the homepage."
   }
 ]
