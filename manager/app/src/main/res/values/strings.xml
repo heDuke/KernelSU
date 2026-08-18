@@ -34,8 +34,15 @@
     <string name="superuser_tag_user">USER %d</string>
     <string name="sulog_log_files">Log files</string>
     <string name="sulog_failed_to_load">Failed to load SU log</string>
+    <string name="sulog_failed_summary">The selected log file could not be read.</string>
     <string name="sulog_disabled_title">SU log is not enabled</string>
+    <string name="sulog_disabled_summary">Enable SU log to record Root-related events.</string>
     <string name="sulog_unsupported_title">SU log is unsupported</string>
+    <string name="sulog_unsupported_summary">This kernel does not support SU log.</string>
+    <string name="sulog_enabled_title">SU log is on</string>
+    <string name="sulog_enabled_summary">%d events in this file</string>
+    <string name="sulog_empty">No log events</string>
+    <string name="sulog_empty_summary">New Root-related events will appear here.</string>
     <string name="sulog_enable_action">Enable</string>
     <string name="sulog_filter_title">Filter by type</string>
     <string name="sulog_clean_title">Clean log</string>
@@ -160,6 +167,11 @@
     <string name="app_profile_template_save_failed">Failed to save template</string>
     <string name="app_profile_template_import_empty">Clipboard is empty!</string>
     <string name="app_profile_affects_following_apps">Affects the following apps</string>
+    <string name="app_profile_granted">Root granted</string>
+    <string name="app_profile_not_granted">Root not granted</string>
+    <string name="app_profile_mode">Profile · %s</string>
+    <string name="app_profile_uid">UID %d</string>
+    <string name="app_profile_version">%1$s (%2$d)</string>
     <string name="settings_check_update">Check for updates</string>
     <string name="settings_check_update_summary">Automatically check for updates when opening the app.</string>
     <string name="settings_enable_predictive_back">Predictive back gesture</string>

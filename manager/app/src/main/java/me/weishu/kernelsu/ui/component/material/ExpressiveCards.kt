@@ -35,6 +35,7 @@ fun ExpressiveHeroCard(
     modifier: Modifier = Modifier,
     summary: String? = null,
     icon: ImageVector? = null,
+    iconContent: (@Composable () -> Unit)? = null,
     containerColor: Color = MaterialTheme.colorScheme.secondaryContainer,
     contentColor: Color = contentColorFor(containerColor),
     onClick: (() -> Unit)? = null,
@@ -53,7 +54,10 @@ fun ExpressiveHeroCard(
                 .fillMaxWidth()
                 .padding(20.dp),
         ) {
-            if (icon != null) {
+            if (iconContent != null) {
+                iconContent()
+                Spacer(Modifier.height(12.dp))
+            } else if (icon != null) {
                 Icon(
                     imageVector = icon,
                     contentDescription = title,

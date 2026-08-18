@@ -137,6 +137,11 @@
     <string name="app_profile_template_save_failed">模板保存失败</string>
     <string name="app_profile_template_import_empty">剪贴板为空！</string>
     <string name="app_profile_affects_following_apps">影响以下应用</string>
+    <string name="app_profile_granted">已授予 Root</string>
+    <string name="app_profile_not_granted">未授予 Root</string>
+    <string name="app_profile_mode">配置 · %s</string>
+    <string name="app_profile_uid">UID %d</string>
+    <string name="app_profile_version">%1$s (%2$d)</string>
     <string name="settings_check_update">检查更新</string>
     <string name="settings_check_update_summary">在应用启动后自动检查是否有最新版</string>
     <string name="settings_enable_predictive_back">预测性返回手势</string>
@@ -309,8 +314,15 @@
     <string name="settings_sulog_summary">将 Root 相关事件记录到 KernelSU 的 SU 日志文件中</string>
     <string name="sulog_log_files">日志文件</string>
     <string name="sulog_failed_to_load">加载 SU 日志失败</string>
+    <string name="sulog_failed_summary">无法读取所选的日志文件。</string>
     <string name="sulog_disabled_title">SU 日志未启用</string>
+    <string name="sulog_disabled_summary">启用 SU 日志以记录 Root 相关事件。</string>
     <string name="sulog_unsupported_title">不支持 SU 日志</string>
+    <string name="sulog_unsupported_summary">当前内核不支持 SU 日志。</string>
+    <string name="sulog_enabled_title">SU 日志已开启</string>
+    <string name="sulog_enabled_summary">当前文件中有 %d 条事件</string>
+    <string name="sulog_empty">没有日志事件</string>
+    <string name="sulog_empty_summary">新的 Root 相关事件会显示在这里。</string>
     <string name="sulog_enable_action">启用</string>
     <string name="sulog_filter_title">按类型筛选</string>
     <string name="sulog_clean_title">清空日志</string>

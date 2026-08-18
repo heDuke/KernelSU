@@ -8,6 +8,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -22,10 +24,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
@@ -54,18 +57,22 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.AppIconImage
+import me.weishu.kernelsu.ui.component.material.ExpressiveHeroCard
 import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
+import me.weishu.kernelsu.ui.component.material.ExpressiveSectionTitle
 import me.weishu.kernelsu.ui.component.material.ExpressiveToggleButton
 import me.weishu.kernelsu.ui.component.material.SegmentedColumn
 import me.weishu.kernelsu.ui.component.material.SegmentedListItem
 import me.weishu.kernelsu.ui.component.material.SegmentedSwitchItem
 import me.weishu.kernelsu.ui.component.material.SnackBarHost
+import me.weishu.kernelsu.ui.component.material.TonalCard
 import me.weishu.kernelsu.ui.component.material.TopBarBackButton
 import me.weishu.kernelsu.ui.component.material.expressiveTopAppBarColors
 import me.weishu.kernelsu.ui.component.profile.AppProfileConfig
@@ -116,9 +123,7 @@ fun AppProfileScreenMaterial(
                 AppIconImage(
                     packageInfo = state.appGroup.primary.packageInfo,
                     label = state.appGroup.primary.label,
-                    modifier = Modifier
-                        .padding(top = 4.dp)
-                        .size(48.dp)
+                    modifier = Modifier.size(48.dp)
                 )
             },
             appUid = state.uid,
@@ -170,55 +175,28 @@ private fun AppProfileInner(
     val mode = if (isRootGranted) rootMode else nonRootMode
 
     Column(modifier = modifier) {
+        AppProfileHeroCard(
+            appLabel = appLabel,
+            appIcon = appIcon,
+            packageName = packageName,
+            appVersionName = appVersionName,
+            appVersionCode = appVersionCode,
+            appUid = appUid,
+            userId = userId,
+            appId = appId,
+            isUidGroup = isUidGroup,
+            sharedUserId = sharedUserId,
+            affectedAppCount = affectedApps.size,
+        )
+        AppProfileGrantCard(
+            isRootGranted = isRootGranted,
+            mode = mode,
+        )
         SegmentedColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             content = listOf(
-                {
-                    SegmentedListItem(
-                        headlineContent = { Text(appLabel) },
-                        supportingContent = {
-                            Column {
-                                if (!isUidGroup) {
-                                    Text("$appVersionName ($appVersionCode)", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text(packageName, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                } else {
-                                    if (sharedUserId.isNotEmpty()) {
-                                        Text(text = sharedUserId, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                    Text(
-                                        text = stringResource(R.string.group_contains_apps, affectedApps.size),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        },
-                        leadingContent = appIcon,
-                        trailingContent = {
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                if (userId != 0) {
-                                    StatusTag(
-                                        label = "USER $userId",
-                                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                                        backgroundColor = MaterialTheme.colorScheme.tertiaryContainer
-                                    )
-                                    StatusTag(
-                                        label = "UID $appId",
-                                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                                        backgroundColor = MaterialTheme.colorScheme.tertiaryContainer
-                                    )
-                                } else {
-                                    StatusTag(
-                                        label = "UID $appUid",
-                                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                                        backgroundColor = MaterialTheme.colorScheme.tertiaryContainer
-                                    )
-                                }
-                            }
-                        }
-                    )
-                },
                 {
                     SegmentedSwitchItem(
                         icon = Icons.Filled.Security,
@@ -227,13 +205,6 @@ private fun AppProfileInner(
                         onCheckedChange = { onProfileChange(profile.copy(allowSu = it)) },
                     )
                 },
-                {
-                    SegmentedListItem(
-                        headlineContent = { Text(stringResource(R.string.profile)) },
-                        supportingContent = { Text(mode.text, color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                        leadingContent = { Icon(Icons.Filled.AccountCircle, null) },
-                    )
-                }
             )
         )
 
@@ -241,6 +212,10 @@ private fun AppProfileInner(
             Column(
                 modifier = Modifier.padding(bottom = 6.dp + 48.dp + 6.dp /* SnackBar height */)
             ) {
+                ExpressiveSectionTitle(
+                    title = stringResource(R.string.profile),
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
                 if (current) {
                     ProfileBox(mode, true) {
                         // template mode shouldn't change profile here!
@@ -311,12 +286,129 @@ private fun AppProfileInner(
                             )
                         }
                     }
+                    ExpressiveSectionTitle(
+                        title = stringResource(R.string.app_profile_affects_following_apps),
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
                     SegmentedColumn(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        title = stringResource(R.string.app_profile_affects_following_apps),
                         content = appItems
                     )
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AppProfileHeroCard(
+    appLabel: String,
+    appIcon: @Composable (() -> Unit),
+    packageName: String,
+    appVersionName: String,
+    appVersionCode: Long,
+    appUid: Int,
+    userId: Int,
+    appId: Int,
+    isUidGroup: Boolean,
+    sharedUserId: String,
+    affectedAppCount: Int,
+) {
+    val summary = buildString {
+        if (!isUidGroup) {
+            append(packageName)
+            if (appVersionName.isNotEmpty()) {
+                append('\n')
+                append(stringResource(R.string.app_profile_version, appVersionName, appVersionCode))
+            }
+        } else {
+            if (sharedUserId.isNotEmpty()) {
+                append(sharedUserId)
+            }
+            if (isNotEmpty()) {
+                append('\n')
+            }
+            append(stringResource(R.string.group_contains_apps, affectedAppCount))
+        }
+    }
+    ExpressiveHeroCard(
+        title = appLabel,
+        summary = summary,
+        iconContent = appIcon,
+        containerColor = MaterialTheme.colorScheme.primaryContainer,
+        modifier = Modifier.padding(horizontal = 16.dp),
+        tags = {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (userId != 0) {
+                    StatusTag(
+                        label = stringResource(R.string.superuser_tag_user, userId),
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        backgroundColor = MaterialTheme.colorScheme.primary,
+                    )
+                    StatusTag(
+                        label = stringResource(R.string.app_profile_uid, appId),
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        backgroundColor = MaterialTheme.colorScheme.primary,
+                    )
+                } else {
+                    StatusTag(
+                        label = stringResource(R.string.app_profile_uid, appUid),
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        backgroundColor = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun AppProfileGrantCard(
+    isRootGranted: Boolean,
+    mode: Mode,
+) {
+    val containerColor = if (isRootGranted) {
+        MaterialTheme.colorScheme.secondaryContainer
+    } else {
+        MaterialTheme.colorScheme.tertiaryContainer
+    }
+    val title = if (isRootGranted) {
+        stringResource(R.string.app_profile_granted)
+    } else {
+        stringResource(R.string.app_profile_not_granted)
+    }
+    TonalCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        shape = MaterialTheme.shapes.extraLarge,
+        containerColor = containerColor,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(
+                imageVector = if (isRootGranted) Icons.Outlined.Shield else Icons.Outlined.Block,
+                contentDescription = title,
+                modifier = Modifier.size(28.dp),
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMediumEmphasized,
+                    fontWeight = FontWeight.Medium,
+                )
+                Text(
+                    text = stringResource(R.string.app_profile_mode, mode.text),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
             }
         }
     }

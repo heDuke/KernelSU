@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.captionBar
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
@@ -26,12 +25,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenuPopup
@@ -57,6 +58,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -66,13 +69,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.ScrollToTopOnChange
+import me.weishu.kernelsu.ui.component.material.ExpressiveHeroCard
+import me.weishu.kernelsu.ui.component.material.ExpressiveNoticeCard
+import me.weishu.kernelsu.ui.component.material.ExpressivePrimaryBar
 import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
 import me.weishu.kernelsu.ui.component.material.SearchAppBar
 import me.weishu.kernelsu.ui.component.material.SegmentedColumn
 import me.weishu.kernelsu.ui.component.material.SegmentedDropdownItem
 import me.weishu.kernelsu.ui.component.material.SegmentedItem
 import me.weishu.kernelsu.ui.component.material.SegmentedListItem
-import me.weishu.kernelsu.ui.component.material.TonalCard
 import me.weishu.kernelsu.ui.component.material.TopBarBackButton
 import me.weishu.kernelsu.ui.component.statustag.StatusTag
 import me.weishu.kernelsu.ui.util.SulogEntry
@@ -274,10 +279,11 @@ private fun LazyListScope.sulogEntriesSection(
 ) {
     when {
         errorMessage != null -> item {
-            SulogMessageCard(
-                modifier = Modifier.fillParentMaxSize(),
-                title = stringResource(R.string.sulog_failed_to_load),
-                summary = errorMessage,
+            ExpressiveNoticeCard(
+                message = errorMessage.ifBlank { stringResource(R.string.sulog_failed_to_load) },
+                containerColor = colorScheme.errorContainer,
+                icon = Icons.Outlined.Warning,
+                modifier = Modifier.padding(bottom = 16.dp),
             )
         }
 
@@ -337,85 +343,80 @@ private fun SulogStatusSection(
     state: SulogScreenState,
     actions: SulogActions,
 ) {
-    when (state.sulogStatus) {
-        "unsupported" -> {
-            WarningCard(text = stringResource(R.string.sulog_unsupported_title))
-        }
-
-        "managed" -> {
-            WarningCard(text = stringResource(R.string.feature_status_managed_summary))
-        }
-
-        "supported" if !state.isSulogEnabled -> {
-            WarningCard(
-                text = stringResource(R.string.sulog_disabled_title),
-                action = {
-                    Button(
-                        onClick = actions.onEnableSulog,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = colorScheme.error,
-                            contentColor = colorScheme.onError,
-                        ),
-                    ) {
-                        Text(stringResource(R.string.sulog_enable_action))
-                    }
-                },
+    val showEnable = state.sulogStatus == "supported" && !state.isSulogEnabled
+    Column(modifier = Modifier.padding(bottom = 16.dp)) {
+        SulogStatusHero(state)
+        if (showEnable) {
+            ExpressivePrimaryBar(
+                label = stringResource(R.string.sulog_enable_action),
+                onClick = actions.onEnableSulog,
+                enabled = !state.isLoading && !state.isRefreshing,
+                modifier = Modifier.padding(top = 12.dp),
             )
-        }
-
-        else -> Unit
-    }
-}
-
-@Composable
-private fun SulogMessageCard(
-    modifier: Modifier,
-    title: String,
-    summary: String? = null,
-) {
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(title, color = colorScheme.onSurfaceVariant)
-            if (summary != null) {
-                Text(
-                    summary,
-                    color = colorScheme.onSurfaceVariant,
-                    fontSize = typography.bodySmall.fontSize,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
         }
     }
 }
 
 @Composable
-private fun WarningCard(
-    text: String,
-    action: (@Composable () -> Unit)? = null,
-) {
-    TonalCard(
-        modifier = Modifier.padding(bottom = 16.dp),
-        containerColor = colorScheme.errorContainer
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp, horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = text,
-                style = typography.bodyLarge,
-                modifier = Modifier.weight(1f),
-            )
-            action?.invoke()
+private fun SulogStatusHero(state: SulogScreenState) {
+    if (state.isLoading && state.sulogStatus.isEmpty()) {
+        return
+    }
+
+    val title: String
+    val summary: String
+    val icon: ImageVector
+    val containerColor: Color
+    when {
+        state.sulogStatus == "unsupported" -> {
+            title = stringResource(R.string.sulog_unsupported_title)
+            summary = stringResource(R.string.sulog_unsupported_summary)
+            icon = Icons.Outlined.Warning
+            containerColor = colorScheme.errorContainer
+        }
+
+        state.sulogStatus == "managed" -> {
+            title = stringResource(R.string.settings_sulog)
+            summary = stringResource(R.string.feature_status_managed_summary)
+            icon = Icons.Outlined.Info
+            containerColor = colorScheme.tertiaryContainer
+        }
+
+        state.sulogStatus == "supported" && !state.isSulogEnabled -> {
+            title = stringResource(R.string.sulog_disabled_title)
+            summary = stringResource(R.string.sulog_disabled_summary)
+            icon = Icons.AutoMirrored.Outlined.Article
+            containerColor = colorScheme.tertiaryContainer
+        }
+
+        state.errorMessage != null -> {
+            title = stringResource(R.string.sulog_failed_to_load)
+            summary = stringResource(R.string.sulog_failed_summary)
+            icon = Icons.Outlined.Warning
+            containerColor = colorScheme.errorContainer
+        }
+
+        !state.isLoading && state.entries.isEmpty() -> {
+            title = stringResource(R.string.sulog_empty)
+            summary = stringResource(R.string.sulog_empty_summary)
+            icon = Icons.Outlined.Info
+            containerColor = colorScheme.tertiaryContainer
+        }
+
+        else -> {
+            title = stringResource(R.string.sulog_enabled_title)
+            summary = stringResource(R.string.sulog_enabled_summary, state.entries.size)
+            icon = Icons.Outlined.CheckCircle
+            containerColor = colorScheme.secondaryContainer
         }
     }
+
+    ExpressiveHeroCard(
+        title = title,
+        summary = summary,
+        icon = icon,
+        containerColor = containerColor,
+    )
 }
 
 @Composable
