@@ -320,4 +320,8 @@
     <string name="husky_open_release">Open release page</string>
     <string name="husky_download_lkm">Download LKM</string>
     <string name="husky_lkm_saved">Saved %s to Downloads</string>
+    <string name="husky_ota_slot_title">After system OTA</string>
+    <string name="husky_ota_slot_summary">Reinstall KernelSU LKM onto the inactive slot, then reboot into the updated system.</string>
+    <string name="husky_ota_slot_confirm">This will flash LKM to the inactive A/B slot. Continue only after the OTA has finished installing.</string>
+    <string name="husky_ota_slot_action">Install to inactive slot</string>
 </resources>

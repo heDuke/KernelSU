@@ -81,6 +81,9 @@ fun HomePagerMaterial(
             verticalArrangement = Arrangement.spacedBy(13.dp)
         ) {
             HuskyLkmCard(state = state, actions = actions)
+            if (state.showOtaSlotCard) {
+                OtaSlotCard(actions = actions)
+            }
             if (state.checkUpdateEnabled) {
                 UpdateCard(state = state, actions = actions)
             }
@@ -257,6 +260,40 @@ private fun huskyReleaseSummary(body: String?): String? {
         ?.firstOrNull { it.isNotEmpty() && !it.startsWith("#") && !it.startsWith("```") }
         ?: return null
     return if (line.length <= 160) line else line.take(157).trimEnd() + "..."
+}
+
+@Composable
+private fun OtaSlotCard(actions: HomeActions) {
+    val confirmTitle = stringResource(R.string.husky_ota_slot_title)
+    val confirmText = stringResource(R.string.husky_ota_slot_confirm)
+    val dialog = rememberConfirmDialog(onConfirm = actions.onInstallInactiveSlot)
+    TonalCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = confirmTitle,
+                style = MaterialTheme.typography.titleMediumEmphasized,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.husky_ota_slot_summary),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = {
+                    dialog.showConfirm(
+                        title = confirmTitle,
+                        content = confirmText,
+                        confirm = stringResource(R.string.husky_ota_slot_action),
+                    )
+                },
+                modifier = Modifier.align(Alignment.End),
+            ) {
+                Text(stringResource(R.string.husky_ota_slot_action))
+            }
+        }
+    }
 }
 
 @Composable

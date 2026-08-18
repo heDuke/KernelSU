@@ -36,6 +36,7 @@ data class HomeUiState(
     val huskyRelease: HuskyRelease? = null,
     val huskyUpdateStatus: HuskyUpdateStatus = HuskyUpdateStatus.Idle,
     val huskyError: String? = null,
+    val isAbDevice: Boolean = false,
 ) {
     val isFullFeatured: Boolean
         get() = isManager && !requiresNewKernel && isRootAvailable
@@ -70,6 +71,9 @@ data class HomeUiState(
     val huskyBusy: Boolean
         get() = huskyUpdateStatus == HuskyUpdateStatus.Checking ||
             huskyUpdateStatus == HuskyUpdateStatus.Downloading
+
+    val showOtaSlotCard: Boolean
+        get() = isAbDevice && isFullFeatured
 }
 
 @Immutable
@@ -80,4 +84,5 @@ data class HomeActions(
     val onUpdateLkm: () -> Unit = {},
     val onDownloadLkmToDownloads: () -> Unit = {},
     val onOpenHuskyRelease: () -> Unit = {},
+    val onInstallInactiveSlot: () -> Unit = {},
 )

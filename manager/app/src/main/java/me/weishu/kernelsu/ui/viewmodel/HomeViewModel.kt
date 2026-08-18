@@ -32,6 +32,7 @@ import me.weishu.kernelsu.ui.screen.home.HuskyUpdateStatus
 import me.weishu.kernelsu.ui.screen.home.SystemInfo
 import me.weishu.kernelsu.ui.screen.home.getManagerVersion
 import me.weishu.kernelsu.ui.util.getSELinuxStatusRaw
+import me.weishu.kernelsu.ui.util.isAbDevice
 import me.weishu.kernelsu.ui.util.module.LatestVersionInfo
 import me.weishu.kernelsu.ui.util.resolveDeviceName
 import me.weishu.kernelsu.ui.util.rootAvailable
@@ -54,13 +55,16 @@ class HomeViewModel(
     fun refresh() {
         viewModelScope.launch {
             val previous = _uiState.value
-            val baseState = withContext(Dispatchers.IO) { buildState() }
+            val (baseState, abDevice) = withContext(Dispatchers.IO) {
+                buildState() to isAbDevice()
+            }
             _uiState.update {
                 baseState.copy(
                     huskyRelease = previous.huskyRelease,
                     huskyUpdateStatus = previous.huskyUpdateStatus,
                     huskyError = previous.huskyError,
                     latestVersionInfo = previous.latestVersionInfo,
+                    isAbDevice = abDevice,
                 )
             }
             if (baseState.checkUpdateEnabled && previous.huskyRelease == null) {

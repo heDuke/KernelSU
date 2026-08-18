@@ -87,6 +87,20 @@ fun HomePager(
         onUpdateLkm = viewModel::updateLkm,
         onDownloadLkmToDownloads = viewModel::downloadLkmToDownloads,
         onOpenHuskyRelease = { uriHandler.openUri(viewModel.openHuskyReleaseUrl()) },
+        onInstallInactiveSlot = {
+            val partition = null
+            navigator.push(
+                Route.Flash(
+                    FlashIt.FlashBoot(
+                        boot = null,
+                        lkm = LkmSelection.KmiNone,
+                        ota = true,
+                        partition = partition,
+                        allowShell = true,
+                    )
+                )
+            )
+        },
     )
 
     HomePagerMaterial(

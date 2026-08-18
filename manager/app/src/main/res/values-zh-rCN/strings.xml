@@ -314,4 +314,8 @@
     <string name="husky_open_release">打开发布页</string>
     <string name="husky_download_lkm">下载 LKM</string>
     <string name="husky_lkm_saved">已将 %s 保存到下载目录</string>
+    <string name="husky_ota_slot_title">系统更新之后</string>
+    <string name="husky_ota_slot_summary">将 KernelSU LKM 安装到非活动槽位，然后重启进入已更新的系统。</string>
+    <string name="husky_ota_slot_confirm">将向非活动 A/B 槽刷入 LKM。请确认系统 OTA 已安装完成后再继续。</string>
+    <string name="husky_ota_slot_action">安装到非活动槽</string>
 </resources>
