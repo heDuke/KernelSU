@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Fence
 import androidx.compose.material.icons.filled.FolderDelete
+import androidx.compose.material.icons.filled.HealthAndSafety
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.RemoveCircle
@@ -160,6 +161,7 @@ fun SettingPagerMaterial(
 
             val profileTemplate = stringResource(id = R.string.settings_profile_template)
             val moduleRepo = stringResource(id = R.string.settings_module_repo)
+            val envCheck = stringResource(id = R.string.env_check_title)
             val about = stringResource(id = R.string.settings_about)
             SegmentedColumn(
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 13.dp),
@@ -184,6 +186,20 @@ fun SettingPagerMaterial(
                         headlineContent = { Text(moduleRepo) },
                         supportingContent = { Text(stringResource(id = R.string.settings_module_repo_summary)) },
                         leadingContent = { Icon(Icons.Filled.Extension, moduleRepo) },
+                        trailingContent = {
+                            Icon(
+                                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                null
+                            )
+                        }
+                    )
+                }
+                item {
+                    SegmentedListItem(
+                        onClick = actions.onOpenEnvCheck,
+                        headlineContent = { Text(envCheck) },
+                        supportingContent = { Text(stringResource(id = R.string.env_check_summary)) },
+                        leadingContent = { Icon(Icons.Filled.HealthAndSafety, envCheck) },
                         trailingContent = {
                             Icon(
                                 Icons.AutoMirrored.Filled.KeyboardArrowRight,

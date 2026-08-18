@@ -64,6 +64,7 @@ data class SettingsScreenActions(
     val onSetDynamicColor: (Boolean) -> Unit,
     val onOpenProfileTemplate: () -> Unit,
     val onOpenModuleRepo: () -> Unit,
+    val onOpenEnvCheck: () -> Unit,
     val onSetSuCompatMode: (Int) -> Unit,
     val onSetKernelUmountEnabled: (Boolean) -> Unit,
     val onSetSelinuxHideEnabled: (Boolean) -> Unit,

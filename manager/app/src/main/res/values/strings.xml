@@ -390,4 +390,26 @@
     <string name="settings_section_danger">Danger zone</string>
     <string name="settings_module_repo">Module repository</string>
     <string name="settings_module_repo_summary">Browse and download community modules</string>
+
+    <string name="env_check_title">Environment check</string>
+    <string name="env_check_summary">Bootloader, integrity, LSPosed / Zygisk, and more</string>
+    <string name="env_check_retry">Run again</string>
+    <string name="env_check_copy">Copy report</string>
+    <string name="env_check_copied">Report copied</string>
+    <string name="env_check_all_good">No critical issues found</string>
+    <string name="env_check_overall_pass">Healthy</string>
+    <string name="env_check_overall_warn">Needs attention</string>
+    <string name="env_check_overall_fail">Issues found</string>
+    <string name="env_check_overall_unknown">Incomplete</string>
+    <string name="env_check_pass">Pass</string>
+    <string name="env_check_warn">Warn</string>
+    <string name="env_check_fail">Fail</string>
+    <string name="env_check_unknown">Unknown</string>
+    <string name="env_check_group_root">Root / KernelSU</string>
+    <string name="env_check_group_version">Versions / Husky</string>
+    <string name="env_check_group_boot">Bootloader / AVB</string>
+    <string name="env_check_group_integrity">Play Integrity</string>
+    <string name="env_check_group_modules">Modules / LSP</string>
+    <string name="env_check_group_system">System</string>
+
 </resources>

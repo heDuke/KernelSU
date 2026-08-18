@@ -379,4 +379,26 @@
     <string name="settings_section_danger">危险操作</string>
     <string name="settings_module_repo">模块仓库</string>
     <string name="settings_module_repo_summary">浏览并下载社区模块</string>
+
+    <string name="env_check_title">环境检测</string>
+    <string name="env_check_summary">Bootloader、完整性、LSPosed / Zygisk 等</string>
+    <string name="env_check_retry">重新检测</string>
+    <string name="env_check_copy">复制报告</string>
+    <string name="env_check_copied">报告已复制</string>
+    <string name="env_check_all_good">未发现严重问题</string>
+    <string name="env_check_overall_pass">健康</string>
+    <string name="env_check_overall_warn">需要注意</string>
+    <string name="env_check_overall_fail">发现问题</string>
+    <string name="env_check_overall_unknown">结果不完整</string>
+    <string name="env_check_pass">通过</string>
+    <string name="env_check_warn">警告</string>
+    <string name="env_check_fail">失败</string>
+    <string name="env_check_unknown">未知</string>
+    <string name="env_check_group_root">Root / KernelSU</string>
+    <string name="env_check_group_version">版本 / Husky</string>
+    <string name="env_check_group_boot">BL / 本地完整性</string>
+    <string name="env_check_group_integrity">Play Integrity</string>
+    <string name="env_check_group_modules">模块 / LSP</string>
+    <string name="env_check_group_system">系统</string>
+
 </resources>

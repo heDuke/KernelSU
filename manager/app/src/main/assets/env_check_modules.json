@@ -1,0 +1,23 @@
+{
+  "zygisk_ids": ["zygisksu", "zygisk_next", "zygisknext", "rezygisk"],
+  "zygisk_name_keywords": ["zygisknext", "zygisk next", "rezygisk"],
+  "lsposed_ids": ["lsposed", "org.lsposed.manager", "zygisk_lsposed"],
+  "lsposed_name_keywords": ["lsposed"],
+  "ssl_unpin_ids": [
+    "trustmealready",
+    "justtrustme",
+    "sslunpinning",
+    "sslkillswitch",
+    "disable_flag_secure"
+  ],
+  "ssl_unpin_name_keywords": [
+    "trustme",
+    "justtrust",
+    "ssl unpin",
+    "sslunpin",
+    "ssl kill",
+    "httpcanary",
+    "packet capture",
+    "mitm"
+  ]
+}
