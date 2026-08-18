@@ -130,6 +130,14 @@ internal enum class BadgeTone { Alert, Accent }
 @Immutable
 internal data class NavBadge(val count: Int, val tone: BadgeTone)
 
+/** Tab order must match Material bottom bar / pager indices. */
+enum class BottomBarDestination {
+    Home,
+    SuperUser,
+    Module,
+    Setting,
+}
+
 internal fun badgeFor(index: Int, state: NavigationBadgeState): NavBadge? = when (index) {
     BottomBarDestination.SuperUser.ordinal ->
         state.superuserCount.takeIf { it > 0 }?.let { NavBadge(it, BadgeTone.Accent) }
