@@ -18,6 +18,11 @@ on:
         required: false
         type: boolean
         default: false
+      manager_package:
+        description: 'Manager applicationId embedded in ksud (overrides use_pr_package when set)'
+        required: false
+        type: string
+        default: ''
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -60,9 +65,12 @@ jobs:
       env:
         ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
       run: |
-        if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ inputs.use_pr_package }}" = "true" ]; then
+        if [ -n "${{ inputs.manager_package }}" ]; then
+          export KSU_PACKAGE_NAME="${{ inputs.manager_package }}"
+        elif [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ inputs.use_pr_package }}" = "true" ]; then
           export KSU_PACKAGE_NAME="me.weishu.kernelsu.pr"
         fi
+        echo "KSU_PACKAGE_NAME=${KSU_PACKAGE_NAME:-default}"
         source .github/scripts/setup-rust-build.sh ${{ inputs.target }} 26
         cargo build --target $TRIPLE --release --manifest-path ./userspace/ksud/Cargo.toml
 

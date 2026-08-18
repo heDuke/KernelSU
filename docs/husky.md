@@ -1,23 +1,23 @@
-# Pixel 8 Pro (husky) — KernelSU LKM maintenance
+# HuskySU — Pixel 8 Pro (`husky`)
 
-Device-specific branch: **`husky-lkm`**.
+Device branch: **`husky-lkm`**.
 
-## What this branch provides
+| | |
+|--|--|
+| App | **HuskySU** |
+| Package | `me.weishu.kernelsu.husky.fork` |
+| KMI | `android14-6.1` |
+| Release assets | `HuskySU.apk`, `android14-6.1_kernelsu.ko` |
 
-- LKM only (`init_boot`), KMI **`android14-6.1`**
-- Streamlined CI: [Husky LKM Release](../.github/workflows/husky-release.yml) — no full KMI matrix
-- Self-signed Manager matching the built `.ko` certificate hash
+## Build / publish
 
-## Build
+GitHub → Actions → **Husky LKM Release** → Run workflow (`create_release` checked).
 
-GitHub → Actions → **Husky LKM Release** → Run workflow.
+Requires repository Secrets: `KEYSTORE`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`.
 
-Artifacts (`husky-release`):
+Produces a GitHub Release tagged `husky-v*`.
 
-- `android14-6.1_kernelsu.ko`
-- `KernelSU_husky_*.apk`
-
-## Flash (PC)
+## First-time flash (PC)
 
 Use stock `init_boot.img` from the **same** factory build as the phone.
 
@@ -34,12 +34,31 @@ fastboot flash init_boot_a husky_patched.img
 fastboot flash init_boot_b husky_patched.img
 fastboot reboot
 
-adb install -r KernelSU_husky_*.apk
+adb install -r HuskySU.apk
 adb shell su -c id   # expect uid=0
 ```
 
-## Notes
+Remove older KernelSU / `.pr` managers first (different package id).
 
-- After OTA, extract a new factory `init_boot` and re-patch.
-- Do not relock the bootloader while rooted.
-- Rollback: flash stock `init_boot` from the factory image.
+## Later updates
+
+Prefer **in-app** check against husky Releases (download `.ko` + flash via Manager when rooted).
+
+## Appearance
+
+Settings → Appearance:
+
+- Theme: system / light / dark
+- Dynamic color: off = husky seed `#1A73E8`; on = wallpaper colors
+
+## OTA
+
+After system OTA, use “install to inactive slot” (when available in Manager), then reboot — or re-patch a new factory `init_boot`.
+
+## Rollback
+
+Flash stock `init_boot` from the matching factory image.
+
+## Credits
+
+Based on [KernelSU](https://github.com/tiann/KernelSU). Full upstream thanks: [docs/README.md](README.md#credits) / [README_CN.md](README_CN.md#鸣谢).

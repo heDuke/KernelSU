@@ -1,7 +1,7 @@
-# Pixel 8 Pro (husky) streamlined release:
-# - android14-6.1 LKM only (no full KMI matrix)
-# - self-signed Manager matching that LKM cert hash
-# - ksud aarch64 + x86_64 android (for APK repack only)
+# HuskySU (Pixel 8 Pro) production release:
+# - android14-6.1 LKM only
+# - Manager package me.weishu.kernelsu.husky.fork (HuskySU)
+# - Signs with repo Secrets (KEYSTORE*) and publishes a GitHub Release
 name: Husky LKM Release
 
 on:
@@ -12,6 +12,11 @@ on:
         required: false
         default: '20260313'
         type: string
+      create_release:
+        description: 'Create/update GitHub Release husky-v*'
+        required: false
+        default: true
+        type: boolean
   push:
     branches: [husky-lkm]
     paths:
@@ -23,57 +28,76 @@ on:
       - 'kernel/**'
       - 'userspace/**'
       - 'repack_apk.py'
+      - 'docs/**'
+
+env:
+  HUSKY_PACKAGE: me.weishu.kernelsu.husky.fork
+  HUSKY_NAME: HuskySU
+
+permissions:
+  contents: write
 
 jobs:
-  generate-key:
+  prepare-signing:
     runs-on: ubuntu-latest
     outputs:
       expected_size: ${{ steps.extract.outputs.expected_size }}
       expected_hash: ${{ steps.extract.outputs.expected_hash }}
-      keystore: ${{ steps.gen.outputs.keystore }}
-      keystore_password: ${{ steps.gen.outputs.keystore_password }}
-      key_password: ${{ steps.gen.outputs.key_password }}
+      version_name: ${{ steps.ver.outputs.version_name }}
+      version_code: ${{ steps.ver.outputs.version_code }}
     steps:
-      - name: Generate temporary keystore
-        id: gen
-        run: |
-          KEYSTORE_PASSWORD=$(openssl rand -hex 32)
-          KEY_PASSWORD=$(openssl rand -hex 32)
-          echo "keystore_password=$KEYSTORE_PASSWORD" >> "$GITHUB_OUTPUT"
-          echo "key_password=$KEY_PASSWORD" >> "$GITHUB_OUTPUT"
-          keytool -genkeypair \
-            -alias pr-key \
-            -keyalg RSA -keysize 2048 \
-            -validity 3650 \
-            -storepass "$KEYSTORE_PASSWORD" \
-            -keypass "$KEY_PASSWORD" \
-            -dname "CN=KernelSU Husky" \
-            -storetype JKS \
-            -keystore pr-key.jks
-          echo "keystore=$(base64 -w 0 pr-key.jks)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
-      - name: Extract certificate hash and size
+      - name: Require production keystore secrets
+        env:
+          KEYSTORE: ${{ secrets.KEYSTORE }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE"
+          test -n "$KEYSTORE_PASSWORD"
+          test -n "$KEY_ALIAS"
+          test -n "$KEY_PASSWORD"
+
+      - name: Extract certificate size/hash
         id: extract
         env:
-          STORE_PASS: ${{ steps.gen.outputs.keystore_password }}
+          KEYSTORE: ${{ secrets.KEYSTORE }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
-          keytool -exportcert -alias pr-key -keystore pr-key.jks -storepass "$STORE_PASS" -file pr-cert.der
-          SIZE_DEC=$(stat -c%s pr-cert.der)
+          echo "$KEYSTORE" | base64 -d > huskysu.jks
+          keytool -exportcert -alias "$KEY_ALIAS" -keystore huskysu.jks \
+            -storepass "$KEYSTORE_PASSWORD" -file cert.der
+          SIZE_DEC=$(stat -c%s cert.der)
           SIZE_HEX=$(printf '0x%04x' "$SIZE_DEC")
-          HASH=$(sha256sum pr-cert.der | awk '{print $1}')
+          HASH=$(sha256sum cert.der | awk '{print $1}')
           echo "expected_size=$SIZE_HEX" >> "$GITHUB_OUTPUT"
           echo "expected_hash=$HASH" >> "$GITHUB_OUTPUT"
-          echo "Certificate size: $SIZE_HEX ($SIZE_DEC bytes)"
-          echo "Certificate hash: $HASH"
+          echo "size=$SIZE_HEX hash=$HASH"
+
+      - name: Read manager version
+        id: ver
+        run: |
+          # Matches manager/build.gradle.kts getVersionName/Code
+          COUNT=$(git rev-list --count HEAD)
+          VC=$((30000 + COUNT))
+          VN=$(git describe --tags --always)
+          echo "version_name=$VN" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VC" >> "$GITHUB_OUTPUT"
+          echo "version $VN ($VC)"
 
   build-lkm:
-    needs: generate-key
+    needs: prepare-signing
     uses: ./.github/workflows/ddk-lkm.yml
     with:
       kmi: android14-6.1
       ddk_release: ${{ inputs.ddk_release || '20260313' }}
-      expected_size2: ${{ needs.generate-key.outputs.expected_size }}
-      expected_hash2: ${{ needs.generate-key.outputs.expected_hash }}
+      expected_size2: ${{ needs.prepare-signing.outputs.expected_size }}
+      expected_hash2: ${{ needs.prepare-signing.outputs.expected_hash }}
 
   build-ksuinit:
     uses: ./.github/workflows/ksuinit.yml
@@ -90,10 +114,10 @@ jobs:
       target: ${{ matrix.target }}
       pack_lkm: true
       pack_ksuinit: true
-      use_pr_package: true
+      manager_package: me.weishu.kernelsu.husky.fork
 
   build-manager:
-    needs: [generate-key]
+    needs: [prepare-signing]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -103,38 +127,41 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Write husky signing key
+      - name: Write production signing key
         env:
-          PR_KEYSTORE: ${{ needs.generate-key.outputs.keystore }}
-          PR_KEYSTORE_PASSWORD: ${{ needs.generate-key.outputs.keystore_password }}
-          PR_KEY_PASSWORD: ${{ needs.generate-key.outputs.key_password }}
+          KEYSTORE: ${{ secrets.KEYSTORE }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          echo "$PR_KEYSTORE" | base64 -d > pr-key.jks
+          echo "$KEYSTORE" | base64 -d > huskysu.jks
           {
-            echo KEYSTORE_PASSWORD="$PR_KEYSTORE_PASSWORD"
-            echo KEY_ALIAS='pr-key'
-            echo KEY_PASSWORD="$PR_KEY_PASSWORD"
-            echo KEYSTORE_FILE='pr-key.jks'
+            echo KEYSTORE_PASSWORD="$KEYSTORE_PASSWORD"
+            echo KEY_ALIAS="$KEY_ALIAS"
+            echo KEY_PASSWORD="$KEY_PASSWORD"
+            echo KEYSTORE_FILE='huskysu.jks'
           } >> gradle.properties
 
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
-
       - uses: gradle/actions/setup-gradle@v6
       - uses: android-actions/setup-android@v4
 
-      - name: Assemble release (PR/husky package id)
-        run: ./gradlew clean assembleRelease -PIS_PR_BUILD=true
+      - name: Assemble HuskySU release
+        run: |
+          ./gradlew clean assembleRelease \
+            -PKSU_PACKAGE_NAME=me.weishu.kernelsu.husky.fork \
+            -PKSU_NAME=HuskySU
 
       - uses: actions/upload-artifact@v7
         with:
           name: manager-gradle
           path: manager/app/build/outputs/apk/release/*.apk
 
-  repack-manager:
-    needs: [build-manager, build-ksud, generate-key]
+  repack-and-release:
+    needs: [build-manager, build-ksud, prepare-signing]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -174,27 +201,61 @@ jobs:
           test -n "$KO"
           cp -f "$KO" dist-lkm/android14-6.1_kernelsu.ko
 
-      - name: Sign and repack
+      - name: Repack and sign HuskySU
         env:
-          PR_KEYSTORE: ${{ needs.generate-key.outputs.keystore }}
-          PR_KEYSTORE_PASSWORD: ${{ needs.generate-key.outputs.keystore_password }}
-          PR_KEY_PASSWORD: ${{ needs.generate-key.outputs.key_password }}
+          KEYSTORE: ${{ secrets.KEYSTORE }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          echo "$PR_KEYSTORE" | base64 -d > pr-key.jks
+          echo "$KEYSTORE" | base64 -d > huskysu.jks
           pip install -q protobuf
           python3 repack_apk.py repack \
             -b release -t release \
             -a arm64-v8a -a x86_64 \
-            -K pr-key.jks -A pr-key \
-            -P "$PR_KEYSTORE_PASSWORD" -S "$PR_KEY_PASSWORD" \
+            -K huskysu.jks -A "$KEY_ALIAS" \
+            -P "$KEYSTORE_PASSWORD" -S "$KEY_PASSWORD" \
             --strip
-          # Stable husky artifact names
           mkdir -p dist-husky
           APK=$(find dist -name '*.apk' | head -n 1)
-          cp -f "$APK" "dist-husky/KernelSU_husky_$(basename "$APK")"
+          cp -f "$APK" dist-husky/HuskySU.apk
           cp -f dist-lkm/android14-6.1_kernelsu.ko dist-husky/
+          ls -la dist-husky
 
       - uses: actions/upload-artifact@v7
         with:
           name: husky-release
           path: dist-husky/*
+
+      - name: Create GitHub Release
+        if: github.event_name == 'workflow_dispatch' && inputs.create_release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VN: ${{ needs.prepare-signing.outputs.version_name }}
+          VC: ${{ needs.prepare-signing.outputs.version_code }}
+        run: |
+          TAG="husky-v${VC}"
+          # Avoid collision on re-run
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            TAG="husky-v${VC}-${GITHUB_SHA::7}"
+          fi
+          TITLE="HuskySU ${VN} (${VC})"
+          BODY=$(cat <<EOF
+          ## HuskySU (Pixel 8 Pro / husky)
+
+          - App: **HuskySU**
+          - Package: \`me.weishu.kernelsu.husky.fork\`
+          - KMI: \`android14-6.1\`
+          - Assets: \`HuskySU.apk\`, \`android14-6.1_kernelsu.ko\`
+
+          Based on [KernelSU](https://github.com/tiann/KernelSU). See docs/README Credits.
+
+          Commit: \`${GITHUB_SHA}\`
+          EOF
+          )
+          gh release create "$TAG" \
+            dist-husky/HuskySU.apk \
+            dist-husky/android14-6.1_kernelsu.ko \
+            --title "$TITLE" \
+            --notes "$BODY"
+          echo "Released $TAG"
