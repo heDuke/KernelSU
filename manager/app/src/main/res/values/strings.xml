@@ -61,6 +61,9 @@
     <string name="module_sort_action_first">Action first</string>
     <string name="module_sort_enabled_first">Enabled first</string>
     <string name="module_repos">Repos</string>
+    <string name="module_repos_empty">No modules to show</string>
+    <string name="module_repos_no_releases">No releases</string>
+    <string name="module_repos_no_readme">No README</string>
     <string name="module_repos_sort_updated">Updated time</string>
     <string name="module_repos_sort_created">Created time</string>
     <string name="module_repos_sort_name">Name</string>

@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -41,12 +40,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.outlined.ChromeReaderMode
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Extension
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.InstallMobile
 import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.TravelExplore
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material.icons.rounded.Star
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
@@ -99,7 +101,11 @@ import me.weishu.kernelsu.ui.component.ScrollToTopOnChange
 import me.weishu.kernelsu.ui.component.dialog.ConfirmDialogHandle
 import me.weishu.kernelsu.ui.component.dialog.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.markdown.GithubMarkdown
+import me.weishu.kernelsu.ui.component.material.ExpressiveHeroCard
+import me.weishu.kernelsu.ui.component.material.ExpressiveNoticeCard
+import me.weishu.kernelsu.ui.component.material.ExpressivePrimaryBar
 import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
+import me.weishu.kernelsu.ui.component.material.ExpressiveSectionTitle
 import me.weishu.kernelsu.ui.component.material.ExpressiveTabRow
 import me.weishu.kernelsu.ui.component.material.SearchAppBar
 import me.weishu.kernelsu.ui.component.material.SegmentedColumn
@@ -196,6 +202,7 @@ fun ModuleRepoScreenMaterial(
                         modules = state.searchResults,
                         listState = searchListState,
                         modifier = Modifier.fillMaxSize(),
+                        empty = state.searchStatus.searchText.isNotEmpty(),
                         onModuleClick = {
                             closeSearch()
                             actions.onOpenRepoDetail(it)
@@ -206,33 +213,31 @@ fun ModuleRepoScreenMaterial(
         },
         contentWindowInsets = WindowInsets.systemBars.add(WindowInsets.displayCutout).only(WindowInsetsSides.Horizontal)
     ) { innerPadding ->
-        val isLoading = state.modules.isEmpty()
+        val isEmpty = state.modules.isEmpty()
         val hadDataOnEntry = remember { state.modules.isNotEmpty() }
         val contentReady = hadDataOnEntry || rememberContentReady()
+        val showStatus = isEmpty && (state.offline || state.error != null || (contentReady && !state.isRefreshing))
+        val showSpinner = isEmpty && !showStatus
 
-        if (!contentReady || isLoading) {
+        if (showSpinner) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding),
                 contentAlignment = Alignment.Center
             ) {
-                if (state.offline) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = stringResource(R.string.network_offline), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Spacer(Modifier.height(12.dp))
-                        Button(
-                            onClick = actions.onRefresh,
-                        ) {
-                            Text(stringResource(R.string.network_retry))
-                        }
-                    }
-                } else {
-                    LoadingIndicator()
-                }
+                LoadingIndicator()
             }
+        } else if (isEmpty) {
+            RepoListStatusPane(
+                state = state,
+                onRetry = actions.onRefresh,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+            )
         }
-        if (!isLoading && contentReady) {
+        if (!isEmpty && contentReady) {
             val latestModules = rememberUpdatedState(state.modules)
             val latestRefreshing = rememberUpdatedState(state.isRefreshing)
             ScrollToTopOnChange(
@@ -274,11 +279,66 @@ fun ModuleRepoScreenMaterial(
 }
 
 @Composable
+private fun RepoListStatusPane(
+    state: ModuleRepoUiState,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier.padding(16.dp),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        when {
+            state.offline -> {
+                ExpressiveNoticeCard(
+                    message = stringResource(R.string.network_offline),
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    icon = Icons.Outlined.CloudOff,
+                    action = {
+                        ExpressivePrimaryBar(
+                            label = stringResource(R.string.network_retry),
+                            onClick = onRetry,
+                            enabled = !state.isRefreshing,
+                        )
+                    },
+                )
+            }
+
+            state.error != null -> {
+                ExpressiveNoticeCard(
+                    message = state.error.localizedMessage
+                        ?.takeIf { it.isNotBlank() }
+                        ?: stringResource(R.string.network_offline),
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    icon = Icons.Outlined.Warning,
+                    action = {
+                        ExpressivePrimaryBar(
+                            label = stringResource(R.string.network_retry),
+                            onClick = onRetry,
+                            enabled = !state.isRefreshing,
+                        )
+                    },
+                )
+            }
+
+            else -> {
+                ExpressiveHeroCard(
+                    title = stringResource(R.string.module_repos),
+                    summary = stringResource(R.string.module_repos_empty),
+                    icon = Icons.Outlined.TravelExplore,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun RepoModuleList(
     modules: List<RepoModule>,
     listState: LazyListState,
     modifier: Modifier = Modifier,
     bottomPadding: Dp = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding(),
+    empty: Boolean = false,
     onModuleClick: (RepoModule) -> Unit,
 ) {
     LazyColumn(
@@ -291,18 +351,28 @@ private fun RepoModuleList(
             bottom = 16.dp + bottomPadding
         ),
     ) {
+        if (empty && modules.isEmpty()) {
+            item(key = "repo_search_empty", contentType = "empty") {
+                ExpressiveHeroCard(
+                    title = stringResource(R.string.module_repos),
+                    summary = stringResource(R.string.module_repos_empty),
+                    icon = Icons.Outlined.TravelExplore,
+                )
+            }
+        }
         items(modules, key = { it.moduleId }, contentType = { "module" }) { module ->
             val latestReleaseTime = remember(module.latestReleaseTime) { module.latestReleaseTime }
             val moduleAuthor = stringResource(id = R.string.module_author)
 
             TonalCard(
                 modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.extraLarge,
                 onClick = { onModuleClick(module) }
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp, 14.dp, 16.dp, 10.dp)
+                        .padding(20.dp, 16.dp, 20.dp, 12.dp)
                 ) {
                     if (module.moduleName.isNotEmpty()) {
                         Text(
@@ -427,19 +497,45 @@ fun ModuleRepoDetailScreenMaterial(
             stringResource(R.string.tab_info)
         )
         val pagerState = rememberPagerState(initialPage = 0, pageCount = { tabs.size })
-        val layoutDirection = LocalLayoutDirection.current
-        Box(modifier = Modifier.fillMaxSize()) {
+        val versionLabel = stringResource(R.string.module_version)
+        val authorLabel = stringResource(R.string.module_author)
+        val heroSummary = remember(module.latestRelease, module.authors, versionLabel, authorLabel) {
+            listOfNotNull(
+                module.latestRelease.takeIf { it.isNotBlank() }?.let { "$versionLabel: $it" },
+                module.authors.takeIf { it.isNotBlank() }?.let { "$authorLabel: $it" },
+            ).joinToString("\n").ifBlank { null }
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+        ) {
+            ExpressiveHeroCard(
+                title = module.moduleName.ifBlank { module.moduleId },
+                summary = heroSummary,
+                icon = Icons.Outlined.Extension,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
+            )
+            ExpressiveTabRow(
+                selectedTabIndex = pagerState.currentPage,
+                tabs = tabs,
+                onTabClick = { scope.launch {
+                    pagerState.animateScrollToPage(
+                        page = it,
+                        animationSpec = PagerNavigationSpringSpec,
+                    )
+                } },
+            )
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
                 overscrollEffect = null,
             ) { page ->
                 val paddedInnerPadding = PaddingValues(
-                    top = innerPadding.calculateTopPadding() + 56.dp + 8.dp,
-                    start = innerPadding.calculateStartPadding(layoutDirection),
-                    end = innerPadding.calculateEndPadding(layoutDirection),
-                    bottom = innerPadding.calculateBottomPadding()
-                            + WindowInsets.systemBars.asPaddingValues().calculateBottomPadding() + 16.dp
+                    top = 8.dp,
+                    bottom = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding() + 16.dp
                 )
                 when (page) {
                     0 -> ReadmePage(
@@ -451,6 +547,7 @@ fun ModuleRepoDetailScreenMaterial(
 
                     1 -> ReleasesPage(
                         detailReleases = state.detailReleases,
+                        releasesLoaded = state.readmeLoaded,
                         innerPadding = paddedInnerPadding,
                         scrollBehavior = scrollBehavior,
                         confirmTitle = confirmTitle,
@@ -472,17 +569,6 @@ fun ModuleRepoDetailScreenMaterial(
                     )
                 }
             }
-            ExpressiveTabRow(
-                selectedTabIndex = pagerState.currentPage,
-                tabs = tabs,
-                onTabClick = { scope.launch {
-                    pagerState.animateScrollToPage(
-                        page = it,
-                        animationSpec = PagerNavigationSpringSpec,
-                    )
-                } },
-                modifier = Modifier.padding(top = innerPadding.calculateTopPadding()),
-            )
         }
     }
 }
@@ -539,6 +625,18 @@ private fun ReadmePage(
                         }
                     }
                 }
+            } else if (readmeLoaded) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                ) {
+                    ExpressiveNoticeCard(
+                        message = stringResource(R.string.module_repos_no_readme),
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        icon = Icons.Outlined.Info,
+                    )
+                }
             } else {
                 Box(
                     modifier = Modifier.fillParentMaxSize(),
@@ -555,6 +653,7 @@ private fun ReadmePage(
 @Composable
 fun ReleasesPage(
     detailReleases: List<ReleaseArg>,
+    releasesLoaded: Boolean,
     innerPadding: PaddingValues,
     scrollBehavior: TopAppBarScrollBehavior,
     confirmTitle: String,
@@ -577,12 +676,36 @@ fun ReleasesPage(
         ),
         verticalArrangement = Arrangement.spacedBy(13.dp),
     ) {
-        if (detailReleases.isNotEmpty()) {
-            items(
-                items = detailReleases,
-                key = { it.tagName },
-                contentType = { "release" }
-            ) { rel ->
+        when {
+            !releasesLoaded -> {
+                item(key = "releases_loading", contentType = "loading") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(160.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        LoadingIndicator()
+                    }
+                }
+            }
+
+            detailReleases.isEmpty() -> {
+                item(key = "releases_empty", contentType = "empty") {
+                    ExpressiveNoticeCard(
+                        message = stringResource(R.string.module_repos_no_releases),
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        icon = Icons.Outlined.Info,
+                    )
+                }
+            }
+
+            else -> {
+                items(
+                    items = detailReleases,
+                    key = { it.tagName },
+                    contentType = { "release" }
+                ) { rel ->
                 val title = remember(rel.name, rel.tagName) { rel.name.ifBlank { rel.tagName } }
                 SegmentedColumn(
                     modifier = Modifier.fillMaxWidth(),
@@ -660,6 +783,7 @@ fun ReleasesPage(
                     }
                 )
             }
+            }
         }
     }
 }
@@ -713,14 +837,43 @@ private fun ReleaseAssetSegmentedItem(
         }
     }
 
-    SegmentedListItem(
-        headlineContent = { Text(text = fileName) },
-        supportingContent = { Text(text = sizeAndDownloads) },
-        trailingContent = {
-            if (isDownloaded) {
+    SegmentedItemContainer {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp, 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = fileName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = sizeAndDownloads,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (isDownloading) {
                 FilledTonalButton(
+                    onClick = {},
+                    enabled = false,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                ) {
+                    CircularWavyProgressIndicator(
+                        progress = { progress / 100f },
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+            } else if (isDownloaded) {
+                ExpressivePrimaryBar(
+                    label = stringResource(R.string.install),
                     onClick = {
-                        val uri = downloadedUri ?: return@FilledTonalButton
+                        val uri = downloadedUri ?: return@ExpressivePrimaryBar
                         val file = uri.path?.let { java.io.File(it) }
                         if (file != null && file.exists()) {
                             onInstallModule(uri)
@@ -728,46 +881,18 @@ private fun ReleaseAssetSegmentedItem(
                             downloadedUri = null
                         }
                     },
-                    contentPadding = ButtonDefaults.TextButtonContentPadding
-                ) {
-                    Icon(
-                        modifier = Modifier.size(20.dp),
-                        imageVector = Icons.Outlined.InstallMobile,
-                        contentDescription = stringResource(R.string.install)
-                    )
-                    Text(
-                        modifier = Modifier.padding(start = 7.dp),
-                        text = stringResource(R.string.install),
-                        style = MaterialTheme.typography.labelMedium,
-                    )
-                }
+                    icon = Icons.Outlined.InstallMobile,
+                )
             } else {
-                FilledTonalButton(
+                ExpressivePrimaryBar(
+                    label = stringResource(R.string.download),
                     onClick = onClickDownload,
-                    enabled = !isDownloading,
-                    contentPadding = ButtonDefaults.TextButtonContentPadding
-                ) {
-                    if (isDownloading) {
-                        CircularWavyProgressIndicator(
-                            progress = { progress / 100f },
-                            modifier = Modifier.size(20.dp),
-                        )
-                    } else {
-                        Icon(
-                            modifier = Modifier.size(20.dp),
-                            imageVector = Icons.Outlined.Download,
-                            contentDescription = stringResource(R.string.download)
-                        )
-                        Text(
-                            modifier = Modifier.padding(start = 7.dp),
-                            text = stringResource(R.string.download),
-                            style = MaterialTheme.typography.labelMedium,
-                        )
-                    }
-                }
+                    tonal = true,
+                    icon = Icons.Outlined.Download,
+                )
             }
-        },
-    )
+        }
+    }
 }
 
 @Composable
@@ -785,81 +910,75 @@ fun InfoPage(
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         contentPadding = PaddingValues(
             top = innerPadding.calculateTopPadding(),
-            start = innerPadding.calculateStartPadding(layoutDirection),
-            end = innerPadding.calculateEndPadding(layoutDirection),
+            start = innerPadding.calculateStartPadding(layoutDirection) + 16.dp,
+            end = innerPadding.calculateEndPadding(layoutDirection) + 16.dp,
             bottom = innerPadding.calculateBottomPadding(),
         ),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         if (module.authorsList.isNotEmpty()) {
-            item {
-                SegmentedColumn(
-                    title = stringResource(R.string.module_author),
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .padding(bottom = 8.dp),
-                    content = module.authorsList.map { author ->
-                        {
-                            SegmentedListItem(
-                                headlineContent = {
+            item(key = "authors") {
+                Column {
+                    ExpressiveSectionTitle(title = stringResource(R.string.module_author))
+                    TonalCard(
+                        shape = MaterialTheme.shapes.extraLarge,
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            module.authorsList.forEach { author ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
                                     Text(
                                         text = author.name,
-                                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                                        lineHeight = MaterialTheme.typography.bodyMedium.lineHeight,
-                                        fontFamily = MaterialTheme.typography.bodyMedium.fontFamily
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.weight(1f),
                                     )
-                                },
-                                trailingContent = {
-                                    FilledTonalButton(
-                                        modifier = Modifier.defaultMinSize(52.dp, 32.dp),
-                                        onClick = { uriHandler.openUri(author.link) },
-                                        contentPadding = ButtonDefaults.TextButtonContentPadding
-                                    ) {
+                                    IconButton(onClick = { uriHandler.openUri(author.link) }) {
                                         Icon(
-                                            modifier = Modifier.size(20.dp),
                                             imageVector = Icons.Outlined.Link,
-                                            contentDescription = null
+                                            contentDescription = stringResource(R.string.open),
                                         )
                                     }
                                 }
-                            )
+                            }
                         }
                     }
-                )
+                }
             }
         }
         if (sourceUrl.isNotEmpty()) {
-            item {
-                SegmentedColumn(
-                    title = stringResource(R.string.module_repos_source_code),
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    content = listOf(
-                        {
-                            SegmentedListItem(
-                                headlineContent = {
-                                    Text(
-                                        text = sourceUrl,
-                                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                                        lineHeight = MaterialTheme.typography.bodyMedium.lineHeight,
-                                        fontFamily = MaterialTheme.typography.bodyMedium.fontFamily
-                                    )
-                                },
-                                trailingContent = {
-                                    FilledTonalButton(
-                                        modifier = Modifier.defaultMinSize(52.dp, 32.dp),
-                                        onClick = { uriHandler.openUri(sourceUrl) },
-                                        contentPadding = ButtonDefaults.TextButtonContentPadding
-                                    ) {
-                                        Icon(
-                                            modifier = Modifier.size(20.dp),
-                                            imageVector = Icons.Outlined.Link,
-                                            contentDescription = null
-                                        )
-                                    }
-                                }
+            item(key = "source") {
+                Column {
+                    ExpressiveSectionTitle(title = stringResource(R.string.module_repos_source_code))
+                    TonalCard(
+                        shape = MaterialTheme.shapes.extraLarge,
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Text(
+                                text = sourceUrl,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                            ExpressivePrimaryBar(
+                                label = stringResource(R.string.open),
+                                onClick = { uriHandler.openUri(sourceUrl) },
+                                tonal = true,
+                                icon = Icons.Outlined.Link,
                             )
                         }
-                    )
-                )
+                    }
+                }
             }
         }
     }
