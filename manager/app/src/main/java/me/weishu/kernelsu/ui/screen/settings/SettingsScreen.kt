@@ -29,6 +29,7 @@ fun SettingPager(
         onSetThemeMode = viewModel::setThemeMode,
         onSetDynamicColor = viewModel::setDynamicColor,
         onOpenProfileTemplate = { navigator.push(Route.AppProfileTemplate) },
+        onOpenModuleRepo = { navigator.push(Route.ModuleRepo) },
         onSetSuCompatMode = viewModel::setSuCompatMode,
         onSetKernelUmountEnabled = viewModel::setKernelUmountEnabled,
         onSetSelinuxHideEnabled = viewModel::setSelinuxHideEnabled,
