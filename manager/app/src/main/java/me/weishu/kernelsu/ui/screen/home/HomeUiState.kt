@@ -2,6 +2,7 @@ package me.weishu.kernelsu.ui.screen.home
 
 import androidx.compose.runtime.Immutable
 import me.weishu.kernelsu.KernelVersion
+import me.weishu.kernelsu.data.model.EnvCheckSeverity
 import me.weishu.kernelsu.data.model.HuskyRelease
 import me.weishu.kernelsu.ui.util.module.LatestVersionInfo
 
@@ -37,6 +38,8 @@ data class HomeUiState(
     val huskyUpdateStatus: HuskyUpdateStatus = HuskyUpdateStatus.Idle,
     val huskyError: String? = null,
     val isAbDevice: Boolean = false,
+    val envOverall: EnvCheckSeverity? = null,
+    val envSummaryLine: String? = null,
 ) {
     val isFullFeatured: Boolean
         get() = isManager && !requiresNewKernel && isRootAvailable
@@ -74,6 +77,9 @@ data class HomeUiState(
 
     val showOtaSlotCard: Boolean
         get() = isAbDevice && isFullFeatured
+
+    val envAlignAvailable: Boolean
+        get() = huskyUpdateStatus == HuskyUpdateStatus.Available && canDirectInstallLkm
 }
 
 @Immutable
@@ -85,4 +91,6 @@ data class HomeActions(
     val onDownloadLkmToDownloads: () -> Unit = {},
     val onOpenHuskyRelease: () -> Unit = {},
     val onInstallInactiveSlot: () -> Unit = {},
+    val onOpenEnvCheck: () -> Unit = {},
+    val onAlignEnvironment: () -> Unit = {},
 )

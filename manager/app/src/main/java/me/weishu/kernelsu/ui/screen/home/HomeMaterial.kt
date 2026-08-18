@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.HealthAndSafety
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.SystemUpdateAlt
@@ -52,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import me.weishu.kernelsu.KernelVersion
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.data.model.EnvCheckSeverity
 import me.weishu.kernelsu.ui.component.WarningLevel
 import me.weishu.kernelsu.ui.component.dialog.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.material.ExpressiveHeroCard
@@ -88,6 +90,7 @@ fun HomePagerMaterial(
                 state = state,
                 actions = actions,
             )
+            EnvSummaryCard(state = state, actions = actions)
             HuskyUpdateCard(state = state, actions = actions)
             if (state.checkUpdateEnabled) {
                 UpdateCard(state = state, actions = actions)
@@ -474,6 +477,57 @@ private fun StatusCard(
 }
 
 @Composable
+private fun EnvSummaryCard(
+    state: HomeUiState,
+    actions: HomeActions,
+) {
+    val overall = state.envOverall
+    val containerColor = when (overall) {
+        EnvCheckSeverity.Pass -> MaterialTheme.colorScheme.secondaryContainer
+        EnvCheckSeverity.Warn -> MaterialTheme.colorScheme.tertiaryContainer
+        EnvCheckSeverity.Fail -> MaterialTheme.colorScheme.errorContainer
+        EnvCheckSeverity.Unknown, null -> MaterialTheme.colorScheme.surfaceBright
+    }
+    val title = when (overall) {
+        EnvCheckSeverity.Pass -> stringResource(R.string.env_check_overall_pass)
+        EnvCheckSeverity.Warn -> stringResource(R.string.env_check_overall_warn)
+        EnvCheckSeverity.Fail -> stringResource(R.string.env_check_overall_fail)
+        EnvCheckSeverity.Unknown, null -> stringResource(R.string.env_check_overall_unknown)
+    }
+    val summary = state.envSummaryLine ?: when (overall) {
+        null -> stringResource(R.string.env_check_summary)
+        EnvCheckSeverity.Pass -> stringResource(R.string.env_check_all_good)
+        else -> stringResource(R.string.env_check_overall_unknown)
+    }
+
+    ExpressiveHeroCard(
+        title = title,
+        summary = summary,
+        icon = Icons.Outlined.HealthAndSafety,
+        containerColor = containerColor,
+        onClick = actions.onOpenEnvCheck,
+        footer = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (state.envAlignAvailable) {
+                    ExpressivePrimaryBar(
+                        label = stringResource(R.string.home_env_align),
+                        onClick = actions.onAlignEnvironment,
+                        enabled = !state.huskyBusy,
+                        icon = Icons.Outlined.SystemUpdateAlt,
+                    )
+                }
+                ExpressivePrimaryBar(
+                    label = stringResource(R.string.home_env_open_detail),
+                    onClick = actions.onOpenEnvCheck,
+                    tonal = true,
+                    icon = Icons.Outlined.OpenInNew,
+                )
+            }
+        },
+    )
+}
+
+@Composable
 private fun WarningCard(
     message: String,
     level: WarningLevel = WarningLevel.Error,
@@ -653,6 +707,7 @@ private fun HomeScreenPreviewContent(
                 state = state,
                 actions = actions
             )
+            EnvSummaryCard(state = state, actions = actions)
             HuskyUpdateCard(state = state, actions = actions)
             InfoCard(previewSystemInfo.copy(selinuxStatus = selinuxStatus))
         }
@@ -707,5 +762,12 @@ private fun previewHomeScreenState(
     systemInfo = previewSystemInfo.copy(selinuxStatus = selinuxStatus),
     kernelUAPIVersion = 1,
     managerUAPIVersion = 1,
-    uapiMismatch = false
+    uapiMismatch = false,
+    huskyUpdateStatus = if (ksuVersion != null) HuskyUpdateStatus.Available else HuskyUpdateStatus.Idle,
+    envOverall = if (ksuVersion != null) EnvCheckSeverity.Warn else EnvCheckSeverity.Unknown,
+    envSummaryLine = if (ksuVersion != null) {
+        "Husky LKM release: Update available: v1.0.0"
+    } else {
+        null
+    },
 )

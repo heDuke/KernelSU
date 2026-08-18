@@ -9,11 +9,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.dialog.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.dialog.rememberLoadingDialog
 import me.weishu.kernelsu.ui.navigation3.Navigator
 import me.weishu.kernelsu.ui.navigation3.Route
@@ -80,6 +83,13 @@ fun HomePager(
         }
     }
 
+    val alignConfirmTitle = stringResource(R.string.husky_update_lkm)
+    val alignConfirmText = stringResource(
+        R.string.husky_update_confirm,
+        uiState.huskyRelease?.tag ?: "",
+    )
+    val alignDialog = rememberConfirmDialog(onConfirm = viewModel::updateLkm)
+
     val actions = HomeActions(
         onInstallClick = { navigator.push(Route.Install) },
         onOpenUrl = uriHandler::openUri,
@@ -87,6 +97,18 @@ fun HomePager(
         onUpdateLkm = viewModel::updateLkm,
         onDownloadLkmToDownloads = viewModel::downloadLkmToDownloads,
         onOpenHuskyRelease = { uriHandler.openUri(viewModel.openHuskyReleaseUrl()) },
+        onOpenEnvCheck = { navigator.push(Route.EnvCheck) },
+        onAlignEnvironment = {
+            if (uiState.envAlignAvailable) {
+                alignDialog.showConfirm(
+                    title = alignConfirmTitle,
+                    content = alignConfirmText,
+                    confirm = alignConfirmTitle,
+                )
+            } else {
+                viewModel.checkHuskyUpdate()
+            }
+        },
         onInstallInactiveSlot = {
             val partition = null
             navigator.push(

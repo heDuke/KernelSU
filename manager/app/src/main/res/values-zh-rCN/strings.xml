@@ -390,6 +390,8 @@
     <string name="env_check_overall_warn">需要注意</string>
     <string name="env_check_overall_fail">发现问题</string>
     <string name="env_check_overall_unknown">结果不完整</string>
+    <string name="home_env_align">一键对齐/更新 LKM</string>
+    <string name="home_env_open_detail">查看详情</string>
     <string name="env_check_pass">通过</string>
     <string name="env_check_warn">警告</string>
     <string name="env_check_fail">失败</string>

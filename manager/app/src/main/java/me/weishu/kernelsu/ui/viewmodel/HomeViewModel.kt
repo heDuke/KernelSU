@@ -20,7 +20,10 @@ import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.BuildConfig
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.data.model.EnvCheckSeverity
 import me.weishu.kernelsu.data.model.HuskyRelease
+import me.weishu.kernelsu.data.repository.EnvCheckRepository
+import me.weishu.kernelsu.data.repository.EnvCheckRepositoryImpl
 import me.weishu.kernelsu.data.repository.HuskyReleaseRepository
 import me.weishu.kernelsu.data.repository.HuskyReleaseRepositoryImpl
 import me.weishu.kernelsu.data.repository.SettingsRepository
@@ -41,6 +44,7 @@ import java.io.File
 class HomeViewModel(
     private val settingsRepo: SettingsRepository = SettingsRepositoryImpl(),
     private val huskyRepo: HuskyReleaseRepository = HuskyReleaseRepositoryImpl(),
+    private val envCheckRepo: EnvCheckRepository = EnvCheckRepositoryImpl(),
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(buildState())
@@ -65,11 +69,38 @@ class HomeViewModel(
                     huskyError = previous.huskyError,
                     latestVersionInfo = previous.latestVersionInfo,
                     isAbDevice = abDevice,
+                    envOverall = previous.envOverall,
+                    envSummaryLine = previous.envSummaryLine,
                 )
             }
             if (baseState.checkUpdateEnabled && previous.huskyRelease == null) {
                 checkHuskyRelease()
             }
+        }
+        refreshEnvSummary()
+    }
+
+    private fun refreshEnvSummary() {
+        viewModelScope.launch {
+            envCheckRepo.runCheck().fold(
+                onSuccess = { report ->
+                    val summary = report.worstItem?.let { "${it.title}: ${it.detail}" }
+                    _uiState.update {
+                        it.copy(
+                            envOverall = report.overall,
+                            envSummaryLine = summary,
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.update {
+                        it.copy(
+                            envOverall = EnvCheckSeverity.Unknown,
+                            envSummaryLine = error.message,
+                        )
+                    }
+                },
+            )
         }
     }
 

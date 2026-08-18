@@ -401,6 +401,8 @@
     <string name="env_check_overall_warn">Needs attention</string>
     <string name="env_check_overall_fail">Issues found</string>
     <string name="env_check_overall_unknown">Incomplete</string>
+    <string name="home_env_align">Align / update LKM</string>
+    <string name="home_env_open_detail">View details</string>
     <string name="env_check_pass">Pass</string>
     <string name="env_check_warn">Warn</string>
     <string name="env_check_fail">Fail</string>
