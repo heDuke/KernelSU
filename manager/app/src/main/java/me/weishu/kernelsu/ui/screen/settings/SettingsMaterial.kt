@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Fence
 import androidx.compose.material.icons.filled.FolderDelete
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Policy
+import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material.icons.filled.RemoveCircle
 import androidx.compose.material.icons.filled.RemoveModerator
 import androidx.compose.material.icons.filled.RestartAlt
@@ -117,22 +118,34 @@ fun SettingPagerMaterial(
                 )
             }
 
+            val themeModeItems = listOf(
+                stringResource(id = R.string.settings_theme_mode_system),
+                stringResource(id = R.string.settings_theme_mode_light),
+                stringResource(id = R.string.settings_theme_mode_dark),
+            )
             SegmentedColumn(
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 13.dp),
-                content = listOf {
-                    SegmentedListItem(
-                        onClick = actions.onOpenTheme,
-                        headlineContent = { Text(stringResource(id = R.string.settings_theme)) },
-                        supportingContent = { Text(stringResource(id = R.string.settings_theme_summary)) },
-                        leadingContent = { Icon(Icons.Filled.Palette, stringResource(id = R.string.settings_theme)) },
-                        trailingContent = {
-                            Icon(
-                                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                null
-                            )
-                        }
-                    )
-                }
+                content = listOf(
+                    {
+                        SegmentedDropdownItem(
+                            icon = Icons.Filled.Palette,
+                            title = stringResource(id = R.string.settings_theme),
+                            summary = stringResource(id = R.string.settings_theme_summary),
+                            items = themeModeItems,
+                            selectedIndex = uiState.themeMode.coerceIn(0, themeModeItems.lastIndex),
+                            onItemSelected = actions.onSetThemeMode
+                        )
+                    },
+                    {
+                        SegmentedSwitchItem(
+                            icon = Icons.Filled.Wallpaper,
+                            title = stringResource(id = R.string.settings_dynamic_color),
+                            summary = stringResource(id = R.string.settings_dynamic_color_summary),
+                            checked = uiState.dynamicColor,
+                            onCheckedChange = actions.onSetDynamicColor
+                        )
+                    }
+                )
             )
 
             val profileTemplate = stringResource(id = R.string.settings_profile_template)

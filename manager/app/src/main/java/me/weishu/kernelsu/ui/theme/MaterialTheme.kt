@@ -19,13 +19,12 @@ fun MaterialKernelSUTheme(
     val context = LocalContext.current
     val systemDarkTheme = isSystemInDarkTheme()
     val darkTheme = appSettings.colorMode.isDark || (appSettings.colorMode.isSystem && systemDarkTheme)
-    val amoledMode = appSettings.colorMode.isAmoled
     val dynamicColor = appSettings.keyColor == 0
 
     val colorScheme = rememberKernelSUColorScheme(
         seedColor = if (dynamicColor) Color.Unspecified else Color(appSettings.keyColor),
         isDark = darkTheme,
-        isAmoled = amoledMode,
+        isAmoled = false,
         paletteStyle = appSettings.paletteStyle,
         colorSpec = appSettings.colorSpec,
     )

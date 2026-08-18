@@ -12,6 +12,7 @@ data class SettingsUiState(
     val checkUpdate: Boolean = true,
     val checkModuleUpdate: Boolean = true,
     val themeMode: Int = 0,
+    val dynamicColor: Boolean = false,
     val miuixMonet: Boolean = false,
     val keyColor: Int = HuskySeedColorArgb,
     val colorStyle: String = PaletteStyle.TonalSpot.name,
@@ -62,7 +63,8 @@ data class SettingsUiState(
 data class SettingsScreenActions(
     val onSetCheckUpdate: (Boolean) -> Unit,
     val onSetCheckModuleUpdate: (Boolean) -> Unit,
-    val onOpenTheme: () -> Unit,
+    val onSetThemeMode: (Int) -> Unit,
+    val onSetDynamicColor: (Boolean) -> Unit,
     val onOpenProfileTemplate: () -> Unit,
     val onSetSuCompatMode: (Int) -> Unit,
     val onSetKernelUmountEnabled: (Boolean) -> Unit,

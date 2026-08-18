@@ -26,7 +26,8 @@ fun SettingPager(
     val actions = SettingsScreenActions(
         onSetCheckUpdate = viewModel::setCheckUpdate,
         onSetCheckModuleUpdate = viewModel::setCheckModuleUpdate,
-        onOpenTheme = { navigator.push(Route.ColorPalette) },
+        onSetThemeMode = viewModel::setThemeMode,
+        onSetDynamicColor = viewModel::setDynamicColor,
         onOpenProfileTemplate = { navigator.push(Route.AppProfileTemplate) },
         onSetSuCompatMode = viewModel::setSuCompatMode,
         onSetKernelUmountEnabled = viewModel::setKernelUmountEnabled,

@@ -186,10 +186,12 @@
     <string name="module_undo_uninstall_failed">撤销卸载 %s 失败</string>
     <string name="group_contains_apps">包含 %d 个应用</string>
     <string name="settings_theme">主题设置</string>
-    <string name="settings_theme_summary">自定义更多主题选项</string>
+    <string name="settings_theme_summary">选择浅色、深色或跟随系统</string>
     <string name="settings_theme_mode_system">跟随系统</string>
     <string name="settings_theme_mode_light">浅色</string>
     <string name="settings_theme_mode_dark">深色</string>
+    <string name="settings_dynamic_color">动态取色</string>
+    <string name="settings_dynamic_color_summary">开启后使用壁纸颜色，关闭后使用 Husky 蓝</string>
     <string name="settings_monet">启用 Monet 颜色</string>
     <string name="settings_key_color">强调色</string>
     <string name="settings_key_color_default">默认</string>

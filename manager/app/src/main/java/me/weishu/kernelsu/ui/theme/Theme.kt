@@ -12,34 +12,18 @@ import me.weishu.kernelsu.data.repository.SettingsRepositoryImpl
 enum class ColorMode(val value: Int) {
     SYSTEM(0),
     LIGHT(1),
-    DARK(2),
-    MONET_SYSTEM(3),
-    MONET_LIGHT(4),
-    MONET_DARK(5),
-    DARK_AMOLED(6);
+    DARK(2);
 
     companion object {
-        fun fromValue(value: Int) = entries.find { it.value == value } ?: SYSTEM
+        fun fromValue(value: Int) = when (value) {
+            1, 4 -> LIGHT
+            2, 5, 6 -> DARK
+            else -> SYSTEM
+        }
     }
 
-    val isSystem: Boolean get() = value == 0 || value == 3
-    val isDark: Boolean get() = value == 2 || value == 5 || value == 6
-    val isAmoled: Boolean get() = value == 6
-    val isMonet: Boolean get() = value >= 3
-
-    fun toNonMonetMode(): Int = when (this) {
-        MONET_SYSTEM -> 0
-        MONET_LIGHT -> 1
-        MONET_DARK, DARK_AMOLED -> 2
-        else -> value
-    }
-
-    fun toMonetMode(): Int = when (this) {
-        SYSTEM -> 3
-        LIGHT -> 4
-        DARK -> 5
-        else -> value
-    }
+    val isSystem: Boolean get() = this == SYSTEM
+    val isDark: Boolean get() = this == DARK
 }
 
 data class AppSettings(
@@ -64,22 +48,27 @@ fun ColorSpec.SpecVersion.effectiveFor(style: PaletteStyle): ColorSpec.SpecVersi
 
 object ThemeController {
     fun getAppSettings(repo: SettingsRepository = SettingsRepositoryImpl()): AppSettings {
-        val colorMode = ColorMode.fromValue(repo.themeMode)
-        val keyColor = repo.keyColor
-        val paletteStyleStr = repo.colorStyle
-        val paletteStyle = try {
-            PaletteStyle.valueOf(paletteStyleStr)
-        } catch (_: Exception) {
-            PaletteStyle.TonalSpot
-        }
-        val colorSpecStr = repo.colorSpec
-        val colorSpec = try {
-            ColorSpec.SpecVersion.valueOf(colorSpecStr)
-        } catch (_: Exception) {
-            ColorSpec.SpecVersion.SPEC_2025
-        }
+        migrateAppearance(repo)
+        return AppSettings(
+            colorMode = ColorMode.fromValue(repo.themeMode),
+            keyColor = if (repo.keyColor == 0) 0 else HuskySeedColorArgb,
+            paletteStyle = PaletteStyle.TonalSpot,
+            colorSpec = ColorSpec.SpecVersion.SPEC_2025,
+        )
+    }
 
-        return AppSettings(colorMode, keyColor, paletteStyle, colorSpec)
+    private fun migrateAppearance(repo: SettingsRepository) {
+        val rawMode = repo.themeMode
+        val migratedMode = ColorMode.fromValue(rawMode).value
+        val wasMonet = rawMode in 3..5
+        if (wasMonet) {
+            if (repo.keyColor != 0) repo.keyColor = 0
+        } else if (repo.keyColor != 0 && repo.keyColor != HuskySeedColorArgb) {
+            repo.keyColor = HuskySeedColorArgb
+        }
+        if (rawMode != migratedMode) {
+            repo.themeMode = migratedMode
+        }
     }
 }
 
@@ -98,9 +87,9 @@ fun KernelSUTheme(
 @ReadOnlyComposable
 fun isInDarkTheme(): Boolean {
     return when (LocalColorMode.current) {
-        1, 4 -> false  // Force light mode
-        2, 5, 6 -> true   // Force dark mode
-        else -> isSystemInDarkTheme()  // Follow system (0 or default)
+        ColorMode.LIGHT.value -> false
+        ColorMode.DARK.value -> true
+        else -> isSystemInDarkTheme()
     }
 }
 
