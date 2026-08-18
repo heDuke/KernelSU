@@ -62,6 +62,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.TravelExplore
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
@@ -140,6 +141,7 @@ import me.weishu.kernelsu.ui.component.ScrollToTopOnChange
 import me.weishu.kernelsu.ui.component.dialog.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.dialog.rememberLoadingDialog
 import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
+import me.weishu.kernelsu.ui.component.material.ExpressiveSectionTitle
 import me.weishu.kernelsu.ui.component.material.ExpressiveSwitch
 import me.weishu.kernelsu.ui.component.material.SearchAppBar
 import me.weishu.kernelsu.ui.component.material.SnackBarHost
@@ -284,6 +286,14 @@ fun ModulePagerMaterial(
                 actions = {
                     RebootListPopup()
 
+                    val moduleRepoLabel = stringResource(R.string.settings_module_repo)
+                    IconButton(onClick = actions.onOpenModuleRepo) {
+                        Icon(
+                            imageVector = Icons.Outlined.TravelExplore,
+                            contentDescription = moduleRepoLabel,
+                        )
+                    }
+
                     var showDropdown by remember { mutableStateOf(false) }
                     IconButton(
                         onClick = { showDropdown = true }
@@ -296,7 +306,22 @@ fun ModulePagerMaterial(
                             expanded = showDropdown,
                             onDismissRequest = { showDropdown = false }
                         ) {
-                            DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
+                            DropdownMenuGroup(shapes = MenuDefaults.groupShape(index = 0, count = 2)) {
+                                DropdownMenuItem(
+                                    selected = false,
+                                    text = { Text(moduleRepoLabel) },
+                                    onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                                        showDropdown = false
+                                        actions.onOpenModuleRepo()
+                                    },
+                                    shapes = MenuDefaults.itemShape(index = 0, count = 1),
+                                )
+                            }
+
+                            Spacer(Modifier.height(MenuDefaults.GroupSpacing))
+
+                            DropdownMenuGroup(shapes = MenuDefaults.groupShape(index = 1, count = 2)) {
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.module_sort_action_first)) },
                                     checked = uiState.sortActionFirst,
@@ -515,11 +540,7 @@ private fun ModuleList(
     ) {
         if (recommendedModules.isNotEmpty()) {
             item(key = "recommended_header", contentType = "section_header") {
-                Text(
-                    text = stringResource(R.string.module_recommended),
-                    style = MaterialTheme.typography.titleMediumEmphasized,
-                    modifier = Modifier.padding(top = 4.dp, start = 4.dp, end = 4.dp),
-                )
+                ExpressiveSectionTitle(title = stringResource(R.string.module_recommended))
             }
             items(recommendedModules, key = { "rec_${it.id}" }, contentType = { "recommended" }) { module ->
                 RecommendedModuleItem(
@@ -531,10 +552,9 @@ private fun ModuleList(
             }
             if (displayModules.isNotEmpty()) {
                 item(key = "installed_header", contentType = "section_header") {
-                    Text(
-                        text = stringResource(R.string.module_installed_section),
-                        style = MaterialTheme.typography.titleMediumEmphasized,
-                        modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp),
+                    ExpressiveSectionTitle(
+                        title = stringResource(R.string.module_installed_section),
+                        modifier = Modifier.padding(top = 4.dp),
                     )
                 }
             }
@@ -754,9 +774,12 @@ private fun RecommendedModuleItem(
         module.note
     }
 
-    TonalCard(modifier = Modifier.fillMaxWidth()) {
+    TonalCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
+    ) {
         Column(
-            modifier = Modifier.padding(16.dp, 14.dp, 16.dp, 10.dp)
+            modifier = Modifier.padding(20.dp, 16.dp, 20.dp, 12.dp)
         ) {
             Text(
                 text = module.name,
@@ -791,21 +814,20 @@ private fun RecommendedModuleItem(
                 if (module.homepage.isNotBlank()) {
                     OutlinedButton(
                         onClick = onOpenHomepage,
-                        modifier = Modifier.defaultMinSize(52.dp, 32.dp),
-                        contentPadding = ButtonDefaults.TextButtonContentPadding,
+                        modifier = Modifier.defaultMinSize(56.dp, 48.dp),
+                        contentPadding = ButtonDefaults.ContentPadding,
                     ) {
                         Text(
                             text = stringResource(R.string.module_recommended_homepage),
-                            fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
-                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                            style = MaterialTheme.typography.labelLarge,
                         )
                     }
                 }
                 FilledTonalButton(
                     onClick = onInstall,
                     enabled = installEnabled && module.hasDownload,
-                    modifier = Modifier.defaultMinSize(52.dp, 32.dp),
-                    contentPadding = ButtonDefaults.TextButtonContentPadding,
+                    modifier = Modifier.defaultMinSize(56.dp, 48.dp),
+                    contentPadding = ButtonDefaults.ContentPadding,
                 ) {
                     Icon(
                         modifier = Modifier.size(20.dp),
@@ -815,8 +837,7 @@ private fun RecommendedModuleItem(
                     Text(
                         modifier = Modifier.padding(start = 7.dp),
                         text = stringResource(R.string.module_install),
-                        fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
-                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                        style = MaterialTheme.typography.labelLarge,
                     )
                 }
             }
@@ -837,7 +858,8 @@ private fun ModuleItem(
     closeSearch: () -> Unit
 ) {
     TonalCard(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
     ) {
         val haptic = LocalHapticFeedback.current
         val textDecoration = if (!module.remove) null else TextDecoration.LineThrough
@@ -862,7 +884,7 @@ private fun ModuleItem(
                         this
                     }
                 }
-                .padding(16.dp, 14.dp, 16.dp, 10.dp)
+                .padding(20.dp, 16.dp, 20.dp, 12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -985,13 +1007,13 @@ private fun ModuleItem(
                                     closeSearch()
                                 },
                                 onLongClick = { onAddShortcut(ShortcutType.Action) },
-                                modifier = Modifier.defaultMinSize(52.dp, 32.dp),
+                                modifier = Modifier.defaultMinSize(52.dp, 40.dp),
                                 shape = ButtonDefaults.filledTonalShape,
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
                                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                                 ),
-                                contentPadding = ButtonDefaults.TextButtonContentPadding
+                                contentPadding = ButtonDefaults.ContentPadding
                             ) {
                                 Icon(
                                     modifier = Modifier.size(20.dp),
@@ -1016,13 +1038,13 @@ private fun ModuleItem(
                                     closeSearch()
                                 },
                                 onLongClick = { onAddShortcut(ShortcutType.WebUI) },
-                                modifier = Modifier.defaultMinSize(52.dp, 32.dp),
+                                modifier = Modifier.defaultMinSize(52.dp, 40.dp),
                                 shape = ButtonDefaults.filledTonalShape,
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
                                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                                 ),
-                                contentPadding = ButtonDefaults.TextButtonContentPadding
+                                contentPadding = ButtonDefaults.ContentPadding
                             ) {
                                 Icon(
                                     modifier = Modifier.size(20.dp),
@@ -1051,11 +1073,11 @@ private fun ModuleItem(
                 ) {
                     Row {
                         Button(
-                            modifier = Modifier.defaultMinSize(52.dp, 32.dp),
+                            modifier = Modifier.defaultMinSize(56.dp, 48.dp),
                             enabled = !module.remove,
                             onClick = onUpdate,
-                            shape = ButtonDefaults.textShape,
-                            contentPadding = ButtonDefaults.TextButtonContentPadding
+                            shape = ButtonDefaults.shape,
+                            contentPadding = ButtonDefaults.ContentPadding
                         ) {
                             Icon(
                                 modifier = Modifier.size(20.dp),
@@ -1077,9 +1099,9 @@ private fun ModuleItem(
                 }
 
                 FilledTonalButton(
-                    modifier = Modifier.defaultMinSize(52.dp, 32.dp),
+                    modifier = Modifier.defaultMinSize(52.dp, 40.dp),
                     onClick = onUninstallClicked,
-                    contentPadding = ButtonDefaults.TextButtonContentPadding
+                    contentPadding = ButtonDefaults.ContentPadding
                 ) {
                     if (!module.remove) {
                         Icon(

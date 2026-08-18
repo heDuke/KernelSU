@@ -180,6 +180,7 @@ fun ModulePager(
                 }
             }
         },
+        onOpenModuleRepo = { navigator.push(Route.ModuleRepo) },
     )
 
     ModulePagerMaterial(

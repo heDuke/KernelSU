@@ -89,4 +89,5 @@ data class ModuleActions(
     val onExecuteModuleAction: (Module) -> Unit,
     val onOpenRecommendedHomepage: (RecommendedModule) -> Unit,
     val onInstallRecommended: (RecommendedModule) -> Unit,
+    val onOpenModuleRepo: () -> Unit,
 )
