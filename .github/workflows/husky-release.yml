@@ -1,0 +1,200 @@
+# Pixel 8 Pro (husky) streamlined release:
+# - android14-6.1 LKM only (no full KMI matrix)
+# - self-signed Manager matching that LKM cert hash
+# - ksud aarch64 + x86_64 android (for APK repack only)
+name: Husky LKM Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      ddk_release:
+        description: 'DDK image tag (ghcr.io/ylarod/ddk-min)'
+        required: false
+        default: '20260313'
+        type: string
+  push:
+    branches: [husky-lkm]
+    paths:
+      - '.github/workflows/husky-release.yml'
+      - '.github/workflows/ddk-lkm.yml'
+      - '.github/workflows/ksud.yml'
+      - '.github/workflows/ksuinit.yml'
+      - 'manager/**'
+      - 'kernel/**'
+      - 'userspace/**'
+      - 'repack_apk.py'
+
+jobs:
+  generate-key:
+    runs-on: ubuntu-latest
+    outputs:
+      expected_size: ${{ steps.extract.outputs.expected_size }}
+      expected_hash: ${{ steps.extract.outputs.expected_hash }}
+      keystore: ${{ steps.gen.outputs.keystore }}
+      keystore_password: ${{ steps.gen.outputs.keystore_password }}
+      key_password: ${{ steps.gen.outputs.key_password }}
+    steps:
+      - name: Generate temporary keystore
+        id: gen
+        run: |
+          KEYSTORE_PASSWORD=$(openssl rand -hex 32)
+          KEY_PASSWORD=$(openssl rand -hex 32)
+          echo "keystore_password=$KEYSTORE_PASSWORD" >> "$GITHUB_OUTPUT"
+          echo "key_password=$KEY_PASSWORD" >> "$GITHUB_OUTPUT"
+          keytool -genkeypair \
+            -alias pr-key \
+            -keyalg RSA -keysize 2048 \
+            -validity 3650 \
+            -storepass "$KEYSTORE_PASSWORD" \
+            -keypass "$KEY_PASSWORD" \
+            -dname "CN=KernelSU Husky" \
+            -storetype JKS \
+            -keystore pr-key.jks
+          echo "keystore=$(base64 -w 0 pr-key.jks)" >> "$GITHUB_OUTPUT"
+
+      - name: Extract certificate hash and size
+        id: extract
+        env:
+          STORE_PASS: ${{ steps.gen.outputs.keystore_password }}
+        run: |
+          keytool -exportcert -alias pr-key -keystore pr-key.jks -storepass "$STORE_PASS" -file pr-cert.der
+          SIZE_DEC=$(stat -c%s pr-cert.der)
+          SIZE_HEX=$(printf '0x%04x' "$SIZE_DEC")
+          HASH=$(sha256sum pr-cert.der | awk '{print $1}')
+          echo "expected_size=$SIZE_HEX" >> "$GITHUB_OUTPUT"
+          echo "expected_hash=$HASH" >> "$GITHUB_OUTPUT"
+          echo "Certificate size: $SIZE_HEX ($SIZE_DEC bytes)"
+          echo "Certificate hash: $HASH"
+
+  build-lkm:
+    needs: generate-key
+    uses: ./.github/workflows/ddk-lkm.yml
+    with:
+      kmi: android14-6.1
+      ddk_release: ${{ inputs.ddk_release || '20260313' }}
+      expected_size2: ${{ needs.generate-key.outputs.expected_size }}
+      expected_hash2: ${{ needs.generate-key.outputs.expected_hash }}
+
+  build-ksuinit:
+    uses: ./.github/workflows/ksuinit.yml
+
+  build-ksud:
+    needs: [build-lkm, build-ksuinit]
+    strategy:
+      matrix:
+        target:
+          - aarch64-linux-android
+          - x86_64-linux-android
+    uses: ./.github/workflows/ksud.yml
+    with:
+      target: ${{ matrix.target }}
+      pack_lkm: true
+      pack_ksuinit: true
+      use_pr_package: true
+
+  build-manager:
+    needs: [generate-key]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./manager
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Write husky signing key
+        env:
+          PR_KEYSTORE: ${{ needs.generate-key.outputs.keystore }}
+          PR_KEYSTORE_PASSWORD: ${{ needs.generate-key.outputs.keystore_password }}
+          PR_KEY_PASSWORD: ${{ needs.generate-key.outputs.key_password }}
+        run: |
+          echo "$PR_KEYSTORE" | base64 -d > pr-key.jks
+          {
+            echo KEYSTORE_PASSWORD="$PR_KEYSTORE_PASSWORD"
+            echo KEY_ALIAS='pr-key'
+            echo KEY_PASSWORD="$PR_KEY_PASSWORD"
+            echo KEYSTORE_FILE='pr-key.jks'
+          } >> gradle.properties
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+      - uses: android-actions/setup-android@v4
+
+      - name: Assemble release (PR/husky package id)
+        run: ./gradlew clean assembleRelease -PIS_PR_BUILD=true
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: manager-gradle
+          path: manager/app/build/outputs/apk/release/*.apk
+
+  repack-manager:
+    needs: [build-manager, build-ksud, generate-key]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+
+      - name: Place manager apk and ksud
+        run: |
+          mkdir -p manager/app/build/outputs/apk/release
+          APK=$(find artifacts/manager-gradle -type f -name '*.apk' | head -n 1)
+          test -n "$APK"
+          cp -f "$APK" manager/app/build/outputs/apk/release/
+
+          mkdir -p target/aarch64-linux-android/release target/x86_64-linux-android/release
+          ARM64_KSUD=$(find artifacts/ksud-aarch64-linux-android -type f -name ksud | head -n 1)
+          X86_KSUD=$(find artifacts/ksud-x86_64-linux-android -type f -name ksud | head -n 1)
+          test -n "$ARM64_KSUD" && test -n "$X86_KSUD"
+          cp -f "$ARM64_KSUD" target/aarch64-linux-android/release/ksud
+          cp -f "$X86_KSUD" target/x86_64-linux-android/release/ksud
+
+          mkdir -p dist-lkm
+          KO=$(find artifacts/aarch64-android14-6.1-lkm -type f -name '*.ko' | head -n 1)
+          test -n "$KO"
+          cp -f "$KO" dist-lkm/android14-6.1_kernelsu.ko
+
+      - name: Sign and repack
+        env:
+          PR_KEYSTORE: ${{ needs.generate-key.outputs.keystore }}
+          PR_KEYSTORE_PASSWORD: ${{ needs.generate-key.outputs.keystore_password }}
+          PR_KEY_PASSWORD: ${{ needs.generate-key.outputs.key_password }}
+        run: |
+          echo "$PR_KEYSTORE" | base64 -d > pr-key.jks
+          pip install -q protobuf
+          python3 repack_apk.py repack \
+            -b release -t release \
+            -a arm64-v8a -a x86_64 \
+            -K pr-key.jks -A pr-key \
+            -P "$PR_KEYSTORE_PASSWORD" -S "$PR_KEY_PASSWORD" \
+            --strip
+          # Stable husky artifact names
+          mkdir -p dist-husky
+          APK=$(find dist -name '*.apk' | head -n 1)
+          cp -f "$APK" "dist-husky/KernelSU_husky_$(basename "$APK")"
+          cp -f dist-lkm/android14-6.1_kernelsu.ko dist-husky/
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: husky-release
+          path: dist-husky/*

@@ -13,6 +13,11 @@ on:
         required: false
         type: boolean
         default: false
+      use_pr_package:
+        description: 'Embed me.weishu.kernelsu.pr as manager package name'
+        required: false
+        type: boolean
+        default: false
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -55,7 +60,7 @@ jobs:
       env:
         ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
       run: |
-        if [ "${{ github.event_name }}" = "pull_request" ]; then
+        if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ inputs.use_pr_package }}" = "true" ]; then
           export KSU_PACKAGE_NAME="me.weishu.kernelsu.pr"
         fi
         source .github/scripts/setup-rust-build.sh ${{ inputs.target }} 26
