@@ -25,6 +25,13 @@
     <string name="seccomp_status_filter">过滤模式</string>
     <string name="seccomp_status_unknown">未知</string>
     <string name="superuser">超级用户</string>
+    <string name="superuser_empty">没有可显示的应用</string>
+    <string name="superuser_summary">已授权 %1$d · 共 %2$d 个应用</string>
+    <string name="superuser_summary_guidance">授予超级用户权限或自定义应用配置。</string>
+    <string name="superuser_tag_root">ROOT</string>
+    <string name="superuser_tag_umount">卸载模块</string>
+    <string name="superuser_tag_custom">自定义</string>
+    <string name="superuser_tag_user">用户 %d</string>
     <string name="module_failed_to_enable">无法启用模块：%s</string>
     <string name="module_failed_to_disable">无法禁用模块：%s</string>
     <string name="module_empty">没有安装模块</string>

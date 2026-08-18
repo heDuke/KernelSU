@@ -6,12 +6,15 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -24,14 +27,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenuPopup
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.MenuDefaults
@@ -42,7 +46,6 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberTopAppBarState
-import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -57,6 +60,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -64,6 +68,7 @@ import me.weishu.kernelsu.R
 import me.weishu.kernelsu.data.model.AppInfo
 import me.weishu.kernelsu.ui.component.AppIconImage
 import me.weishu.kernelsu.ui.component.ScrollToTopOnChange
+import me.weishu.kernelsu.ui.component.material.ExpressiveHeroCard
 import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
 import me.weishu.kernelsu.ui.component.material.SearchAppBar
 import me.weishu.kernelsu.ui.component.material.SegmentedColumn
@@ -354,6 +359,27 @@ fun SuperUserPagerMaterial(
                     bottom = 16.dp + bottomInnerPadding
                 ),
             ) {
+                item(key = "superuser_hero") {
+                    SuperUserHeroCard(uiState = uiState)
+                }
+
+                if (uiState.groupedApps.isEmpty() && !uiState.isRefreshing && uiState.hasLoaded) {
+                    item(key = "superuser_empty") {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp, vertical = 48.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = stringResource(R.string.superuser_empty),
+                                color = colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    }
+                }
+
                 itemsIndexed(uiState.groupedApps, key = { _, item -> item.uid }) { index, group ->
                     val expanded = expandedSearchUids.value.contains(group.uid)
                     val onToggleExpand = {
@@ -370,22 +396,16 @@ fun SuperUserPagerMaterial(
                             GroupItem(
                                 group = group,
                                 selected = expanded,
+                                showExpandIcon = group.apps.size > 1,
                                 onToggleExpand = onToggleExpand,
                             ) {
                                 actions.onOpenProfile(group)
                             }
-                            AnimatedVisibility(
+                            NestedGroupMembers(
+                                group = group,
                                 visible = expanded && group.apps.size > 1,
-                                enter = expandVertically() + fadeIn(),
-                                exit = shrinkVertically() + fadeOut()
                             ) {
-                                Column {
-                                    group.apps.forEach { app ->
-                                        SimpleAppItem(app = app) {
-                                            actions.onOpenProfile(group)
-                                        }
-                                    }
-                                }
+                                actions.onOpenProfile(group)
                             }
                         }
                     }
@@ -405,25 +425,61 @@ private fun SearchGroupItem(
         GroupItem(
             group = group,
             selected = false,
+            showExpandIcon = false,
             onToggleExpand = {},
         ) {
             closeSearch()
             onOpenProfile(group)
         }
-        AnimatedVisibility(
+        NestedGroupMembers(
+            group = group,
             visible = group.apps.size > 1,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut()
         ) {
-            Column {
-                group.apps.forEach { app ->
+            closeSearch()
+            onOpenProfile(group)
+        }
+    }
+}
+
+@Composable
+private fun SuperUserHeroCard(uiState: SuperUserUiState) {
+    val grantedCount = uiState.groupedApps.count { it.anyAllowSu }
+    val appCount = uiState.groupedApps.sumOf { it.apps.size }
+    val summary = if (uiState.groupedApps.isEmpty()) {
+        stringResource(R.string.superuser_summary_guidance)
+    } else {
+        stringResource(R.string.superuser_summary, grantedCount, appCount)
+    }
+    ExpressiveHeroCard(
+        title = stringResource(R.string.superuser),
+        summary = summary,
+        icon = Icons.Outlined.Shield,
+        modifier = Modifier.padding(bottom = 14.dp),
+    )
+}
+
+@Composable
+private fun NestedGroupMembers(
+    group: GroupedApps,
+    visible: Boolean,
+    onOpenProfile: () -> Unit,
+) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = expandVertically() + fadeIn(),
+        exit = shrinkVertically() + fadeOut()
+    ) {
+        Column(
+            modifier = Modifier.padding(start = 16.dp, top = 2.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            group.apps.forEachIndexed { nestedIndex, app ->
+                SegmentedItem(index = nestedIndex, count = group.apps.size) {
                     SimpleAppItem(
                         app = app,
                         matched = group.matchedPackageNames.contains(app.packageName),
-                    ) {
-                        closeSearch()
-                        onOpenProfile(group)
-                    }
+                        onNavigate = onOpenProfile,
+                    )
                 }
             }
         }
@@ -436,34 +492,31 @@ private fun SimpleAppItem(
     matched: Boolean = false,
     onNavigate: () -> Unit,
 ) {
-    ListItem(
+    val colors = if (matched) {
+        ListItemDefaults.segmentedColors(
+            containerColor = colorScheme.secondaryContainer,
+            disabledContainerColor = colorScheme.secondaryContainer,
+            supportingContentColor = colorScheme.onSurfaceVariant,
+        )
+    } else {
+        ListItemDefaults.segmentedColors(
+            containerColor = colorScheme.surfaceBright,
+            disabledContainerColor = colorScheme.surfaceBright,
+            supportingContentColor = colorScheme.onSurfaceVariant,
+        )
+    }
+    SegmentedListItem(
         onClick = onNavigate,
-        modifier = Modifier.padding(horizontal = 4.dp),
-        colors = ListItemDefaults.colors(
-            containerColor = if (matched) {
-                colorScheme.secondaryContainer
-            } else {
-                colorScheme.surfaceColorAtElevation(3.dp)
-            }
-        ),
-        content = { Text(app.label, overflow = TextOverflow.Ellipsis, maxLines = 1) },
+        colors = colors,
+        headlineContent = { Text(app.label, overflow = TextOverflow.Ellipsis, maxLines = 1) },
         supportingContent = { Text(app.packageName, overflow = TextOverflow.Ellipsis, maxLines = 1) },
         leadingContent = {
             AppIconImage(
                 packageInfo = app.packageInfo,
                 label = app.label,
-                modifier = Modifier
-                    .size(40.dp)
-                    .padding(start = 4.dp)
+                modifier = Modifier.size(40.dp)
             )
         },
-        trailingContent = {
-            Icon(
-                Icons.Filled.Remove,
-                contentDescription = null,
-                modifier = Modifier.padding(end = 4.dp)
-            )
-        }
     )
 }
 
@@ -471,6 +524,7 @@ private fun SimpleAppItem(
 private fun GroupItem(
     group: GroupedApps,
     selected: Boolean,
+    showExpandIcon: Boolean,
     onToggleExpand: () -> Unit,
     onClickPrimary: () -> Unit,
 ) {
@@ -484,12 +538,29 @@ private fun GroupItem(
     val otherFg = colorScheme.onTertiary
 
     val userId = group.uid / 100000
-    val tags = remember(group.anyAllowSu, group.shouldUmount, group.anyCustom, userId) {
+    val rootLabel = stringResource(R.string.superuser_tag_root)
+    val umountLabel = stringResource(R.string.superuser_tag_umount)
+    val customLabel = stringResource(R.string.superuser_tag_custom)
+    val userLabel = if (userId != 0) {
+        stringResource(R.string.superuser_tag_user, userId)
+    } else {
+        ""
+    }
+    val tags = remember(
+        group.anyAllowSu,
+        group.shouldUmount,
+        group.anyCustom,
+        userId,
+        rootLabel,
+        umountLabel,
+        customLabel,
+        userLabel,
+    ) {
         buildList {
-            if (group.anyAllowSu) add(StatusMeta("ROOT", bg, fg))
-            if (group.shouldUmount) add(StatusMeta("UMOUNT", umountBg, umountFg))
-            if (group.anyCustom) add(StatusMeta("CUSTOM", customBg, customFg))
-            if (userId != 0) add(StatusMeta("USER $userId", otherBg, otherFg))
+            if (group.anyAllowSu) add(StatusMeta(rootLabel, bg, fg))
+            if (group.shouldUmount) add(StatusMeta(umountLabel, umountBg, umountFg))
+            if (group.anyCustom) add(StatusMeta(customLabel, customBg, customFg))
+            if (userId != 0) add(StatusMeta(userLabel, otherBg, otherFg))
         }
     }
     val summaryText = if (group.apps.size > 1) {
@@ -517,16 +588,29 @@ private fun GroupItem(
             )
         },
         trailingContent = {
-            if (tags.isNotEmpty()) {
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+            if (tags.isNotEmpty() || showExpandIcon) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    tags.forEach { tag ->
-                        StatusTag(
-                            label = tag.label,
-                            backgroundColor = tag.bg,
-                            contentColor = tag.fg
+                    if (tags.isNotEmpty()) {
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            tags.forEach { tag ->
+                                StatusTag(
+                                    label = tag.label,
+                                    backgroundColor = tag.bg,
+                                    contentColor = tag.fg
+                                )
+                            }
+                        }
+                    }
+                    if (showExpandIcon) {
+                        Icon(
+                            imageVector = if (selected) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                            contentDescription = null,
                         )
                     }
                 }

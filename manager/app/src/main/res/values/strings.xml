@@ -25,6 +25,13 @@
     <string name="seccomp_status_filter">Filter</string>
     <string name="seccomp_status_unknown">Unknown</string>
     <string name="superuser">Superuser</string>
+    <string name="superuser_empty">No apps to show</string>
+    <string name="superuser_summary">%1$d granted · %2$d apps</string>
+    <string name="superuser_summary_guidance">Grant Superuser access or customize an app profile.</string>
+    <string name="superuser_tag_root">ROOT</string>
+    <string name="superuser_tag_umount">UMOUNT</string>
+    <string name="superuser_tag_custom">CUSTOM</string>
+    <string name="superuser_tag_user">USER %d</string>
     <string name="sulog_log_files">Log files</string>
     <string name="sulog_failed_to_load">Failed to load SU log</string>
     <string name="sulog_disabled_title">SU log is not enabled</string>
