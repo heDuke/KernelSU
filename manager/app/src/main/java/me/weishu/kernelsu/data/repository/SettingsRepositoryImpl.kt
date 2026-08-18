@@ -13,6 +13,7 @@ import me.weishu.kernelsu.ksuApp
 import me.weishu.kernelsu.magica.BootCompletedReceiver
 import me.weishu.kernelsu.ui.UiMode
 import me.weishu.kernelsu.ui.screen.modulerepo.RepoSort
+import me.weishu.kernelsu.ui.theme.HuskySeedColorArgb
 import me.weishu.kernelsu.ui.util.execKsud
 import me.weishu.kernelsu.ui.util.getFeaturePersistValue
 import me.weishu.kernelsu.ui.util.getFeatureStatus
@@ -58,7 +59,7 @@ class SettingsRepositoryImpl : SettingsRepository {
         set(value) = prefs.edit { putBoolean("miuix_monet", value) }
 
     override var keyColor: Int
-        get() = prefs.getInt("key_color", 0)
+        get() = prefs.getInt("key_color", HuskySeedColorArgb)
         set(value) = prefs.edit { putInt("key_color", value) }
 
     override var colorStyle: String

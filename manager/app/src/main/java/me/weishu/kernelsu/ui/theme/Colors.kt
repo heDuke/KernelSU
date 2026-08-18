@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 
 val keyColorOptions = listOf(
+    HuskySeedColorArgb,
     Color(0xFFF44336).toArgb(),
     Color(0xFFE91E63).toArgb(),
     Color(0xFF9C27B0).toArgb(),

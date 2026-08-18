@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
 import me.weishu.kernelsu.ui.UiMode
+import me.weishu.kernelsu.ui.theme.HuskySeedColorArgb
 
 @Immutable
 data class SettingsUiState(
@@ -12,7 +13,7 @@ data class SettingsUiState(
     val checkModuleUpdate: Boolean = true,
     val themeMode: Int = 0,
     val miuixMonet: Boolean = false,
-    val keyColor: Int = 0,
+    val keyColor: Int = HuskySeedColorArgb,
     val colorStyle: String = PaletteStyle.TonalSpot.name,
     val colorSpec: String = ColorSpec.SpecVersion.SPEC_2025.name,
     val enablePredictiveBack: Boolean = false,
@@ -62,7 +63,6 @@ data class SettingsScreenActions(
     val onSetCheckUpdate: (Boolean) -> Unit,
     val onSetCheckModuleUpdate: (Boolean) -> Unit,
     val onOpenTheme: () -> Unit,
-    val onSetUiModeIndex: (Int) -> Unit,
     val onOpenProfileTemplate: () -> Unit,
     val onSetSuCompatMode: (Int) -> Unit,
     val onSetKernelUmountEnabled: (Boolean) -> Unit,

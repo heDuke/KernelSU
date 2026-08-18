@@ -3,6 +3,7 @@ package me.weishu.kernelsu.ui.component.bottombar
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.MutatePriority
 import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
@@ -16,12 +17,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
-import me.weishu.kernelsu.ui.LocalUiMode
-import me.weishu.kernelsu.ui.UiMode
 import me.weishu.kernelsu.ui.component.PagerNavigationSpringSpec
 import me.weishu.kernelsu.ui.util.shouldShowSplitPane
-import top.yukonga.miuix.kmp.blur.Backdrop
-import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import kotlin.math.abs
 
 class MainPagerState(
@@ -147,20 +144,17 @@ internal fun badgeFor(index: Int, state: NavigationBadgeState): NavBadge? = when
 }
 
 @Composable
-fun useNavigationRail(enableFloatingBottomBar: Boolean): Boolean {
-    return shouldShowSplitPane() && !(LocalUiMode.current == UiMode.Miuix && enableFloatingBottomBar)
+fun useNavigationRail(enableFloatingBottomBar: Boolean = false): Boolean {
+    return shouldShowSplitPane()
 }
 
 @Composable
 fun BottomBar(
-    blurBackdrop: LayerBackdrop?,
-    backdrop: Backdrop,
     navigationBadge: NavigationBadgeState,
     modifier: Modifier = Modifier,
 ) {
-    when (LocalUiMode.current) {
-        UiMode.Miuix -> BottomBarMiuix(blurBackdrop, backdrop, navigationBadge, modifier)
-        UiMode.Material -> BottomBarMaterial(navigationBadge)
+    Box(modifier) {
+        BottomBarMaterial(navigationBadge)
     }
 }
 
@@ -169,8 +163,5 @@ fun SideRail(
     navigationBadge: NavigationBadgeState,
     modifier: Modifier = Modifier,
 ) {
-    when (LocalUiMode.current) {
-        UiMode.Miuix -> NavigationRailMiuix(navigationBadge, modifier)
-        UiMode.Material -> NavigationRailMaterial(navigationBadge, modifier)
-    }
+    NavigationRailMaterial(navigationBadge, modifier)
 }
