@@ -1,10 +1,14 @@
 package me.weishu.kernelsu.ui.screen.templateeditor
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.captionBar
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
@@ -16,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
@@ -30,12 +35,15 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.material.ExpressiveHeroCard
+import me.weishu.kernelsu.ui.component.material.ExpressivePrimaryBar
 import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
 import me.weishu.kernelsu.ui.component.material.SegmentedColumn
 import me.weishu.kernelsu.ui.component.material.SegmentedTextField
 import me.weishu.kernelsu.ui.component.material.TopBarBackButton
 import me.weishu.kernelsu.ui.component.material.expressiveTopAppBarColors
 import me.weishu.kernelsu.ui.component.profile.RootProfileConfig
+import me.weishu.kernelsu.ui.component.statustag.StatusTag
 
 @Composable
 fun TemplateEditorScreenMaterial(
@@ -43,6 +51,9 @@ fun TemplateEditorScreenMaterial(
     actions: TemplateEditorActions,
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val canSave = !state.readOnly &&
+        state.idErrorHint.isEmpty() &&
+        isTemplateValid(state.template)
 
     ExpressiveScaffold(
         topBar = {
@@ -55,6 +66,7 @@ fun TemplateEditorScreenMaterial(
                     stringResource(R.string.app_profile_template_edit)
                 },
                 readOnly = state.readOnly,
+                canSave = canSave,
                 summary = state.titleSummary,
                 onBack = actions.onBack,
                 onDelete = actions.onDelete,
@@ -72,6 +84,8 @@ fun TemplateEditorScreenMaterial(
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .verticalScroll(rememberScrollState())
         ) {
+            TemplateEditorHero(state = state)
+
             SegmentedColumn(
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 13.dp),
                 content = buildList {
@@ -130,13 +144,78 @@ fun TemplateEditorScreenMaterial(
                 onProfileChange = actions.onProfileChange,
             )
 
+            if (!state.readOnly) {
+                ExpressivePrimaryBar(
+                    label = stringResource(R.string.app_profile_template_save),
+                    onClick = actions.onSave,
+                    enabled = canSave,
+                    icon = Icons.Filled.Save,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
+
             Spacer(
                 Modifier.height(
-                    WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                    16.dp +
+                        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
+                        WindowInsets.captionBar.asPaddingValues().calculateBottomPadding()
                 )
             )
         }
     }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TemplateEditorHero(state: TemplateEditorUiState) {
+    val template = state.template
+    val colorScheme = MaterialTheme.colorScheme
+    val title = template.name.ifBlank {
+        when {
+            state.isCreation -> stringResource(R.string.app_profile_template_create)
+            state.readOnly -> stringResource(R.string.app_profile_template_view)
+            else -> stringResource(R.string.app_profile_template_edit)
+        }
+    }
+    val summary = buildString {
+        if (template.id.isNotEmpty()) append(template.id)
+        if (template.author.isNotEmpty()) {
+            if (isNotEmpty()) append(" · ")
+            append(template.author)
+        }
+    }.ifBlank { null }
+    val containerColor = when {
+        state.readOnly -> colorScheme.tertiaryContainer
+        state.isCreation -> colorScheme.primaryContainer
+        else -> colorScheme.secondaryContainer
+    }
+    ExpressiveHeroCard(
+        title = title,
+        summary = summary,
+        icon = Icons.Outlined.Description,
+        containerColor = containerColor,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 0.dp).padding(bottom = 13.dp),
+        tags = {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (template.local) {
+                    StatusTag(
+                        label = stringResource(R.string.app_profile_template_local),
+                        contentColor = colorScheme.onPrimary,
+                        backgroundColor = colorScheme.primary,
+                    )
+                } else {
+                    StatusTag(
+                        label = stringResource(R.string.app_profile_template_remote),
+                        contentColor = colorScheme.onPrimary,
+                        backgroundColor = colorScheme.primary,
+                    )
+                }
+            }
+        },
+    )
 }
 
 @Composable
@@ -168,6 +247,7 @@ private fun TemplateEditorListItem(
 private fun TopBar(
     title: String,
     readOnly: Boolean,
+    canSave: Boolean,
     summary: String = "",
     onBack: () -> Unit,
     onDelete: () -> Unit = {},
@@ -197,7 +277,7 @@ private fun TopBar(
                     contentDescription = stringResource(id = R.string.app_profile_template_delete)
                 )
             }
-            IconButton(onClick = onSave) {
+            IconButton(onClick = onSave, enabled = canSave) {
                 Icon(
                     imageVector = Icons.Filled.Save,
                     contentDescription = stringResource(id = R.string.app_profile_template_save)

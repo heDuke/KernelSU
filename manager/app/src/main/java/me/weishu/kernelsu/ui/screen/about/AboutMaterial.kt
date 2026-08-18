@@ -3,13 +3,11 @@ package me.weishu.kernelsu.ui.screen.about
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.captionBar
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
@@ -33,14 +31,13 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.FixedScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.material.ExpressiveHeroCard
 import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
+import me.weishu.kernelsu.ui.component.material.ExpressiveSectionTitle
 import me.weishu.kernelsu.ui.component.material.SegmentedColumn
 import me.weishu.kernelsu.ui.component.material.SegmentedListItem
-import me.weishu.kernelsu.ui.component.material.TonalCard
 import me.weishu.kernelsu.ui.component.material.TopBarBackButton
 import me.weishu.kernelsu.ui.component.material.expressiveTopAppBarColors
 
@@ -70,17 +67,14 @@ fun AboutScreenMaterial(
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
         ) {
             item {
-                TonalCard(
+                ExpressiveHeroCard(
+                    title = state.appName,
+                    summary = state.versionName,
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
-                        .padding(top = 8.dp, bottom = 13.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 28.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
+                        .padding(top = 8.dp, bottom = 13.dp),
+                    iconContent = {
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
@@ -94,34 +88,20 @@ fun AboutScreenMaterial(
                                 contentScale = FixedScale(1f)
                             )
                         }
+                    },
+                    footer = {
                         Text(
-                            modifier = Modifier.padding(top = 16.dp),
-                            text = state.appName,
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            modifier = Modifier.padding(top = 4.dp),
-                            text = state.versionName,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            modifier = Modifier.padding(top = 2.dp),
                             text = state.packageName,
                             style = MaterialTheme.typography.bodySmall,
                             fontFamily = FontFamily.Monospace,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        Spacer(Modifier.height(8.dp))
                         Text(
-                            modifier = Modifier.padding(top = 16.dp),
                             text = state.blurb,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
+                            style = MaterialTheme.typography.bodyLarge,
                         )
-                    }
-                }
+                    },
+                )
             }
             item {
                 SegmentedColumn(
@@ -132,9 +112,12 @@ fun AboutScreenMaterial(
                 )
             }
             item {
+                ExpressiveSectionTitle(
+                    title = state.creditsTitle,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
                 SegmentedColumn(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    title = state.creditsTitle,
                     content = state.credits.map { credit ->
                         {
                             AboutLinkItem(link = credit, onOpenLink = actions.onOpenLink)
@@ -159,8 +142,18 @@ private fun AboutLinkItem(
 ) {
     SegmentedListItem(
         onClick = { onOpenLink(link.url) },
-        headlineContent = { Text(link.title) },
-        supportingContent = { Text(link.summary) },
+        headlineContent = {
+            Text(
+                text = link.title,
+                style = MaterialTheme.typography.titleMediumEmphasized,
+            )
+        },
+        supportingContent = {
+            Text(
+                text = link.summary,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        },
         trailingContent = {
             Icon(
                 imageVector = Icons.Outlined.OpenInNew,

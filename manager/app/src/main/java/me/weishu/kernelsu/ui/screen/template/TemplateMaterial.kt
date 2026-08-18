@@ -1,5 +1,6 @@
 package me.weishu.kernelsu.ui.screen.template
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -13,18 +14,21 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.captionBar
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenuPopup
@@ -51,21 +55,26 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.data.model.TemplateInfo
+import me.weishu.kernelsu.ui.component.material.ExpressiveHeroCard
+import me.weishu.kernelsu.ui.component.material.ExpressivePrimaryBar
 import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
-import me.weishu.kernelsu.ui.component.material.SegmentedItem
-import me.weishu.kernelsu.ui.component.material.SegmentedListItem
 import me.weishu.kernelsu.ui.component.material.SnackBarHost
+import me.weishu.kernelsu.ui.component.material.TonalCard
 import me.weishu.kernelsu.ui.component.material.TopBarBackButton
 import me.weishu.kernelsu.ui.component.material.expressiveTopAppBarColors
 import me.weishu.kernelsu.ui.component.statustag.StatusTag
+import me.weishu.kernelsu.ui.util.rememberContentReady
 
 /**
  * @author weishu
@@ -157,45 +166,52 @@ fun AppProfileTemplateScreenMaterial(
                 )
             },
         ) {
-            val isLoading = state.templateList.isEmpty()
+            val templateList = state.templateList
+            val isEmpty = templateList.isEmpty()
+            val contentReady = rememberContentReady()
+            val showOffline = isEmpty && state.offline
+            val showError = isEmpty && !state.offline && state.error != null
+            val showEmpty = isEmpty && !state.offline && state.error == null && contentReady
+            val showSpinner = isEmpty && !showOffline && !showError && !showEmpty
 
-            if (isLoading && !state.isRefreshing) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (state.offline) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = stringResource(R.string.network_offline), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Spacer(Modifier.height(12.dp))
-                            Button(
-                                onClick = { actions.onRefresh(false) },
-                            ) {
-                                Text(stringResource(R.string.network_retry))
-                            }
-                        }
-                    } else {
+            when {
+                showSpinner -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
                         LoadingIndicator()
                     }
                 }
-            } else {
-                val templateList = state.templateList
-                val navBars = WindowInsets.navigationBars.asPaddingValues()
-                val captionBar = WindowInsets.captionBar.asPaddingValues()
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .nestedScroll(scrollBehavior.nestedScrollConnection),
-                    state = listState,
-                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(2.dp),
-                    contentPadding = PaddingValues(
-                        start = 16.dp,
-                        end = 16.dp,
-                        bottom = 16.dp + 56.dp + 16.dp + navBars.calculateBottomPadding() + captionBar.calculateBottomPadding()
-                    ),
-                ) {
-                    itemsIndexed(templateList) { index, template ->
-                        SegmentedItem(index = index, count = templateList.size) {
+
+                isEmpty -> {
+                    TemplateListStatusPane(
+                        offline = showOffline,
+                        error = state.error,
+                        isRefreshing = state.isRefreshing,
+                        onRetry = { actions.onRefresh(false) },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .nestedScroll(scrollBehavior.nestedScrollConnection),
+                    )
+                }
+
+                else -> {
+                    val navBars = WindowInsets.navigationBars.asPaddingValues()
+                    val captionBar = WindowInsets.captionBar.asPaddingValues()
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .nestedScroll(scrollBehavior.nestedScrollConnection),
+                        state = listState,
+                        verticalArrangement = Arrangement.spacedBy(13.dp),
+                        contentPadding = PaddingValues(
+                            start = 16.dp,
+                            end = 16.dp,
+                            bottom = 16.dp + 56.dp + 16.dp + navBars.calculateBottomPadding() + captionBar.calculateBottomPadding()
+                        ),
+                    ) {
+                        items(templateList, key = { it.id }, contentType = { "template" }) { template ->
                             TemplateItem(
                                 template = template,
                                 onClick = { actions.onOpenTemplate(template) },
@@ -208,56 +224,153 @@ fun AppProfileTemplateScreenMaterial(
     }
 }
 
+@Composable
+private fun TemplateListStatusPane(
+    offline: Boolean,
+    error: Throwable?,
+    isRefreshing: Boolean,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val title: String
+    val summary: String
+    val icon: ImageVector
+    val containerColor: Color
+    val showRetry: Boolean
+    when {
+        offline -> {
+            title = stringResource(R.string.network_offline)
+            summary = stringResource(R.string.app_profile_template_empty_summary)
+            icon = Icons.Outlined.CloudOff
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+            showRetry = true
+        }
+
+        error != null -> {
+            title = stringResource(R.string.app_profile_template_empty)
+            summary = error.localizedMessage
+                ?.takeIf { it.isNotBlank() }
+                ?: stringResource(R.string.network_offline)
+            icon = Icons.Outlined.Warning
+            containerColor = MaterialTheme.colorScheme.errorContainer
+            showRetry = true
+        }
+
+        else -> {
+            title = stringResource(R.string.app_profile_template_empty)
+            summary = stringResource(R.string.app_profile_template_empty_summary)
+            icon = Icons.Outlined.Description
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+            showRetry = false
+        }
+    }
+    Box(
+        modifier = modifier.padding(16.dp),
+        contentAlignment = Alignment.TopCenter,
+    ) {
+        ExpressiveHeroCard(
+            title = title,
+            summary = summary,
+            icon = icon,
+            containerColor = containerColor,
+            footer = if (showRetry) {
+                {
+                    ExpressivePrimaryBar(
+                        label = stringResource(R.string.network_retry),
+                        onClick = onRetry,
+                        enabled = !isRefreshing,
+                    )
+                }
+            } else {
+                null
+            },
+        )
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TemplateItem(
     template: TemplateInfo,
     onClick: () -> Unit,
 ) {
-    SegmentedListItem(
+    val colorScheme = MaterialTheme.colorScheme
+    TonalCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
         onClick = onClick,
-        headlineContent = { Text(template.name) },
-        supportingContent = {
-            Column {
-                Text(
-                    text = "${template.id}${if (template.author.isEmpty()) "" else "@${template.author}"}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                )
-                Text(template.description, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                FlowRow(modifier = Modifier.padding(top = 4.dp)) {
-                    StatusTag(
-                        label = "UID: ${template.uid}",
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                        backgroundColor = MaterialTheme.colorScheme.primary
-                    )
-                    StatusTag(
-                        label = "GID: ${template.gid}",
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                        backgroundColor = MaterialTheme.colorScheme.primary
-                    )
-                    StatusTag(
-                        label = template.context,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                        backgroundColor = MaterialTheme.colorScheme.primary
-                    )
-                    if (template.local) {
-                        StatusTag(
-                            label = "local",
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                            backgroundColor = MaterialTheme.colorScheme.primary
-                        )
-                    } else {
-                        StatusTag(
-                            label = "remote",
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                            backgroundColor = MaterialTheme.colorScheme.primary
-                        )
-                    }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp, 16.dp, 20.dp, 16.dp)
+        ) {
+            Text(
+                text = template.name.ifBlank { template.id },
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
+            )
+            val identity = buildString {
+                append(template.id)
+                if (template.author.isNotEmpty()) {
+                    append(" · ")
+                    append(template.author)
                 }
             }
-        },
-    )
+            if (identity.isNotBlank()) {
+                Text(
+                    text = identity,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colorScheme.onSurfaceVariant,
+                )
+            }
+            if (template.description.isNotBlank()) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = template.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                StatusTag(
+                    label = stringResource(R.string.app_profile_uid, template.uid),
+                    contentColor = colorScheme.onPrimaryContainer,
+                    backgroundColor = colorScheme.primaryContainer,
+                )
+                StatusTag(
+                    label = stringResource(R.string.app_profile_gid, template.gid),
+                    contentColor = colorScheme.onPrimaryContainer,
+                    backgroundColor = colorScheme.primaryContainer,
+                )
+                if (template.context.isNotBlank()) {
+                    StatusTag(
+                        label = template.context,
+                        contentColor = colorScheme.onTertiaryContainer,
+                        backgroundColor = colorScheme.tertiaryContainer,
+                    )
+                }
+                if (template.local) {
+                    StatusTag(
+                        label = stringResource(R.string.app_profile_template_local),
+                        contentColor = colorScheme.onSecondaryContainer,
+                        backgroundColor = colorScheme.secondaryContainer,
+                    )
+                } else {
+                    StatusTag(
+                        label = stringResource(R.string.app_profile_template_remote),
+                        contentColor = colorScheme.onTertiaryContainer,
+                        backgroundColor = colorScheme.tertiaryContainer,
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable

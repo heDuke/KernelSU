@@ -136,6 +136,11 @@
     <string name="app_profile_template_import_success">导入成功</string>
     <string name="app_profile_template_save_failed">模板保存失败</string>
     <string name="app_profile_template_import_empty">剪贴板为空！</string>
+    <string name="app_profile_template_empty">暂无模板</string>
+    <string name="app_profile_template_empty_summary">创建本地模板，或下拉刷新在线模板。</string>
+    <string name="app_profile_template_local">本地</string>
+    <string name="app_profile_template_remote">远程</string>
+    <string name="app_profile_gid">GID %d</string>
     <string name="app_profile_affects_following_apps">影响以下应用</string>
     <string name="app_profile_granted">已授予 Root</string>
     <string name="app_profile_not_granted">未授予 Root</string>
