@@ -401,4 +401,59 @@
     <string name="env_check_group_modules">模块 / LSP</string>
     <string name="env_check_group_system">系统</string>
 
+    <string name="env_check_item_kernelsu">KernelSU</string>
+    <string name="env_check_item_working_mode">工作模式</string>
+    <string name="env_check_item_safe_mode">安全模式</string>
+    <string name="env_check_item_jailbreak">越狱模式</string>
+    <string name="env_check_item_version_match">管理器 \u2194 驱动</string>
+    <string name="env_check_item_pr_kernel">生产签名</string>
+    <string name="env_check_item_husky_lkm">Husky LKM 版本</string>
+    <string name="env_check_item_bootloader">引导锁 (BL)</string>
+    <string name="env_check_item_avb">本地完整性 (AVB)</string>
+    <string name="env_check_item_ab">A/B 分区</string>
+    <string name="env_check_item_play_integrity">Play Integrity</string>
+    <string name="env_check_item_zygisk">Zygisk 提供者</string>
+    <string name="env_check_item_lsposed">LSPosed</string>
+    <string name="env_check_item_recommended">推荐：%1$s</string>
+    <string name="env_check_item_ssl_unpin">证书固定相关模块</string>
+    <string name="env_check_item_device">设备</string>
+    <string name="env_check_item_network">网络</string>
+    <string name="env_check_item_selinux">SELinux</string>
+
+    <string name="env_check_root_working">工作中（版本 %1$d）</string>
+    <string name="env_check_root_not_installed">GKI 内核上未安装</string>
+    <string name="env_check_root_unsupported">内核不支持 LKM 安装</string>
+    <string name="env_check_mode_lkm">LKM</string>
+    <string name="env_check_mode_gki">GKI</string>
+    <string name="env_check_safe_mode_active">安全模式已启用</string>
+    <string name="env_check_jailbreak_active">延迟加载 / 越狱模式已启用</string>
+    <string name="env_check_version_matched">已匹配（%1$d）</string>
+    <string name="env_check_version_mismatch">不匹配：管理器 %1$d，驱动 %2$d</string>
+    <string name="env_check_pr_kernel">内核报告 PR 双签名支持（非生产）</string>
+    <string name="env_check_husky_up_to_date">已是最新（%1$s）</string>
+    <string name="env_check_husky_update">有可用更新：%1$s</string>
+    <string name="env_check_husky_fetch_failed">无法获取版本信息</string>
+    <string name="env_check_husky_offline">离线 — 已跳过版本检查</string>
+    <string name="env_check_bl_locked">引导锁似乎已锁定（%1$s）</string>
+    <string name="env_check_bl_unlocked">引导锁已解锁 / 橙色状态（Root 设备常见）</string>
+    <string name="env_check_bl_unavailable">无法读取引导锁属性</string>
+    <string name="env_check_bl_raw">原始状态：flash.locked=%1$s oem_unlock=%2$s verified=%3$s</string>
+    <string name="env_check_avb_unavailable">无法读取 Verified Boot 属性</string>
+    <string name="env_check_avb_green">Verified Boot 绿色</string>
+    <string name="env_check_avb_unlocked">Verified Boot %1$s（解锁或自定义镜像后常见）</string>
+    <string name="env_check_avb_red">Verified Boot 红色</string>
+    <string name="env_check_avb_raw">verifiedbootstate=%1$s vbmeta=%2$s</string>
+    <string name="env_check_ab_yes">A/B 设备 — OTA 后可安装到非活动槽</string>
+    <string name="env_check_ab_no">未检测到 A/B</string>
+    <string name="env_check_pi_not_configured">此构建尚未配置 Play Integrity</string>
+    <string name="env_check_installed">已安装</string>
+    <string name="env_check_not_installed">未安装</string>
+    <string name="env_check_zygisk_missing">未找到（Zygisk LSPosed 需要）</string>
+    <string name="env_check_lsposed_ok">已安装且有 Zygisk 提供者</string>
+    <string name="env_check_lsposed_no_zygisk">已安装但缺少 Zygisk 提供者</string>
+    <string name="env_check_ssl_unpin_none">未检测到已知的 SSL 解钉 / MITM 辅助模块</string>
+    <string name="env_check_ssl_unpin_found">发现：%1$s — 可能影响使用证书固定的银行应用</string>
+    <string name="env_check_network_available">可用</string>
+    <string name="env_check_network_offline">离线</string>
+
 </resources>

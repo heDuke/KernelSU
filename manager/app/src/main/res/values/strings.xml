@@ -412,4 +412,59 @@
     <string name="env_check_group_modules">Modules / LSP</string>
     <string name="env_check_group_system">System</string>
 
+    <string name="env_check_item_kernelsu">KernelSU</string>
+    <string name="env_check_item_working_mode">Working mode</string>
+    <string name="env_check_item_safe_mode">Safe mode</string>
+    <string name="env_check_item_jailbreak">Jailbreak mode</string>
+    <string name="env_check_item_version_match">Manager \u2194 driver</string>
+    <string name="env_check_item_pr_kernel">Production signing</string>
+    <string name="env_check_item_husky_lkm">Husky LKM release</string>
+    <string name="env_check_item_bootloader">Bootloader (BL)</string>
+    <string name="env_check_item_avb">Local integrity (AVB)</string>
+    <string name="env_check_item_ab">A/B slots</string>
+    <string name="env_check_item_play_integrity">Play Integrity</string>
+    <string name="env_check_item_zygisk">Zygisk provider</string>
+    <string name="env_check_item_lsposed">LSPosed</string>
+    <string name="env_check_item_recommended">Recommended: %1$s</string>
+    <string name="env_check_item_ssl_unpin">Certificate pinning related modules</string>
+    <string name="env_check_item_device">Device</string>
+    <string name="env_check_item_network">Network</string>
+    <string name="env_check_item_selinux">SELinux</string>
+
+    <string name="env_check_root_working">Working (version %1$d)</string>
+    <string name="env_check_root_not_installed">Not installed on a GKI kernel</string>
+    <string name="env_check_root_unsupported">Unsupported kernel for LKM install</string>
+    <string name="env_check_mode_lkm">LKM</string>
+    <string name="env_check_mode_gki">GKI</string>
+    <string name="env_check_safe_mode_active">Safe mode is active</string>
+    <string name="env_check_jailbreak_active">Late-load / jailbreak mode is active</string>
+    <string name="env_check_version_matched">Matched (%1$d)</string>
+    <string name="env_check_version_mismatch">Mismatch: manager %1$d, driver %2$d</string>
+    <string name="env_check_pr_kernel">Kernel reports PR dual-sign support (non-production)</string>
+    <string name="env_check_husky_up_to_date">Up to date (%1$s)</string>
+    <string name="env_check_husky_update">Update available: %1$s</string>
+    <string name="env_check_husky_fetch_failed">Failed to fetch releases</string>
+    <string name="env_check_husky_offline">Offline \u2014 skipped release check</string>
+    <string name="env_check_bl_locked">Bootloader appears locked (%1$s)</string>
+    <string name="env_check_bl_unlocked">Bootloader unlocked / orange state (common on rooted devices)</string>
+    <string name="env_check_bl_unavailable">Could not read bootloader lock props</string>
+    <string name="env_check_bl_raw">Raw lock/state: flash.locked=%1$s oem_unlock=%2$s verified=%3$s</string>
+    <string name="env_check_avb_unavailable">Verified Boot props unavailable</string>
+    <string name="env_check_avb_green">Verified Boot green</string>
+    <string name="env_check_avb_unlocked">Verified Boot %1$s (expected after unlock/custom images)</string>
+    <string name="env_check_avb_red">Verified Boot red</string>
+    <string name="env_check_avb_raw">verifiedbootstate=%1$s vbmeta=%2$s</string>
+    <string name="env_check_ab_yes">A/B device \u2014 inactive-slot install available after OTA</string>
+    <string name="env_check_ab_no">Not detected as A/B</string>
+    <string name="env_check_pi_not_configured">Play Integrity is not configured in this build yet</string>
+    <string name="env_check_installed">Installed</string>
+    <string name="env_check_not_installed">Not installed</string>
+    <string name="env_check_zygisk_missing">Not found (needed for Zygisk LSPosed)</string>
+    <string name="env_check_lsposed_ok">Installed with Zygisk provider</string>
+    <string name="env_check_lsposed_no_zygisk">Installed but Zygisk provider missing</string>
+    <string name="env_check_ssl_unpin_none">No known SSL-unpin / MITM helper modules detected</string>
+    <string name="env_check_ssl_unpin_found">Found: %1$s \u2014 may affect banking apps that pin certificates</string>
+    <string name="env_check_network_available">Available</string>
+    <string name="env_check_network_offline">Offline</string>
+
 </resources>

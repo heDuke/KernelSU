@@ -4,6 +4,7 @@ import android.os.Build
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.Natives
+import me.weishu.kernelsu.R
 import me.weishu.kernelsu.getKernelVersion
 import me.weishu.kernelsu.data.model.EnvCheckGroup
 import me.weishu.kernelsu.data.model.EnvCheckItem
@@ -12,6 +13,7 @@ import me.weishu.kernelsu.data.model.EnvCheckSeverity
 import me.weishu.kernelsu.data.model.Module
 import me.weishu.kernelsu.ksuApp
 import me.weishu.kernelsu.ui.screen.home.getManagerVersion
+import me.weishu.kernelsu.ui.util.getSELinuxStatusRaw
 import me.weishu.kernelsu.ui.util.getSystemProperty
 import me.weishu.kernelsu.ui.util.isAbDevice
 import me.weishu.kernelsu.ui.util.isNetworkAvailable
@@ -48,14 +50,15 @@ class EnvCheckRepositoryImpl(
     private fun rootItems(): List<EnvCheckItem> {
         val ksuVersion = runCatching { Natives.version }.getOrNull()?.takeIf { it > 0 }
         val kernel = getKernelVersion()
+        val ksuTitle = str(R.string.env_check_item_kernelsu)
         return buildList {
             when {
                 ksuVersion != null -> add(
                     item(
                         id = "root_working",
                         group = EnvCheckGroup.Root,
-                        title = "KernelSU",
-                        detail = "Working (version $ksuVersion)",
+                        title = ksuTitle,
+                        detail = str(R.string.env_check_root_working, ksuVersion),
                         severity = EnvCheckSeverity.Pass,
                         raw = ksuVersion.toString(),
                     )
@@ -64,8 +67,8 @@ class EnvCheckRepositoryImpl(
                     item(
                         id = "root_not_installed",
                         group = EnvCheckGroup.Root,
-                        title = "KernelSU",
-                        detail = "Not installed on a GKI kernel",
+                        title = ksuTitle,
+                        detail = str(R.string.env_check_root_not_installed),
                         severity = EnvCheckSeverity.Fail,
                     )
                 )
@@ -73,8 +76,8 @@ class EnvCheckRepositoryImpl(
                     item(
                         id = "root_unsupported",
                         group = EnvCheckGroup.Root,
-                        title = "KernelSU",
-                        detail = "Unsupported kernel for LKM install",
+                        title = ksuTitle,
+                        detail = str(R.string.env_check_root_unsupported),
                         severity = EnvCheckSeverity.Fail,
                     )
                 )
@@ -85,11 +88,11 @@ class EnvCheckRepositoryImpl(
                     item(
                         id = "root_mode",
                         group = EnvCheckGroup.Root,
-                        title = "Working mode",
+                        title = str(R.string.env_check_item_working_mode),
                         detail = when (lkm) {
-                            true -> "LKM"
-                            false -> "GKI"
-                            null -> "Unknown"
+                            true -> str(R.string.env_check_mode_lkm)
+                            false -> str(R.string.env_check_mode_gki)
+                            null -> str(R.string.env_check_unknown)
                         },
                         severity = if (lkm == false) EnvCheckSeverity.Warn else EnvCheckSeverity.Pass,
                         raw = lkm?.toString().orEmpty(),
@@ -100,8 +103,8 @@ class EnvCheckRepositoryImpl(
                         item(
                             id = "root_safe",
                             group = EnvCheckGroup.Root,
-                            title = "Safe mode",
-                            detail = "Safe mode is active",
+                            title = str(R.string.env_check_item_safe_mode),
+                            detail = str(R.string.env_check_safe_mode_active),
                             severity = EnvCheckSeverity.Warn,
                         )
                     )
@@ -111,8 +114,8 @@ class EnvCheckRepositoryImpl(
                         item(
                             id = "root_jailbreak",
                             group = EnvCheckGroup.Root,
-                            title = "Jailbreak mode",
-                            detail = "Late-load / jailbreak mode is active",
+                            title = str(R.string.env_check_item_jailbreak),
+                            detail = str(R.string.env_check_jailbreak_active),
                             severity = EnvCheckSeverity.Warn,
                         )
                     )
@@ -130,11 +133,11 @@ class EnvCheckRepositoryImpl(
             items += item(
                 id = "version_match",
                 group = EnvCheckGroup.Version,
-                title = "Manager ↔ driver",
+                title = str(R.string.env_check_item_version_match),
                 detail = if (match) {
-                    "Matched (${manager.versionCode})"
+                    str(R.string.env_check_version_matched, manager.versionCode)
                 } else {
-                    "Mismatch: manager ${manager.versionCode}, driver $ksuVersion"
+                    str(R.string.env_check_version_mismatch, manager.versionCode, ksuVersion)
                 },
                 severity = if (match) EnvCheckSeverity.Pass else EnvCheckSeverity.Fail,
                 raw = "manager=${manager.versionCode},driver=$ksuVersion",
@@ -146,11 +149,12 @@ class EnvCheckRepositoryImpl(
             items += item(
                 id = "version_pr_kernel",
                 group = EnvCheckGroup.Version,
-                title = "Production signing",
-                detail = "Kernel reports PR dual-sign support (non-production)",
+                title = str(R.string.env_check_item_pr_kernel),
+                detail = str(R.string.env_check_pr_kernel),
                 severity = EnvCheckSeverity.Warn,
             )
         }
+        val huskyTitle = str(R.string.env_check_item_husky_lkm)
         if (isNetworkAvailable(ksuApp)) {
             huskyRepo.fetchLatest().fold(
                 onSuccess = { release ->
@@ -159,11 +163,11 @@ class EnvCheckRepositoryImpl(
                     items += item(
                         id = "version_husky_lkm",
                         group = EnvCheckGroup.Version,
-                        title = "Husky LKM release",
+                        title = huskyTitle,
                         detail = if (upToDate) {
-                            "Up to date (${release.tag})"
+                            str(R.string.env_check_husky_up_to_date, release.tag)
                         } else {
-                            "Update available: ${release.tag}"
+                            str(R.string.env_check_husky_update, release.tag)
                         },
                         severity = if (upToDate) EnvCheckSeverity.Pass else EnvCheckSeverity.Warn,
                         raw = release.tag,
@@ -173,8 +177,8 @@ class EnvCheckRepositoryImpl(
                     items += item(
                         id = "version_husky_lkm",
                         group = EnvCheckGroup.Version,
-                        title = "Husky LKM release",
-                        detail = e.message ?: "Failed to fetch releases",
+                        title = huskyTitle,
+                        detail = e.message ?: str(R.string.env_check_husky_fetch_failed),
                         severity = EnvCheckSeverity.Unknown,
                     )
                 },
@@ -183,8 +187,8 @@ class EnvCheckRepositoryImpl(
             items += item(
                 id = "version_husky_lkm",
                 group = EnvCheckGroup.Version,
-                title = "Husky LKM release",
-                detail = "Offline — skipped release check",
+                title = huskyTitle,
+                detail = str(R.string.env_check_husky_offline),
                 severity = EnvCheckSeverity.Unknown,
             )
         }
@@ -208,20 +212,20 @@ class EnvCheckRepositoryImpl(
         when {
             flashLocked.equals("1", true) || flashLocked.equals("locked", true) -> {
                 blSeverity = EnvCheckSeverity.Pass
-                blDetail = "Bootloader appears locked ($flashLocked)"
+                blDetail = str(R.string.env_check_bl_locked, flashLocked)
             }
             flashLocked.equals("0", true) || flashLocked.equals("unlocked", true) ||
                 verified.equals("orange", true) -> {
                 blSeverity = EnvCheckSeverity.Warn
-                blDetail = "Bootloader unlocked / orange state (common on rooted devices)"
+                blDetail = str(R.string.env_check_bl_unlocked)
             }
             flashLocked.isBlank() && oemUnlock.isBlank() && verified.isBlank() -> {
                 blSeverity = EnvCheckSeverity.Unknown
-                blDetail = "Could not read bootloader lock props"
+                blDetail = str(R.string.env_check_bl_unavailable)
             }
             else -> {
                 blSeverity = EnvCheckSeverity.Unknown
-                blDetail = "Raw lock/state: flash.locked=$flashLocked oem_unlock=$oemUnlock verified=$verified"
+                blDetail = str(R.string.env_check_bl_raw, flashLocked, oemUnlock, verified)
             }
         }
 
@@ -230,23 +234,23 @@ class EnvCheckRepositoryImpl(
         when {
             verified.isBlank() && vbmeta.isBlank() -> {
                 avbSeverity = EnvCheckSeverity.Unknown
-                avbDetail = "Verified Boot props unavailable"
+                avbDetail = str(R.string.env_check_avb_unavailable)
             }
             verified.equals("green", true) -> {
                 avbSeverity = EnvCheckSeverity.Pass
-                avbDetail = "Verified Boot green"
+                avbDetail = str(R.string.env_check_avb_green)
             }
             verified.equals("orange", true) || verified.equals("yellow", true) -> {
                 avbSeverity = EnvCheckSeverity.Warn
-                avbDetail = "Verified Boot $verified (expected after unlock/custom images)"
+                avbDetail = str(R.string.env_check_avb_unlocked, verified)
             }
             verified.equals("red", true) -> {
                 avbSeverity = EnvCheckSeverity.Fail
-                avbDetail = "Verified Boot red"
+                avbDetail = str(R.string.env_check_avb_red)
             }
             else -> {
                 avbSeverity = EnvCheckSeverity.Unknown
-                avbDetail = "verifiedbootstate=$verified vbmeta=$vbmeta"
+                avbDetail = str(R.string.env_check_avb_raw, verified, vbmeta)
             }
         }
 
@@ -255,7 +259,7 @@ class EnvCheckRepositoryImpl(
             item(
                 id = "boot_bl",
                 group = EnvCheckGroup.Boot,
-                title = "Bootloader (BL)",
+                title = str(R.string.env_check_item_bootloader),
                 detail = blDetail,
                 severity = blSeverity,
                 raw = "flash.locked=$flashLocked oem_unlock=$oemUnlock",
@@ -263,7 +267,7 @@ class EnvCheckRepositoryImpl(
             item(
                 id = "boot_avb",
                 group = EnvCheckGroup.Boot,
-                title = "Local integrity (AVB)",
+                title = str(R.string.env_check_item_avb),
                 detail = avbDetail,
                 severity = avbSeverity,
                 raw = "verifiedbootstate=$verified vbmeta=$vbmeta",
@@ -271,8 +275,8 @@ class EnvCheckRepositoryImpl(
             item(
                 id = "boot_ab",
                 group = EnvCheckGroup.Boot,
-                title = "A/B slots",
-                detail = if (ab) "A/B device — inactive-slot install available after OTA" else "Not detected as A/B",
+                title = str(R.string.env_check_item_ab),
+                detail = if (ab) str(R.string.env_check_ab_yes) else str(R.string.env_check_ab_no),
                 severity = EnvCheckSeverity.Pass,
                 raw = ab.toString(),
             ),
@@ -284,7 +288,7 @@ class EnvCheckRepositoryImpl(
         return item(
             id = "integrity_play",
             group = EnvCheckGroup.IntegrityOnline,
-            title = "Play Integrity",
+            title = str(R.string.env_check_item_play_integrity),
             detail = result.summary,
             severity = when {
                 !result.available -> EnvCheckSeverity.Unknown
@@ -320,18 +324,22 @@ class EnvCheckRepositoryImpl(
         items += item(
             id = "mod_zygisk",
             group = EnvCheckGroup.Modules,
-            title = "Zygisk provider",
-            detail = if (hasZygisk) "Installed" else "Not found (needed for Zygisk LSPosed)",
+            title = str(R.string.env_check_item_zygisk),
+            detail = if (hasZygisk) {
+                str(R.string.env_check_installed)
+            } else {
+                str(R.string.env_check_zygisk_missing)
+            },
             severity = if (hasZygisk) EnvCheckSeverity.Pass else EnvCheckSeverity.Warn,
         )
         items += item(
             id = "mod_lsposed",
             group = EnvCheckGroup.Modules,
-            title = "LSPosed",
+            title = str(R.string.env_check_item_lsposed),
             detail = when {
-                hasLsposed && hasZygisk -> "Installed with Zygisk provider"
-                hasLsposed && !hasZygisk -> "Installed but Zygisk provider missing"
-                else -> "Not installed"
+                hasLsposed && hasZygisk -> str(R.string.env_check_lsposed_ok)
+                hasLsposed && !hasZygisk -> str(R.string.env_check_lsposed_no_zygisk)
+                else -> str(R.string.env_check_not_installed)
             },
             severity = when {
                 hasLsposed && !hasZygisk -> EnvCheckSeverity.Fail
@@ -345,8 +353,8 @@ class EnvCheckRepositoryImpl(
                 items += item(
                     id = "mod_rec_${rec.id}",
                     group = EnvCheckGroup.Modules,
-                    title = "Recommended: ${rec.name}",
-                    detail = "Not installed",
+                    title = str(R.string.env_check_item_recommended, rec.name),
+                    detail = str(R.string.env_check_not_installed),
                     severity = EnvCheckSeverity.Warn,
                     raw = rec.id,
                 )
@@ -355,12 +363,14 @@ class EnvCheckRepositoryImpl(
         items += item(
             id = "mod_ssl_unpin",
             group = EnvCheckGroup.Modules,
-            title = "Certificate pinning related modules",
+            title = str(R.string.env_check_item_ssl_unpin),
             detail = if (unpinHits.isEmpty()) {
-                "No known SSL-unpin / MITM helper modules detected"
+                str(R.string.env_check_ssl_unpin_none)
             } else {
-                "Found: " + unpinHits.joinToString { it.name.ifBlank { it.id } } +
-                    " — may affect banking apps that pin certificates"
+                str(
+                    R.string.env_check_ssl_unpin_found,
+                    unpinHits.joinToString { it.name.ifBlank { it.id } },
+                )
             },
             severity = if (unpinHits.isEmpty()) EnvCheckSeverity.Pass else EnvCheckSeverity.Warn,
             raw = unpinHits.joinToString(",") { it.id },
@@ -369,15 +379,18 @@ class EnvCheckRepositoryImpl(
     }
 
     private fun systemItems(): List<EnvCheckItem> {
-        val selinux = firstProp("ro.build.selinux", "ro.boot.selinux").ifBlank {
-            // best-effort; Home also reads via native helpers when available
-            "unknown"
+        val selinux = getSELinuxStatusRaw()
+        val selinuxDetail = when (selinux) {
+            "Enforcing" -> ksuApp.getString(R.string.selinux_status_enforcing)
+            "Permissive" -> ksuApp.getString(R.string.selinux_status_permissive)
+            "Disabled" -> ksuApp.getString(R.string.selinux_status_disabled)
+            else -> ksuApp.getString(R.string.selinux_status_unknown)
         }
         return listOf(
             item(
                 id = "sys_model",
                 group = EnvCheckGroup.System,
-                title = "Device",
+                title = str(R.string.env_check_item_device),
                 detail = "${Build.MANUFACTURER} ${Build.MODEL}",
                 severity = EnvCheckSeverity.Pass,
                 raw = Build.FINGERPRINT,
@@ -385,15 +398,19 @@ class EnvCheckRepositoryImpl(
             item(
                 id = "sys_network",
                 group = EnvCheckGroup.System,
-                title = "Network",
-                detail = if (isNetworkAvailable(ksuApp)) "Available" else "Offline",
+                title = str(R.string.env_check_item_network),
+                detail = if (isNetworkAvailable(ksuApp)) {
+                    str(R.string.env_check_network_available)
+                } else {
+                    str(R.string.env_check_network_offline)
+                },
                 severity = if (isNetworkAvailable(ksuApp)) EnvCheckSeverity.Pass else EnvCheckSeverity.Warn,
             ),
             item(
                 id = "sys_selinux_prop",
                 group = EnvCheckGroup.System,
-                title = "SELinux prop",
-                detail = selinux,
+                title = str(R.string.env_check_item_selinux),
+                detail = selinuxDetail,
                 severity = EnvCheckSeverity.Unknown,
                 raw = selinux,
             ),
@@ -422,6 +439,9 @@ class EnvCheckRepositoryImpl(
         }
         return ""
     }
+
+    private fun str(id: Int, vararg formatArgs: Any): String =
+        if (formatArgs.isEmpty()) ksuApp.getString(id) else ksuApp.getString(id, *formatArgs)
 
     private fun item(
         id: String,
