@@ -193,11 +193,7 @@ fun FlashEffect(
                     val flashedMarker = log.contains("- Flashing new boot image", ignoreCase = true)
                     currentText += when {
                         missingLkm ->
-                            "Error code: $code.
-No matching LKM for the inactive-slot kernel KMI.
-$err
-Install a HuskySU build that embeds this KMI, or pick the .ko manually.
-"
+                            "Error code: $code.\nNo matching LKM for the inactive-slot kernel KMI.\n$err\nInstall a HuskySU build that embeds this KMI, or pick the .ko manually.\n"
                         slotSwitchFailed && flashedMarker ->
                             "Error code: $code.\nPartition write may have succeeded, but switching the active boot slot failed.\n$err\nSave the log, do not reboot until the active slot is confirmed.\n"
                         slotSwitchFailed ->
