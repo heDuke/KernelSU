@@ -1,4 +1,4 @@
-﻿package me.weishu.kernelsu.ui.util
+package me.weishu.kernelsu.ui.util
 
 import android.net.Uri
 import me.weishu.kernelsu.Natives
