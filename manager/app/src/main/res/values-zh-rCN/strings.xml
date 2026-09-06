@@ -178,7 +178,10 @@
     <string name="download_no_boot_partition">镜像中未找到 boot、init_boot 或 vendor_boot 分区</string>
     <string name="download_probe_failed">探测镜像失败：%1$s</string>
     <string name="install_inactive_slot">安装到未使用的槽位（OTA 后）</string>
-    <string name="install_inactive_slot_warning">将在重启后强制切换到另一个槽位！注意只能在 OTA 更新完成后的重启之前使用</string>
+    <string name="install_inactive_slot_warning">仅在 OTA 安装完成后使用。
+先不要从系统更新里重启。
+KernelSU 完成后，请回到系统更新点击重新启动。
+是否继续？</string>
     <string name="jailbreak_flash_warning">当前处于**越狱模式**。在**未解锁 Bootloader** 的设备上刷写分区会破坏 AVB（Android 验证启动），可能导致设备**无法开机**。\n\n请确保 Bootloader 已解锁后再继续操作！</string>
     <string name="jailbreak_flash_warning_countdown">继续 (%1$d)</string>
     <string name="install_next">下一步</string>
@@ -367,8 +370,12 @@
     <string name="husky_download_lkm">下载 LKM</string>
     <string name="husky_lkm_saved">已将 %s 保存到下载目录</string>
     <string name="husky_ota_slot_title">系统更新之后</string>
-    <string name="husky_ota_slot_summary">将 KernelSU LKM 安装到非活动槽位，然后重启进入已更新的系统。</string>
-    <string name="husky_ota_slot_confirm">将向非活动 A/B 槽刷入 LKM。请确认系统 OTA 已安装完成后再继续。</string>
+    <string name="husky_ota_slot_summary">系统 OTA 安装完成后（先不要重启），再把 LKM 刷到非活动槽。成功后请回到「系统更新」点重新启动。</string>
+    <string name="husky_ota_slot_confirm">仅在「设置 → 系统更新」显示安装完成后再用。
+先不要在系统更新里点重启。
+此操作会给非活动槽打 LKM 并准备切槽。
+成功后请回到系统更新页面点击重新启动。</string>
+    <string name="husky_ota_slot_reboot_hint">成功。请打开「系统更新」并点击重新启动以进入 OTA 槽（Pixel Virtual A/B 推荐）。</string>
     <string name="husky_ota_slot_action">安装到非活动槽</string>
     <string name="about_blurb">基于 KernelSU 的 husky LKM 维护分支</string>
     <string name="about_source">源代码</string>

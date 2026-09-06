@@ -69,23 +69,23 @@ Settings → Appearance:
 - Theme: system / light / dark
 - Dynamic color: off = husky seed `#1A73E8`; on = wallpaper colors
 
-## OTA / inactive slot
+## OTA / inactive slot (Pixel Virtual A/B)
 
-After system OTA, use “install to inactive slot” on the Home husky card (when shown), then reboot — or re-patch a new factory `init_boot`.
+Correct order (keep root after OTA):
 
-That action patches the **inactive** `init_boot`/`boot` and then runs `bootctl set-active-boot-slot` so the next reboot enters the updated slot. Align / env-check **does not** auto-flash the inactive slot.
+1. **Settings → System → System update**: download and **finish installing**.  
+   When it asks to restart — **do not restart yet**.
+2. Open **HuskySU → Install to inactive slot** (Home card). Wait until success.  
+   The build must embed the inactive-slot KMI (this fork ships `android14-6.1` and `android16-6.12`).
+3. Go **back to System update** and tap **Restart** (preferred on Virtual A/B).  
+   Rebooting only from KernelSU can also work after slot switch, but System Update restart is safer.
 
-### Slot switch notes (A17 / husky)
+If you already rebooted into a broken inactive slot: `fastboot --set-active=a` then `fastboot reboot`.
 
-- `ksud` must invoke `bootctl set-active-boot-slot <0|1>` as **two** arguments (not one string).
-- If Flash fails with a **slot switch** / `bootctl` error after “Flashing new boot image”, the partition may already be written — **do not reboot** until `bootctl get-current-slot` looks right; switch back if needed.
-- **Without a completed system OTA**, do not reboot into the opposite slot unless you know that slot is bootable. You can still verify slot switching, then switch back.
-- Prefer confirming with:
+If `update_engine` cancelled snapshots after a failed boot, the inactive slot may be inconsistent — **re-download/re-install the OTA** on the current slot, then repeat steps 2–3. Do not keep forcing reboots into a slot that never marked boot successful.
 
-```bash
-/data/adb/ksu/bin/bootctl get-current-slot
-/data/adb/ksu/bin/bootctl set-active-boot-slot 0   # or 1
-```
+Align / env-check **does not** auto-flash the inactive slot.
+
 
 ## Rollback
 

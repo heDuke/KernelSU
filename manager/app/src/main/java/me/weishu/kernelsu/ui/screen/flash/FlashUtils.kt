@@ -206,7 +206,12 @@ fun FlashEffect(
                     }
                 }
                 if (showReboot) {
-                    currentText += "\n\n\n"
+                    val otaHint = if (flashIt is FlashIt.FlashBoot && flashIt.ota) {
+                        "\n" + ksuApp.getString(R.string.husky_ota_slot_reboot_hint) + "\n"
+                    } else {
+                        ""
+                    }
+                    currentText += otaHint + "\n\n\n"
                     mainHandler.post {
                         onTextUpdate(currentText)
                         onShowRebootChange(true)

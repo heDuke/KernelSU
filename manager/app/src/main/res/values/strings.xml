@@ -208,7 +208,7 @@
     <string name="download_no_boot_partition">No boot, init_boot or vendor_boot partition found in the image</string>
     <string name="download_probe_failed">Failed to probe the image: %1$s</string>
     <string name="install_inactive_slot">Install to inactive slot (After OTA)</string>
-    <string name="install_inactive_slot_warning">Your device will be **FORCED** to boot to the current inactive slot after a reboot!\nOnly use this option after OTA is done.\nContinue?</string>
+    <string name="install_inactive_slot_warning">Only after OTA has finished installing.\nDo not reboot from System Update yet.\nAfter KernelSU finishes, go back to System Update and tap Restart.\nContinue?</string>
     <string name="jailbreak_flash_warning">You are in **Jailbreak mode**. Flashing a partition on a device with a **locked bootloader** will break AVB (Android Verified Boot) and may cause the device to **fail to boot**.\n\nMake sure your bootloader is unlocked before proceeding!</string>
     <string name="jailbreak_flash_warning_countdown">Continue (%1$d)</string>
     <string name="install_next">Next</string>
@@ -373,9 +373,10 @@
     <string name="husky_download_lkm">Download LKM</string>
     <string name="husky_lkm_saved">Saved %s to Downloads</string>
     <string name="husky_ota_slot_title">After system OTA</string>
-    <string name="husky_ota_slot_summary">Reinstall KernelSU LKM onto the inactive slot, then reboot into the updated system.</string>
-    <string name="husky_ota_slot_confirm">This will flash LKM to the inactive A/B slot. Continue only after the OTA has finished installing.</string>
+    <string name="husky_ota_slot_summary">After OTA finishes installing (do not reboot yet), flash LKM to the inactive slot. Then go back to System Update and tap Restart.</string>
+    <string name="husky_ota_slot_confirm">Use only after Settings → System update has fully finished installing.\nDo NOT reboot from System Update yet.\nThis patches the inactive slot and prepares slot switch.\nAfter success, return to System Update and tap Restart.</string>
     <string name="husky_ota_slot_action">Install to inactive slot</string>
+    <string name="husky_ota_slot_reboot_hint">Success. Open System Update and tap Restart to boot the OTA slot (recommended on Pixel Virtual A/B).</string>
     <string name="about_blurb">husky LKM maintenance fork based on KernelSU</string>
     <string name="about_source">Source code</string>
     <string name="about_source_summary" translatable="false">github.com/heDuke/KernelSU</string>

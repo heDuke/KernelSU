@@ -343,6 +343,7 @@ rm -f /data/adb/post-fs-data.d/post_ota.sh
         std::fs::write(&post_ota_sh, sh_content)?;
         std::fs::set_permissions(post_ota_sh, std::fs::Permissions::from_mode(0o755))?;
         println!("- Active boot slot switch complete");
+        println!("- Next: open System Update and tap Restart (Pixel Virtual A/B)");
 
         Ok(())
     }
