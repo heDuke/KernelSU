@@ -1,5 +1,5 @@
 # HuskySU (Pixel 8 Pro) production release:
-# - android14-6.1 LKM only
+# - android14-6.1 + android16-6.12 LKM
 # - Manager package me.weishu.kernelsu.husky.fork (HuskySU)
 # - Signs with repo Secrets (KEYSTORE*) and publishes a GitHub Release
 name: Husky LKM Release
@@ -82,9 +82,13 @@ jobs:
 
   build-lkm:
     needs: prepare-signing
+    strategy:
+      matrix:
+        # A17 OTA inactive slot on husky can be android16-6.12
+        kmi: [android14-6.1, android16-6.12]
     uses: ./.github/workflows/ddk-lkm.yml
     with:
-      kmi: android14-6.1
+      kmi: ${{ matrix.kmi }}
       ddk_release: ${{ inputs.ddk_release || '20260313' }}
       # Primary production slot only — do NOT set SIZE2/HASH2 (that marks PR/non-production kernel)
       expected_size: ${{ needs.prepare-signing.outputs.expected_size }}
@@ -189,9 +193,11 @@ jobs:
           cp -f "$X86_KSUD" target/x86_64-linux-android/release/ksud
 
           mkdir -p dist-lkm
-          KO=$(find artifacts/aarch64-android14-6.1-lkm -type f -name '*.ko' | head -n 1)
-          test -n "$KO"
-          cp -f "$KO" dist-lkm/android14-6.1_kernelsu.ko
+          for kmi in android14-6.1 android16-6.12; do
+            KO=$(find artifacts/aarch64-$kmi-lkm -type f -name '*.ko' | head -n 1)
+            test -n "$KO"
+            cp -f "$KO" "dist-lkm/${kmi}_kernelsu.ko"
+          done
 
       - name: Repack and sign HuskySU
         env:
@@ -211,7 +217,7 @@ jobs:
           mkdir -p dist-husky
           APK=$(find dist -name '*.apk' | head -n 1)
           cp -f "$APK" dist-husky/HuskySU.apk
-          cp -f dist-lkm/android14-6.1_kernelsu.ko dist-husky/
+          cp -f dist-lkm/*_kernelsu.ko dist-husky/
           ls -la dist-husky
 
       - uses: actions/upload-artifact@v7
@@ -237,8 +243,8 @@ jobs:
 
           - App: **HuskySU**
           - Package: \`me.weishu.kernelsu.husky.fork\`
-          - KMI: \`android14-6.1\`
-          - Assets: \`HuskySU.apk\`, \`android14-6.1_kernelsu.ko\`
+          - KMI: \`android14-6.1\` + \`android16-6.12\` (OTA inactive slot)
+          - Assets: \`HuskySU.apk\`, \`android14-6.1_kernelsu.ko\`, \`android16-6.12_kernelsu.ko\`
 
           Based on [KernelSU](https://github.com/tiann/KernelSU). See docs/README Credits.
 
@@ -248,6 +254,7 @@ jobs:
           gh release create "$TAG" \
             dist-husky/HuskySU.apk \
             dist-husky/android14-6.1_kernelsu.ko \
+            dist-husky/android16-6.12_kernelsu.ko \
             --title "$TITLE" \
             --notes "$BODY"
           echo "Released $TAG"

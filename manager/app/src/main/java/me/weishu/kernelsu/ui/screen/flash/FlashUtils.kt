@@ -186,11 +186,18 @@ fun FlashEffect(
                 if (code != 0) {
                     val log = logContent.toString()
                     val slotSwitchFailed = log.contains("set-active-boot-slot", ignoreCase = true) ||
-                        log.contains("slot switch", ignoreCase = true) ||
                         log.contains("bootctl hal-info failed", ignoreCase = true) ||
                         log.contains("get-current-slot failed", ignoreCase = true)
+                    val missingLkm = log.contains("Failed to load", ignoreCase = true) &&
+                        log.contains("_kernelsu.ko", ignoreCase = true)
                     val flashedMarker = log.contains("- Flashing new boot image", ignoreCase = true)
                     currentText += when {
+                        missingLkm ->
+                            "Error code: $code.
+No matching LKM for the inactive-slot kernel KMI.
+$err
+Install a HuskySU build that embeds this KMI, or pick the .ko manually.
+"
                         slotSwitchFailed && flashedMarker ->
                             "Error code: $code.\nPartition write may have succeeded, but switching the active boot slot failed.\n$err\nSave the log, do not reboot until the active slot is confirmed.\n"
                         slotSwitchFailed ->
