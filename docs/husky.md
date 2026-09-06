@@ -20,8 +20,8 @@ Requires repository Secrets: `KEYSTORE`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_
 
 | Trigger | Builds | Creates GitHub Release |
 |---------|--------|-------------------------|
-| `push` to `husky-lkm` | Yes | **No** |
-| `workflow_dispatch` + `create_release` | Yes | **Yes** (`husky-v*`) |
+| `push` to `husky-lkm` | **No** (disabled to save Actions minutes) | No |
+| `workflow_dispatch` | Yes | Only if **`create_release`** checked (`husky-v*`) |
 
 ## First-time flash (PC)
 
@@ -69,11 +69,23 @@ Settings → Appearance:
 - Theme: system / light / dark
 - Dynamic color: off = husky seed `#1A73E8`; on = wallpaper colors
 
-## OTA
+## OTA / inactive slot
 
 After system OTA, use “install to inactive slot” on the Home husky card (when shown), then reboot — or re-patch a new factory `init_boot`.
 
-Align / env-check **does not** auto-flash the inactive slot.
+That action patches the **inactive** `init_boot`/`boot` and then runs `bootctl set-active-boot-slot` so the next reboot enters the updated slot. Align / env-check **does not** auto-flash the inactive slot.
+
+### Slot switch notes (A17 / husky)
+
+- `ksud` must invoke `bootctl set-active-boot-slot <0|1>` as **two** arguments (not one string).
+- If Flash fails with a **slot switch** / `bootctl` error after “Flashing new boot image”, the partition may already be written — **do not reboot** until `bootctl get-current-slot` looks right; switch back if needed.
+- **Without a completed system OTA**, do not reboot into the opposite slot unless you know that slot is bootable. You can still verify slot switching, then switch back.
+- Prefer confirming with:
+
+```bash
+/data/adb/ksu/bin/bootctl get-current-slot
+/data/adb/ksu/bin/bootctl set-active-boot-slot 0   # or 1
+```
 
 ## Rollback
 

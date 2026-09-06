@@ -4,6 +4,8 @@
 # - Signs with repo Secrets (KEYSTORE*) and publishes a GitHub Release
 name: Husky LKM Release
 
+# Manual only — auto push builds burned through Actions minutes on husky-lkm.
+# Publish: Actions → Husky LKM Release → Run workflow (create_release as needed).
 on:
   workflow_dispatch:
     inputs:
@@ -17,18 +19,6 @@ on:
         required: false
         default: true
         type: boolean
-  push:
-    branches: [husky-lkm]
-    paths:
-      - '.github/workflows/husky-release.yml'
-      - '.github/workflows/ddk-lkm.yml'
-      - '.github/workflows/ksud.yml'
-      - '.github/workflows/ksuinit.yml'
-      - 'manager/**'
-      - 'kernel/**'
-      - 'userspace/**'
-      - 'repack_apk.py'
-      - 'docs/**'
 
 env:
   HUSKY_PACKAGE: me.weishu.kernelsu.husky.fork

@@ -21,7 +21,7 @@
 
 请先卸载旧的 `me.weishu.kernelsu` / `.pr` 管理器（包名不同）。
 
-> **发版说明：** `git push` 只会跑 CI **构建**，**不会**自动创建 GitHub Release。发布请到 Actions → **Husky LKM Release** → Run workflow，并勾选 **`create_release`**。
+> **发版说明：** CI **仅手动触发**（节省 Actions 分钟数）。构建/发版：Actions → **Husky LKM Release** → Run workflow；需要 `husky-v*` Release 时勾选 **`create_release`**。
 
 ## 本 fork 功能
 

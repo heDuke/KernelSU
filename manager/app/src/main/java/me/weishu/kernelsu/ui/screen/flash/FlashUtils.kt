@@ -33,7 +33,6 @@ import me.weishu.kernelsu.ui.util.FlashResult
 import me.weishu.kernelsu.ui.util.LkmSelection
 import me.weishu.kernelsu.ui.util.downloadBoot
 import me.weishu.kernelsu.ui.util.flashModule
-import me.weishu.kernelsu.ui.util.installBoot
 import me.weishu.kernelsu.ui.util.restoreBoot
 import me.weishu.kernelsu.ui.util.uninstallPermanently
 import java.io.File
@@ -121,7 +120,7 @@ fun flashIt(
     onStderr: (String) -> Unit
 ): FlashResult {
     return when (flashIt) {
-        is FlashIt.FlashBoot -> installBoot(
+        is FlashIt.FlashBoot -> me.weishu.kernelsu.ui.util.LoaderClient.flashBoot(
             flashIt.boot,
             flashIt.lkm,
             flashIt.ota,
@@ -185,7 +184,20 @@ fun FlashEffect(
                 logContent.append(it).append("\n")
             }).apply {
                 if (code != 0) {
-                    currentText += "Error code: $code.\n $err Please save and check the log.\n"
+                    val log = logContent.toString()
+                    val slotSwitchFailed = log.contains("set-active-boot-slot", ignoreCase = true) ||
+                        log.contains("slot switch", ignoreCase = true) ||
+                        log.contains("bootctl hal-info failed", ignoreCase = true) ||
+                        log.contains("get-current-slot failed", ignoreCase = true)
+                    val flashedMarker = log.contains("- Flashing new boot image", ignoreCase = true)
+                    currentText += when {
+                        slotSwitchFailed && flashedMarker ->
+                            "Error code: $code.\nPartition write may have succeeded, but switching the active boot slot failed.\n$err\nSave the log, do not reboot until the active slot is confirmed.\n"
+                        slotSwitchFailed ->
+                            "Error code: $code.\nActive boot slot switch failed.\n$err\nPlease save and check the log.\n"
+                        else ->
+                            "Error code: $code.\n$err Please save and check the log.\n"
+                    }
                     mainHandler.post {
                         onTextUpdate(currentText)
                     }

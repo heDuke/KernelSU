@@ -280,22 +280,53 @@ mod android {
     pub(super) fn post_ota() -> Result<()> {
         use crate::assets::BOOTCTL_PATH;
         use crate::defs::ADB_DIR;
-        let status = Command::new(BOOTCTL_PATH).arg("hal-info").status()?;
-        if !status.success() {
-            return Ok(());
+
+        println!("- Switching active boot slot");
+
+        let hal_info = Command::new(BOOTCTL_PATH)
+            .arg("hal-info")
+            .output()
+            .with_context(|| format!("run {BOOTCTL_PATH} hal-info"))?;
+        if !hal_info.status.success() {
+            let stderr = String::from_utf8_lossy(&hal_info.stderr);
+            let stdout = String::from_utf8_lossy(&hal_info.stdout);
+            bail!(
+                "bootctl hal-info failed (slot switch aborted): stdout={stdout:?} stderr={stderr:?}"
+            );
         }
 
-        let current_slot = Command::new(BOOTCTL_PATH)
+        let current_slot_out = Command::new(BOOTCTL_PATH)
             .arg("get-current-slot")
-            .output()?
-            .stdout;
-        let current_slot = String::from_utf8(current_slot)?;
-        let current_slot = current_slot.trim();
+            .output()
+            .with_context(|| format!("run {BOOTCTL_PATH} get-current-slot"))?;
+        if !current_slot_out.status.success() {
+            let stderr = String::from_utf8_lossy(&current_slot_out.stderr);
+            let stdout = String::from_utf8_lossy(&current_slot_out.stdout);
+            bail!("bootctl get-current-slot failed: stdout={stdout:?} stderr={stderr:?}");
+        }
+        let current_slot = String::from_utf8(current_slot_out.stdout)
+            .context("parse bootctl get-current-slot stdout")?
+            .trim()
+            .to_string();
+        ensure!(
+            current_slot == "0" || current_slot == "1",
+            "unexpected bootctl get-current-slot output: {current_slot:?}"
+        );
         let target_slot = i32::from(current_slot == "0");
+        println!("- Current slot {current_slot} -> active slot {target_slot}");
 
-        Command::new(BOOTCTL_PATH)
-            .arg(format!("set-active-boot-slot {target_slot}"))
-            .status()?;
+        // bootctl expects two argv entries: set-active-boot-slot <0|1>
+        let set_active = Command::new(BOOTCTL_PATH)
+            .args(["set-active-boot-slot", &target_slot.to_string()])
+            .output()
+            .with_context(|| format!("run {BOOTCTL_PATH} set-active-boot-slot {target_slot}"))?;
+        if !set_active.status.success() {
+            let stderr = String::from_utf8_lossy(&set_active.stderr);
+            let stdout = String::from_utf8_lossy(&set_active.stdout);
+            bail!(
+                "bootctl set-active-boot-slot {target_slot} failed (partition may already be patched): stdout={stdout:?} stderr={stderr:?}"
+            );
+        }
 
         let post_fs_data = Path::new(ADB_DIR).join("post-fs-data.d");
         utils::ensure_dir_exists(&post_fs_data)?;
@@ -311,6 +342,7 @@ rm -f /data/adb/post-fs-data.d/post_ota.sh
 
         std::fs::write(&post_ota_sh, sh_content)?;
         std::fs::set_permissions(post_ota_sh, std::fs::Permissions::from_mode(0o755))?;
+        println!("- Active boot slot switch complete");
 
         Ok(())
     }

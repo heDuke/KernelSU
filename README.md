@@ -21,7 +21,7 @@
 
 Uninstall any previous `me.weishu.kernelsu` / `.pr` manager first (different package id).
 
-> **Publishing note:** `git push` builds CI artifacts but does **not** create a GitHub Release. To publish: Actions → **Husky LKM Release** → Run workflow with **`create_release` checked**.
+> **Publishing note:** CI is **manual only** (saves Actions minutes). To build/publish: Actions → **Husky LKM Release** → Run workflow; check **`create_release`** when you want a `husky-v*` GitHub Release.
 
 ## Features (this fork)
 
