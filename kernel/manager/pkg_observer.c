@@ -4,6 +4,7 @@
 #include <linux/namei.h>
 #include <linux/fsnotify_backend.h>
 #include <linux/slab.h>
+#include <linux/mutex.h>
 #include <linux/rculist.h>
 #include <linux/version.h>
 #include "klog.h" // IWYU pragma: keep
@@ -20,6 +21,7 @@ struct watch_dir {
 };
 
 static struct fsnotify_group *g;
+static DEFINE_MUTEX(observer_mutex);
 
 static int ksu_handle_inode_event(struct fsnotify_mark *mark, u32 mask, struct inode *inode, struct inode *dir,
                                   const struct qstr *file_name, u32 cookie)
@@ -42,6 +44,7 @@ static const struct fsnotify_ops ksu_ops = {
 static int add_mark_on_inode(struct inode *inode, u32 mask, struct fsnotify_mark **out)
 {
     struct fsnotify_mark *m;
+    int ret;
 
     m = kzalloc(sizeof(*m), GFP_KERNEL);
     if (!m)
@@ -50,9 +53,10 @@ static int add_mark_on_inode(struct inode *inode, u32 mask, struct fsnotify_mark
     fsnotify_init_mark(m, g);
     m->mask = mask;
 
-    if (fsnotify_add_inode_mark(m, inode, 0)) {
+    ret = fsnotify_add_inode_mark(m, inode, 0);
+    if (ret) {
         fsnotify_put_mark(m);
-        return -EINVAL;
+        return ret;
     }
     *out = m;
     return 0;
@@ -72,6 +76,7 @@ static int watch_one_dir(struct watch_dir *wd)
     if (ret) {
         pr_err("Add mark failed for %s (%d)\n", wd->path, ret);
         path_put(&wd->kpath);
+        memset(&wd->kpath, 0, sizeof(wd->kpath));
         iput(wd->inode);
         wd->inode = NULL;
         return ret;
@@ -103,22 +108,41 @@ int ksu_observer_init(void)
 {
     int ret = 0;
 
+    mutex_lock(&observer_mutex);
+    if (g)
+        goto out;
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
     g = fsnotify_alloc_group(&ksu_ops, 0);
 #else
     g = fsnotify_alloc_group(&ksu_ops);
 #endif
-    if (IS_ERR(g))
-        return PTR_ERR(g);
+    if (IS_ERR(g)) {
+        ret = PTR_ERR(g);
+        g = NULL;
+        goto out;
+    }
 
     ret = watch_one_dir(&g_watch);
+    if (ret) {
+        fsnotify_put_group(g);
+        g = NULL;
+        goto out;
+    }
     pr_info("observer init done\n");
-    return 0;
+out:
+    mutex_unlock(&observer_mutex);
+    return ret;
 }
 
 void __exit ksu_observer_exit(void)
 {
-    unwatch_one_dir(&g_watch);
-    fsnotify_put_group(g);
+    mutex_lock(&observer_mutex);
+    if (g) {
+        unwatch_one_dir(&g_watch);
+        fsnotify_put_group(g);
+        g = NULL;
+    }
+    mutex_unlock(&observer_mutex);
     pr_info("observer exit done\n");
 }

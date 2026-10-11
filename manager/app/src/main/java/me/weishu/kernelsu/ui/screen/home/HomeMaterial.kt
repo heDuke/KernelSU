@@ -152,7 +152,7 @@ private fun HuskyUpdateCard(
     val confirmTitle = stringResource(R.string.husky_update_lkm)
     val confirmText = stringResource(R.string.husky_update_confirm, release?.tag ?: "")
     val available = state.huskyUpdateStatus == HuskyUpdateStatus.Available &&
-        !release?.lkmDownloadUrl.isNullOrEmpty()
+        !release?.lkmAssets.isNullOrEmpty()
 
     val lkmTitle: String
     val lkmSummary: String

@@ -6,6 +6,8 @@
 #include <linux/sched.h>
 #include <linux/workqueue.h>
 #include <linux/moduleparam.h>
+#include <asm/page.h>
+#include <generated/utsrelease.h>
 
 #include "policy/allowlist.h"
 #include "policy/app_profile.h"
@@ -155,7 +157,8 @@ int __init kernelsu_init(void)
         ksu_syscall_hook_manager_init();
 
         ksu_throne_tracker_init();
-        ksu_observer_init();
+        if (ksu_observer_init())
+            pr_err("manager observer initialization failed\n");
         ksu_file_wrapper_init();
 
         ksu_boot_completed = true;
@@ -225,6 +228,11 @@ module_exit(kernelsu_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("weishu");
 MODULE_DESCRIPTION("Android KernelSU");
+MODULE_INFO(ksu_page_shift, __stringify(PAGE_SHIFT));
+MODULE_INFO(ksu_kernel_release, UTS_RELEASE);
+#ifdef KSU_KMI
+MODULE_INFO(ksu_kmi, KSU_KMI);
+#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0)
 MODULE_IMPORT_NS("VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver");
 #else

@@ -37,6 +37,7 @@ fn dump_process_info(label: &str) {
 
 pub fn run(package_name: &String, kmi: Option<String>, allow_shell: bool) -> Result<()> {
     utils::daemonize(false)?;
+    let _lock = crate::mutation::MutationLock::acquire()?;
     info!("late-load command triggered!");
     dump_process_info("late-load start");
 

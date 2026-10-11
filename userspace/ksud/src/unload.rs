@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result, ensure};
 use log::{info, warn};
 use std::fs;
 use std::process::Command;
@@ -106,6 +106,7 @@ fn close_ksu_fds() {
 }
 
 pub fn unload() -> Result<()> {
+    let _lock = crate::mutation::MutationLock::acquire()?;
     info!("unload: starting KernelSU unload sequence");
 
     // 0. Switch cgroups so we don't get killed along with our parent shell
@@ -113,7 +114,13 @@ pub fn unload() -> Result<()> {
 
     // 1. stop (Android init stop command - stops all services)
     info!("unload: stopping Android services...");
-    let _ = Command::new("stop").status();
+    let stopped = Command::new("stop")
+        .status()
+        .context("stop Android services")?;
+    if !stopped.success() {
+        let _ = Command::new("start").status();
+        anyhow::bail!("stop Android services failed; module was not removed");
+    }
 
     // 2. Kill all su domain processes and processes holding ksu fds (except ourselves)
     info!("unload: killing su domain processes...");
@@ -142,15 +149,23 @@ pub fn unload() -> Result<()> {
 
     // 4. delete_module("kernelsu")
     info!("unload: removing kernelsu module...");
-    if let Err(e) = rustix::system::delete_module(c"kernelsu", 0) {
+    let removed = rustix::system::delete_module(c"kernelsu", 0);
+    if let Err(e) = &removed {
         warn!("unload: delete_module kernelsu failed: {e}");
     }
 
     // 5. start (Android init start command - restarts all services)
     info!("unload: restarting Android services...");
-    let _ = Command::new("start").status();
+    let started = Command::new("start")
+        .status()
+        .context("restart Android services after unload");
 
     // 6. Exit
-    info!("unload: done, exiting ksud");
-    std::process::exit(0);
+    removed.context("delete_module failed; service restart was attempted")?;
+    ensure!(
+        started?.success(),
+        "module removed but Android service restart failed"
+    );
+    info!("unload: done");
+    Ok(())
 }

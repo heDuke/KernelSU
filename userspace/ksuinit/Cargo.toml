@@ -12,6 +12,7 @@ goblin = "0.10"
 scroll = "0.13"
 
 anyhow.workspace = true
+ksu-contracts = { path = "../ksu-contracts" }
 rustix = { git = "https://github.com/Kernel-SU/rustix.git", rev = "4a53fbc", features = ["mount", "fs", "runtime", "system", "process"] }
 
 syscalls = { version = "0.8", default-features = false, features = [

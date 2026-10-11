@@ -991,6 +991,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4933f3f57a8e9d9da04db23fb153356ecaf00cbd14aee46279c33dc80925c37"
 
 [[package]]
+name = "ksu-contracts"
+version = "0.1.0"
+
+[[package]]
 name = "ksud"
 version = "0.1.0"
 dependencies = [
@@ -1012,6 +1016,7 @@ dependencies = [
  "is_executable",
  "java-properties",
  "jwalk",
+ "ksu-contracts",
  "ksuinit",
  "libc",
  "log",
@@ -1037,6 +1042,7 @@ dependencies = [
  "anyhow",
  "goblin",
  "kernlog",
+ "ksu-contracts",
  "log",
  "rustix 0.38.34",
  "scroll",

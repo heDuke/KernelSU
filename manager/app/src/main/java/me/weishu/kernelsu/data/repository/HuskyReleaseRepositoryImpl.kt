@@ -1,8 +1,13 @@
 package me.weishu.kernelsu.data.repository
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.coroutineContext
+import me.weishu.kernelsu.core.utils.VerifiedArtifact
 import me.weishu.kernelsu.data.model.HuskyRelease
+import me.weishu.kernelsu.data.model.LkmAsset
 import me.weishu.kernelsu.ksuApp
 import me.weishu.kernelsu.ui.util.isNetworkAvailable
 import okhttp3.Request
@@ -15,7 +20,7 @@ class HuskyReleaseRepositoryImpl : HuskyReleaseRepository {
     companion object {
         const val RELEASES_API = "https://api.github.com/repos/heDuke/KernelSU/releases"
         const val RELEASES_PAGE = "https://github.com/heDuke/KernelSU/releases"
-        const val LKM_ASSET = "android14-6.1_kernelsu.ko"
+        private val LKM_NAME = Regex("""^(android\d+-\d+\.\d+)(?:_(4k|16k|64k))?_kernelsu\.ko$""")
         const val APK_ASSET = "HuskySU.apk"
         const val TAG_PREFIX = "husky-"
         private val TAG_VERSION = Regex("""husky-v(\d+)""")
@@ -44,30 +49,22 @@ class HuskyReleaseRepositoryImpl : HuskyReleaseRepository {
         }
     }
 
-    override suspend fun downloadToFile(url: String, dest: File): Result<File> =
+    override suspend fun downloadToFile(url: String, dest: File, expectedSize: Long, expectedSha256: String): Result<File> =
         withContext(Dispatchers.IO) {
-            runCatching {
-                val parent = dest.parentFile ?: throw IOException("Invalid destination")
-                parent.mkdirs()
-                val tmp = File(parent, "${dest.name}.tmp")
-                try {
-                    val request = Request.Builder().url(url).build()
-                    ksuApp.okhttpClient.newCall(request).execute().use { response ->
-                        if (!response.isSuccessful) {
-                            throw IOException("HTTP ${response.code}")
-                        }
-                        tmp.outputStream().use { out ->
-                            response.body.byteStream().copyTo(out)
-                        }
+            try {
+                val activeContext = coroutineContext
+                val request = Request.Builder().url(url).build()
+                val file = ksuApp.okhttpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) throw IOException("HTTP ${response.code}")
+                    response.body.byteStream().use { input ->
+                        VerifiedArtifact.write(input, dest, expectedSize, expectedSha256) { activeContext.ensureActive() }
                     }
-                    if (!tmp.renameTo(dest)) {
-                        tmp.copyTo(dest, overwrite = true)
-                        tmp.delete()
-                    }
-                    dest
-                } finally {
-                    if (tmp.exists()) tmp.delete()
                 }
+                Result.success(file)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Result.failure(error)
             }
         }
 
@@ -79,7 +76,7 @@ class HuskyReleaseRepositoryImpl : HuskyReleaseRepository {
             val tag = item.optString("tag_name", "")
             if (!tag.startsWith(TAG_PREFIX)) continue
 
-            var lkmUrl: String? = null
+            val lkmAssets = ArrayList<LkmAsset>()
             var apkUrl: String? = null
             val assets = item.optJSONArray("assets")
             if (assets != null) {
@@ -88,13 +85,16 @@ class HuskyReleaseRepositoryImpl : HuskyReleaseRepository {
                     val name = asset.optString("name", "")
                     val url = asset.optString("browser_download_url", "")
                     if (url.isEmpty()) continue
-                    when (name) {
-                        LKM_ASSET -> lkmUrl = url
-                        APK_ASSET -> apkUrl = url
+                    val match = LKM_NAME.matchEntire(name)
+                    if (match != null) {
+                        val pages = when (match.groupValues[2]) { "4k" -> 4096; "16k" -> 16384; "64k" -> 65536; else -> null }
+                        lkmAssets += LkmAsset(name, url, match.groupValues[1], pages,
+                            asset.optLong("size", 0), asset.optString("digest", "").takeIf { it.startsWith("sha256:") }?.removePrefix("sha256:"))
                     }
+                    if (name == APK_ASSET) apkUrl = url
                 }
             }
-            if (lkmUrl.isNullOrEmpty()) continue
+            if (lkmAssets.isEmpty()) continue
 
             val match = TAG_VERSION.find(tag)
             val versionCode = match?.groupValues?.getOrNull(1)?.toLongOrNull() ?: 0L
@@ -105,7 +105,7 @@ class HuskyReleaseRepositoryImpl : HuskyReleaseRepository {
                 publishedAt = item.optString("published_at", ""),
                 body = item.optString("body", ""),
                 versionCode = versionCode,
-                lkmDownloadUrl = lkmUrl,
+                lkmAssets = lkmAssets.toList(),
                 apkDownloadUrl = apkUrl,
             )
         }

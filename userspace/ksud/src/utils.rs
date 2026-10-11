@@ -278,6 +278,15 @@ pub fn install(libadbroot: Option<PathBuf>, data_path: Option<PathBuf>) -> Resul
 }
 
 pub fn uninstall(package_name: &str) -> Result<()> {
+    let _lock = crate::mutation::MutationLock::acquire()?;
+    println!("- Restore boot image before removing recovery files..");
+    boot_patch::restore_inner(BootRestoreArgs {
+        boot: None,
+        flash: true,
+        out: None,
+        out_name: None,
+    })
+    .context("boot restore failed; recovery files were preserved")?;
     if Path::new(defs::MODULE_DIR).exists() {
         println!("- Uninstall modules..");
         module::uninstall_all_modules()?;
@@ -289,13 +298,6 @@ pub fn uninstall(package_name: &str) -> Result<()> {
     std::fs::remove_dir_all(defs::MODULE_DIR).ok();
     std::fs::remove_dir_all(defs::PREINIT_DIR_WATCHDOG).ok();
     std::fs::remove_dir_all(defs::PREINIT_DIR_DEFAULT).ok();
-    println!("- Restore boot image..");
-    boot_patch::restore(BootRestoreArgs {
-        boot: None,
-        flash: true,
-        out: None,
-        out_name: None,
-    })?;
     println!("- Uninstall KernelSU manager..");
     Command::new("pm")
         .args(["uninstall", package_name])

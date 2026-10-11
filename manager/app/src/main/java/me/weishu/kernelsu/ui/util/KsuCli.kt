@@ -124,11 +124,12 @@ suspend fun getFeaturePersistValue(feature: String): Long? = withContext(Dispatc
     valueLine.substringAfter("Value:").trim().toLongOrNull()
 }
 
-fun install() {
+fun install(): Boolean {
     val start = SystemClock.elapsedRealtime()
     val libadbroot = File(ksuApp.applicationInfo.nativeLibraryDir, "libadbroot.so").absolutePath
     val result = execKsud("install --libadbroot $libadbroot --data-path ${ksuApp.applicationInfo.deviceProtectedDataDir}", true)
     Log.w(TAG, "install result: $result, cost: ${SystemClock.elapsedRealtime() - start}ms")
+    return result
 }
 
 fun listModules(): String {
@@ -273,7 +274,7 @@ sealed class LkmSelection : Parcelable {
 
 private fun writeLkmFile(lkm: LkmSelection): File? {
     if (lkm !is LkmSelection.LkmUri) return null
-    val file = File(ksuApp.cacheDir, "kernelsu-tmp-lkm.ko")
+    val file = File.createTempFile("kernelsu-lkm-", ".ko", ksuApp.cacheDir)
     ksuApp.contentResolver.openInputStream(lkm.uri)?.use { input ->
         file.outputStream().use { output -> input.copyTo(output) }
     }
@@ -305,7 +306,7 @@ fun installBoot(
 
     val bootFile = bootUri?.let { uri ->
         with(resolver.openInputStream(uri)) {
-            val bootFile = File(ksuApp.cacheDir, "boot.img")
+            val bootFile = File.createTempFile("kernelsu-boot-", ".img", ksuApp.cacheDir)
             bootFile.outputStream().use { output ->
                 this?.copyTo(output)
             }
@@ -354,7 +355,9 @@ fun installBoot(
     // if boot uri is empty, it is direct install, when success, we should show reboot button
     val showReboot = bootUri == null && result.isSuccess // we create a temporary val here, to avoid calc showReboot double
     if (showReboot) { // because we decide do not update ksud when startActivity
-        install() // install ksud here
+        if (!install()) {
+            return FlashResult(1, "Boot image patched, but userspace installation failed. Complete userspace installation before rebooting.", false)
+        }
     }
     return FlashResult(result, showReboot)
 }
@@ -369,48 +372,36 @@ fun downloadBoot(
     onStdout: (String) -> Unit,
     onStderr: (String) -> Unit,
 ): FlashResult {
-    val bootFile = File(ksuApp.cacheDir, "download-boot.img")
-    var probedKmi: String? = null
+    val bootFile = File.createTempFile("download-boot-", ".img", ksuApp.cacheDir)
+    val companion = if (partition == "boot") null else File.createTempFile("target-boot-", ".img", ksuApp.cacheDir)
     try {
         onStdout("- Downloading and extracting boot image")
         val channel = DataSourceChannel(newDownloadClient(), url)
         val magic = readMagic(channel)
         val image = ExtractImage(bootFile, onStdout)
-        // Extract the KMI here while the payload is open. ZipFile closes the
-        // channel it is built on, so probe on a separate channel.
-        val probeChannel = DataSourceChannel(newDownloadClient(), url)
-        probedKmi = try {
-            if (magic == "CrAU") {
-                ExtractImage.probePayload(
-                    probeChannel,
-                    withKmi = lkm is LkmSelection.KmiNone,
-                    onProgress = onStdout,
-                ).kmi
-            } else {
-                ExtractImage.probe(
-                    probeChannel,
-                    withKmi = lkm is LkmSelection.KmiNone,
-                    onProgress = onStdout,
-                ).kmi
-            }
-        } finally {
-            probeChannel.close()
-        }
         if (magic == "CrAU") {
             image.consumePayload(channel, partition)
         } else {
             image.consume(channel, partition)
         }
+        if (companion != null) {
+            onStdout("- Extracting companion boot for target kernel/page-size validation")
+            val companionChannel = DataSourceChannel(newDownloadClient(), url)
+            try {
+                val companionImage = ExtractImage(companion, onStdout)
+                if (magic == "CrAU") companionImage.consumePayload(companionChannel, "boot")
+                else companionImage.consume(companionChannel, "boot")
+            } finally { companionChannel.close() }
+        }
     } catch (e: Exception) {
         bootFile.delete()
+        companion?.delete()
         return FlashResult(-1, e.message ?: "Download failed", false)
     }
 
-    // init_boot/vendor_boot carry no kernel, so their KMI comes from the
-    // payload's boot probe and must be passed explicitly. A remote download
-    // is unrelated to this device, so ksud must not use the local kernel.
+    // The actual companion image lets ksud validate pages too; KMI alone cannot.
     val autoKmi = if (lkm is LkmSelection.KmiNone) {
-        (probedKmi ?: BootKernelVersion.parseKmiFromBoot(bootFile))?.also {
+        BootKernelVersion.parseKmiFromBoot(companion ?: bootFile)?.also {
             onStdout("- Auto detected KMI: $it")
         }
     } else {
@@ -418,10 +409,12 @@ fun downloadBoot(
     }
     if (autoKmi == null && lkm is LkmSelection.KmiNone) {
         bootFile.delete()
+        companion?.delete()
         return FlashResult(-1, "Failed to determine KMI from the package", false)
     }
 
     var cmd = "${getKsuDaemonPath()} boot-patch -b ${bootFile.absolutePath}"
+    if (companion != null) cmd += " --target-boot ${companion.absolutePath}"
     cmd += bootPatchFlags(allowShell, enableAdb, forceBackup)
 
     val lkmFile = writeLkmFile(lkm)
@@ -451,6 +444,7 @@ fun downloadBoot(
     val result = Shell.getShell().newJob().add(cmd).to(stdoutCallback, stderrCallback).exec()
     lkmFile?.delete()
     bootFile.delete()
+    companion?.delete()
     return FlashResult(result, false)
 }
 
@@ -508,6 +502,13 @@ suspend fun getCurrentKmi(): String = withContext(Dispatchers.IO) {
     val shell = getRootShell()
     val cmd = "boot-info current-kmi"
     ShellUtils.fastCmd(shell, "${getKsuDaemonPath()} $cmd")
+}
+
+suspend fun getKernelPageSize(): Int = withContext(Dispatchers.IO) {
+    val result = getRootShell().newJob().add("${getKsuDaemonPath()} boot-info kernel-page-size").exec()
+    val pageSize = result.out.joinToString("").trim().toIntOrNull()
+    require(result.isSuccess && pageSize in setOf(4096, 16384, 65536)) { "Cannot determine actual kernel page size" }
+    requireNotNull(pageSize)
 }
 
 suspend fun getSupportedKmis(): List<String> = withContext(Dispatchers.IO) {

@@ -22,6 +22,8 @@ import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.data.model.EnvCheckSeverity
 import me.weishu.kernelsu.data.model.HuskyRelease
+import me.weishu.kernelsu.data.model.LkmAsset
+import me.weishu.kernelsu.data.model.selectLkmAsset
 import me.weishu.kernelsu.data.repository.EnvCheckRepository
 import me.weishu.kernelsu.data.repository.EnvCheckRepositoryImpl
 import me.weishu.kernelsu.data.repository.HuskyReleaseRepository
@@ -35,6 +37,7 @@ import me.weishu.kernelsu.ui.screen.home.HuskyUpdateStatus
 import me.weishu.kernelsu.ui.screen.home.SystemInfo
 import me.weishu.kernelsu.ui.screen.home.getManagerVersion
 import me.weishu.kernelsu.ui.util.getSELinuxStatusRaw
+import me.weishu.kernelsu.ui.util.LoaderClient
 import me.weishu.kernelsu.ui.util.isAbDevice
 import me.weishu.kernelsu.ui.util.module.LatestVersionInfo
 import me.weishu.kernelsu.ui.util.resolveDeviceName
@@ -111,19 +114,10 @@ class HomeViewModel(
     fun updateLkm() {
         viewModelScope.launch {
             val release = ensureRelease() ?: return@launch
-            val url = release.lkmDownloadUrl
-            if (url.isNullOrEmpty()) {
-                _uiState.update {
-                    it.copy(
-                        huskyUpdateStatus = HuskyUpdateStatus.Error,
-                        huskyError = ksuApp.getString(R.string.husky_update_no_release),
-                    )
-                }
-                return@launch
-            }
+            val asset = selectCurrentAsset(release) ?: return@launch
             _uiState.update { it.copy(huskyUpdateStatus = HuskyUpdateStatus.Downloading) }
-            val dest = File(File(ksuApp.filesDir, "husky"), HuskyReleaseRepositoryImpl.LKM_ASSET)
-            val result = huskyRepo.downloadToFile(url, dest)
+            val dest = File(File(ksuApp.filesDir, "husky/${asset.sha256}"), asset.name)
+            val result = huskyRepo.downloadToFile(asset.url, dest, asset.sizeBytes, requireNotNull(asset.sha256))
             result.fold(
                 onSuccess = { file ->
                     val uri = FileProvider.getUriForFile(
@@ -155,22 +149,13 @@ class HomeViewModel(
     fun downloadLkmToDownloads() {
         viewModelScope.launch {
             val release = ensureRelease() ?: return@launch
-            val url = release.lkmDownloadUrl
-            if (url.isNullOrEmpty()) {
-                _uiState.update {
-                    it.copy(
-                        huskyUpdateStatus = HuskyUpdateStatus.Error,
-                        huskyError = ksuApp.getString(R.string.husky_update_no_release),
-                    )
-                }
-                return@launch
-            }
+            val asset = selectCurrentAsset(release) ?: return@launch
             _uiState.update { it.copy(huskyUpdateStatus = HuskyUpdateStatus.Downloading) }
             val dest = File(
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                HuskyReleaseRepositoryImpl.LKM_ASSET,
+                asset.name,
             )
-            huskyRepo.downloadToFile(url, dest).fold(
+            huskyRepo.downloadToFile(asset.url, dest, asset.sizeBytes, requireNotNull(asset.sha256)).fold(
                 onSuccess = { file ->
                     _userMessages.tryEmit(ksuApp.getString(R.string.husky_lkm_saved, file.absolutePath))
                     applyRelease(release)
@@ -193,8 +178,17 @@ class HomeViewModel(
 
     private suspend fun ensureRelease(): HuskyRelease? {
         val existing = _uiState.value.huskyRelease
-        if (existing?.lkmDownloadUrl != null) return existing
+        if (!existing?.lkmAssets.isNullOrEmpty()) return existing
         return checkHuskyRelease()
+    }
+
+    private suspend fun selectCurrentAsset(release: HuskyRelease): LkmAsset? = try {
+        selectLkmAsset(release.lkmAssets, LoaderClient.currentKmi().trim(),
+            LoaderClient.currentPageSize())
+    } catch (error: Exception) {
+        if (error is kotlinx.coroutines.CancellationException) throw error
+        _uiState.update { it.copy(huskyUpdateStatus = HuskyUpdateStatus.Error, huskyError = error.message) }
+        null
     }
 
     private suspend fun checkHuskyRelease(): HuskyRelease? {

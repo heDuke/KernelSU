@@ -188,6 +188,7 @@ base {
 }
 
 dependencies {
+    testImplementation("junit:junit:4.13.2")
     implementation(libs.androidx.activity.compose)
 
     implementation(platform(libs.androidx.compose.bom))

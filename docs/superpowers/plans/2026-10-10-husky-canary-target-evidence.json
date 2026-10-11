@@ -1,0 +1,126 @@
+{
+  "observed_at": "2026-10-10",
+  "device": "husky",
+  "build_id": "ZP11.260918.007",
+  "channel": "Android Canary 2610",
+  "source_url": "https://dl.google.com/developers/android/CANARY/images/factory/husky_beta-zp11.260918.007-factory-00316935.zip",
+  "factory_size_bytes": 3994531598,
+  "inspection_method": "HTTPS Range reads of nested factory image ZIP; legacy LZ4 decompression; embedded IKCONFIG extraction",
+  "full_factory_sha256_verified": false,
+  "runtime_tested": false,
+  "kernel_release": "6.1.172-android14-11-g3fc92ed75e44-ab16169542",
+  "kmi": "android14-6.1",
+  "kmi_generation": 11,
+  "source_commit": "3fc92ed75e44bfb2b12bc625fad7a054b939f8a6",
+  "source_commit_url": "https://android.googlesource.com/kernel/common/+/3fc92ed75e44bfb2b12bc625fad7a054b939f8a6",
+  "compiler": "Android Clang 17.0.2 (10087095; r487747c)",
+  "boot": {
+    "boot.img": {
+      "file_size": 67108864,
+      "kernel_size": 16669162,
+      "ramdisk_size": 0,
+      "header_size": 1584,
+      "header_version": 4,
+      "cmdline": "",
+      "kernel_prefix_hex": "02214c1883e34500954d5a40fa33297014000100202c0206002f0a0001000bf9"
+    },
+    "init_boot.img": {
+      "file_size": 8388608,
+      "kernel_size": 0,
+      "ramdisk_size": 2985875,
+      "header_size": 1584,
+      "header_version": 4,
+      "cmdline": ""
+    }
+  },
+  "variants": {
+    "4k": {
+      "kernel_compression": "legacy LZ4",
+      "compressed_kernel_sha256": "1f638cdba97867ab0034b24824e4c367a475f1c088fd5676cf7e065e446f9b80",
+      "image_sha256": "e75276559886e2aba2c7d3d9d82aa0c835f4cf4b9566d179eaea9846294710ea",
+      "image_bytes": 35772928,
+      "linux_banners": [
+        "Linux version 6.1.172-android14-11-g3fc92ed75e44-ab16169542 (build-user@build-host) (Android (10087095, +pgo, +bolt, +lto, -mlgo, based on r487747c) clang version 17.0.2 (https://android.googlesource.com/toolchain/llvm-project d9f89f4d16663d5012e5c09495f3b30ece3d2362), LLD 17.0.2) #1 SMP PREEMPT Tue Aug 25 11:29:36 UTC 2026",
+        "Linux version 6.1.172-android14-11-g3fc92ed75e44-ab16169542 (build-user@build-host) (Android (10087095, +pgo, +bolt, +lto, -mlgo, based on r487747c) clang version 17.0.2 (https://android.googlesource.com/toolchain/llvm-project d9f89f4d16663d5012e5c09495f3b30ece3d2362), LLD 17.0.2) #1 SMP PREEMPT Tue Aug 25 11:29:36 UTC 2026"
+      ],
+      "image_header_flags": 10,
+      "page_size_field": 1,
+      "selected_config": [
+        "CONFIG_IKCONFIG=y",
+        "CONFIG_IKCONFIG_PROC=y",
+        "CONFIG_KALLSYMS=y",
+        "CONFIG_KALLSYMS_ALL=y",
+        "CONFIG_KALLSYMS_BASE_RELATIVE=y",
+        "CONFIG_ARM64_4K_PAGES=y",
+        "# CONFIG_ARM64_16K_PAGES is not set",
+        "# CONFIG_ARM64_64K_PAGES is not set",
+        "CONFIG_KPROBES=y",
+        "CONFIG_KRETPROBES=y",
+        "CONFIG_LTO_NONE=y",
+        "# CONFIG_LTO_CLANG_FULL is not set",
+        "# CONFIG_LTO_CLANG_THIN is not set",
+        "CONFIG_CFI_CLANG=y",
+        "# CONFIG_CFI_PERMISSIVE is not set",
+        "CONFIG_MODULE_SIG_FORMAT=y",
+        "CONFIG_MODULES=y",
+        "CONFIG_MODULE_UNLOAD=y",
+        "# CONFIG_MODULE_UNLOAD_TAINT_TRACKING is not set",
+        "CONFIG_MODVERSIONS=y",
+        "CONFIG_MODULE_SIG=y",
+        "# CONFIG_MODULE_SIG_FORCE is not set",
+        "CONFIG_MODULE_SIG_PROTECT=y",
+        "CONFIG_MODULE_SIG_ALL=y",
+        "CONFIG_MODULE_SIG_SHA1=y",
+        "# CONFIG_MODULE_SIG_SHA224 is not set",
+        "# CONFIG_MODULE_SIG_SHA256 is not set",
+        "# CONFIG_MODULE_SIG_SHA384 is not set",
+        "# CONFIG_MODULE_SIG_SHA512 is not set",
+        "CONFIG_MODULE_SIG_HASH=\"sha1\"",
+        "CONFIG_MODULE_SIG_KEY=\"certs/signing_key.pem\"",
+        "CONFIG_MODULE_SIG_KEY_TYPE_RSA=y",
+        "# CONFIG_MODULE_SIG_KEY_TYPE_ECDSA is not set",
+        "CONFIG_DEBUG_INFO_BTF=y",
+        "CONFIG_DEBUG_INFO_BTF_MODULES=y"
+      ]
+    },
+    "16k": {
+      "kernel_compression": "legacy LZ4",
+      "compressed_kernel_sha256": "474febc461998b3723c96a5bb17e26496691b94216cd58f322bb1d75fd019b18",
+      "image_sha256": "3c48dbbacb6a702bc049a47c72088dbec47004e221eb85c97c06cec4aa3907a1",
+      "image_bytes": 36620800,
+      "linux_banners": [
+        "Linux version 6.1.172-android14-11-g3fc92ed75e44-ab16169542 (build-user@build-host) (Android (10087095, +pgo, +bolt, +lto, -mlgo, based on r487747c) clang version 17.0.2 (https://android.googlesource.com/toolchain/llvm-project d9f89f4d16663d5012e5c09495f3b30ece3d2362), LLD 17.0.2) #1 SMP PREEMPT Tue Aug 25 11:29:36 UTC 2026",
+        "Linux version 6.1.172-android14-11-g3fc92ed75e44-ab16169542 (build-user@build-host) (Android (10087095, +pgo, +bolt, +lto, -mlgo, based on r487747c) clang version 17.0.2 (https://android.googlesource.com/toolchain/llvm-project d9f89f4d16663d5012e5c09495f3b30ece3d2362), LLD 17.0.2) #1 SMP PREEMPT Tue Aug 25 11:29:36 UTC 2026"
+      ],
+      "image_header_flags": 12,
+      "page_size_field": 2,
+      "selected_config": [
+        "# CONFIG_ARM64_4K_PAGES is not set",
+        "CONFIG_ARM64_16K_PAGES=y",
+        "# CONFIG_ARM64_64K_PAGES is not set",
+        "CONFIG_LTO_NONE=y",
+        "# CONFIG_LTO_CLANG_FULL is not set",
+        "# CONFIG_LTO_CLANG_THIN is not set",
+        "CONFIG_CFI_CLANG=y",
+        "# CONFIG_CFI_PERMISSIVE is not set",
+        "CONFIG_MODULES=y",
+        "CONFIG_MODULE_UNLOAD=y",
+        "# CONFIG_MODULE_UNLOAD_TAINT_TRACKING is not set",
+        "CONFIG_MODVERSIONS=y",
+        "CONFIG_DEBUG_INFO_BTF=y",
+        "CONFIG_DEBUG_INFO_BTF_MODULES=y"
+      ]
+    }
+  },
+  "stock_16k_kernel_zip_crc_verified": true,
+  "android_info": "require version-baseband=g5300i-260908-260908-B-16286105\nrequire board=ripcurrent|husky|shiba\nrequire version-bootloader=ripcurrent-17.0-16268958\n",
+  "release_baseline": {
+    "tag": "husky-v32630",
+    "module": "android14-6.1_kernelsu.ko",
+    "vermagic": "6.1.166-dirty SMP preempt mod_unload modversions aarch64",
+    "sha256": "fe6ed659c2981199341a3ae3a6cbb102be1f432b3a070beec73fd64ef104ef1d",
+    "compiler_string_matches": true,
+    "module_page_size_verified": false
+  },
+  "compatibility_conclusion": "Same KMI and compiler are candidate evidence only. Neither page-size mode is declared supported before symbol/ABI checks and device testing."
+}

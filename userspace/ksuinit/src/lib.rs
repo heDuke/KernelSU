@@ -8,6 +8,15 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{BufRead, BufReader, ErrorKind, Read, Seek, SeekFrom};
 use std::os::unix::fs::OpenOptionsExt;
 
+/// Kernel page size from proc auxv, rather than bionic's compatibility sysconf.
+pub fn kernel_page_size() -> Result<u32> {
+    let mut bytes = Vec::new();
+    File::open("/proc/self/auxv")?
+        .take(4097)
+        .read_to_end(&mut bytes)?;
+    Ok(ksu_contracts::page_size_from_auxv(&bytes)?)
+}
+
 struct Kptr {
     value: String,
 }
@@ -315,6 +324,17 @@ fn replace_module_vermagic(buffer: &mut Vec<u8>, required_vermagic: &str) -> Res
 /// Relocate undefined symbols in an ELF kernel module buffer using /proc/kallsyms,
 /// then load it via init_module syscall.
 pub fn load_module(data: &[u8], params: &CStr) -> Result<()> {
+    let machine = if cfg!(target_arch = "aarch64") {
+        183
+    } else {
+        62
+    };
+    let target = ksu_contracts::KernelTarget::new(
+        &rustix::system::uname().release().to_string_lossy(),
+        kernel_page_size()?,
+        machine,
+    )?;
+    ksu_contracts::validate_module(data, &target).context("module compatibility check")?;
     let mut buffer = data.to_vec();
     let elf = Elf::parse(&buffer)?;
     let ctx = *elf.syms.ctx();
@@ -374,6 +394,10 @@ pub fn load_module(data: &[u8], params: &CStr) -> Result<()> {
                 log::error!("Kernel module loading log:\n{}", logs);
                 return Err(first_error).context("init_module failed without vermagic mismatch");
             };
+
+            let (_, info) = ksu_contracts::module_info(data)?;
+            ksu_contracts::validate_vermagic_retry(info, &required_vermagic)
+                .context("unsafe vermagic retry refused")?;
 
             log::warn!(
                 "Kernel requires vermagic {:?}; replacing and retrying",

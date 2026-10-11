@@ -39,6 +39,8 @@ mod module;
 #[cfg(target_os = "android")]
 mod module_config;
 #[cfg(target_os = "android")]
+mod mutation;
+#[cfg(target_os = "android")]
 mod profile;
 #[cfg(target_os = "android")]
 mod resetprop;

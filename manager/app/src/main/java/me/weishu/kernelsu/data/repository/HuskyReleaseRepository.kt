@@ -5,5 +5,5 @@ import java.io.File
 
 interface HuskyReleaseRepository {
     suspend fun fetchLatest(): Result<HuskyRelease>
-    suspend fun downloadToFile(url: String, dest: File): Result<File>
+    suspend fun downloadToFile(url: String, dest: File, expectedSize: Long, expectedSha256: String): Result<File>
 }

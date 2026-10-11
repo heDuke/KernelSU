@@ -157,6 +157,8 @@ enum Commands {
 
 #[derive(clap::Subcommand, Debug)]
 enum BootInfo {
+    /// show actual kernel page size, unaffected by userspace compatibility mode
+    KernelPageSize,
     /// show current kmi version
     CurrentKmi,
 
@@ -627,7 +629,10 @@ pub fn run() -> Result<()> {
         Commands::Install {
             libadbroot,
             data_path,
-        } => utils::install(libadbroot, data_path),
+        } => {
+            let _lock = crate::mutation::MutationLock::acquire()?;
+            utils::install(libadbroot, data_path)
+        }
         Commands::Unload => crate::unload::unload(),
         Commands::Uninstall { package_name } => utils::uninstall(&package_name),
         Commands::Sepolicy { command } => match command {
@@ -743,6 +748,10 @@ pub fn run() -> Result<()> {
         Commands::BootPatch(boot_patch) => crate::boot_patch::patch(boot_patch),
 
         Commands::BootInfo { command } => match command {
+            BootInfo::KernelPageSize => {
+                println!("{}", ksuinit::kernel_page_size()?);
+                return Ok(());
+            }
             BootInfo::CurrentKmi => {
                 let kmi = crate::boot_patch::get_current_kmi()?;
                 println!("{kmi}");

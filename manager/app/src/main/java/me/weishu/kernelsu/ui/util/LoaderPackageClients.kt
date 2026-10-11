@@ -46,6 +46,8 @@ object LoaderClient {
 
     suspend fun currentKmi(): String = getCurrentKmi()
 
+    suspend fun currentPageSize(): Int = getKernelPageSize()
+
     suspend fun supportedKmis(): List<String> = getSupportedKmis()
 
     suspend fun abDevice(): Boolean = isAbDevice()

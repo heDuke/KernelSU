@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "userspace/ksu-contracts",
     "userspace/ksud",
     "userspace/ksuinit",
 ]

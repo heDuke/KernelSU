@@ -91,7 +91,7 @@ jobs:
           EXTRA_ARGS="$EXTRA_ARGS KSU_MANAGER_PACKAGE=$MANAGER_PACKAGE"
         fi
         echo "EXTRA_ARGS=$EXTRA_ARGS"
-        CONFIG_KSU=m CC=clang make $EXTRA_ARGS
+        CONFIG_KSU=m CC=clang make KSU_KMI=${{ inputs.kmi }} $EXTRA_ARGS
         
         echo "=== Build completed ==="
 
@@ -179,7 +179,7 @@ jobs:
         
         MDIR=$(realpath .)
 
-        make -C $KDIR M=$MDIR compile_commands.json modules CONFIG_KSU=m CONFIG_KSU_X86_PATCH_SYSCALL_DISPATCHER=y $EXTRA_ARGS
+        make -C $KDIR M=$MDIR compile_commands.json modules CONFIG_KSU=m CONFIG_KSU_X86_PATCH_SYSCALL_DISPATCHER=y KSU_KMI=${{ inputs.kmi }} $EXTRA_ARGS
         
         echo "=== Build completed ==="
 

@@ -13,6 +13,7 @@ use anyhow::Result;
 use anyhow::anyhow;
 use anyhow::bail;
 use anyhow::ensure;
+use ksu_contracts::{KernelTarget, inspect_kernel, validate_module};
 use memmap2::{Mmap, MmapOptions};
 use regex_lite::Regex;
 
@@ -28,42 +29,16 @@ mod android {
     use regex_lite::Regex;
     use rustix::process::getuid;
     use std::fs::{File, OpenOptions};
-    use std::io::Write;
+    use std::io::{Read, Seek, SeekFrom, Write};
     use std::os::fd::AsRawFd;
-    use std::os::unix::fs::PermissionsExt;
     use std::path::{Path, PathBuf};
     use std::process::Command;
 
     use crate::utils;
 
     pub(super) fn ensure_gki_kernel() -> Result<()> {
-        let version = get_kernel_version()?;
-        let is_gki = version.0 == 5 && version.1 >= 10 || version.2 > 5;
-        ensure!(is_gki, "only support GKI kernel");
+        ksu_contracts::parse_kmi(&rustix::system::uname().release().to_string_lossy())?;
         Ok(())
-    }
-
-    pub fn get_kernel_version() -> Result<(i32, i32, i32)> {
-        let uname = rustix::system::uname();
-        let version = uname.release().to_string_lossy();
-        let re = Regex::new(r"(\d+)\.(\d+)\.(\d+)")?;
-        if let Some(captures) = re.captures(&version) {
-            let major = captures
-                .get(1)
-                .and_then(|m| m.as_str().parse::<i32>().ok())
-                .ok_or_else(|| anyhow!("Major version parse error"))?;
-            let minor = captures
-                .get(2)
-                .and_then(|m| m.as_str().parse::<i32>().ok())
-                .ok_or_else(|| anyhow!("Minor version parse error"))?;
-            let patch = captures
-                .get(3)
-                .and_then(|m| m.as_str().parse::<i32>().ok())
-                .ok_or_else(|| anyhow!("Patch version parse error"))?;
-            Ok((major, minor, patch))
-        } else {
-            Err(anyhow!("Invalid kernel version string"))
-        }
     }
 
     fn parse_kmi(version: &str) -> Result<String> {
@@ -103,7 +78,7 @@ mod android {
         parse_kmi_from_uname().or_else(|_| parse_kmi_from_modules())
     }
 
-    fn calculate_sha1(file_path: impl AsRef<Path>) -> Result<String> {
+    pub(super) fn calculate_sha1(file_path: impl AsRef<Path>) -> Result<String> {
         use sha1::Digest;
         use std::io::Read;
         let mut file = std::fs::File::open(file_path.as_ref())?;
@@ -122,15 +97,10 @@ mod android {
         Ok(base16ct::lower::encode_string(&result))
     }
 
-    fn find_backup_location(sha1: &String) -> Result<(File, String)> {
+    fn find_backup_location(sha1: &String) -> Result<(tempfile::NamedTempFile, String)> {
         let filename = format!("{KSU_BACKUP_FILE_PREFIX}{sha1}");
         let target = format!("{KSU_BACKUP_DIR}{filename}");
-        if let Ok(target_file) = OpenOptions::new()
-            .create(true)
-            .truncate(true)
-            .write(true)
-            .open(&target)
-        {
+        if let Ok(target_file) = tempfile::NamedTempFile::new_in(KSU_BACKUP_DIR) {
             return Ok((target_file, target));
         }
 
@@ -140,15 +110,9 @@ mod android {
 
         let backup_dir =
             format!("/data/user_de/{user_id}/{DEFAULT_PACKAGE_NAME}/{KSU_TEMP_BACKUP_DIR_NAME}");
-        std::fs::remove_dir_all(&backup_dir).ok();
-        std::fs::create_dir(&backup_dir)?;
+        std::fs::create_dir_all(&backup_dir)?;
         let backup_file = format!("{backup_dir}/{filename}");
-        if let Ok(file) = OpenOptions::new()
-            .create(true)
-            .truncate(true)
-            .write(true)
-            .open(&backup_file)
-        {
+        if let Ok(file) = tempfile::NamedTempFile::new_in(&backup_dir) {
             return Ok((file, backup_file));
         }
 
@@ -167,8 +131,25 @@ mod android {
             .open(image)?;
 
         // Use io::copy instead of fs::copy to allow copy block device
-        std::io::copy(&mut source, &mut target_file)
+        std::io::copy(&mut source, target_file.as_file_mut())
             .with_context(|| format!("failed to backup to {target}"))?;
+        target_file
+            .as_file()
+            .sync_all()
+            .context("sync required backup")?;
+        ensure!(
+            calculate_sha1(target_file.path())? == sha1,
+            "backup verification failed"
+        );
+        target_file
+            .persist(&target)
+            .context("publish verified backup")?;
+        File::open(
+            Path::new(&target)
+                .parent()
+                .context("backup directory missing")?,
+        )?
+        .sync_all()?;
 
         let backup_file = CpioEntry::regular(0o755, Box::new(sha1));
         cpio.add(BACKUP_FILENAME, backup_file)?;
@@ -177,35 +158,22 @@ mod android {
         Ok(())
     }
 
-    pub(super) fn clean_backup(sha1: &str) -> Result<()> {
-        println!("- Clean up backup");
-        let backup_name = format!("{KSU_BACKUP_FILE_PREFIX}{sha1}");
-        let dir = std::fs::read_dir(KSU_BACKUP_DIR)?;
-        for entry in dir.flatten() {
-            let path = entry.path();
-            if !path.is_file() {
-                continue;
-            }
-            if let Some(name) = path.file_name() {
-                let name = name.to_string_lossy().to_string();
-                if name != backup_name
-                    && name.starts_with(KSU_BACKUP_FILE_PREFIX)
-                    && std::fs::remove_file(path).is_ok()
-                {
-                    println!("- removed {name}");
-                }
-            }
-        }
-        Ok(())
-    }
-
     pub(super) fn flash_partition(partition: &str, data: &[u8]) -> Result<()> {
         let mut blk = std::fs::OpenOptions::new()
+            .read(true)
             .write(true)
             .truncate(false)
             .create(false)
             .open(partition)
             .with_context(|| format!("open {partition}"))?;
+        let capacity = blk
+            .seek(SeekFrom::End(0))
+            .context("read partition capacity")?;
+        ensure!(
+            !data.is_empty() && u64::try_from(data.len())? <= capacity,
+            "image is empty or exceeds partition capacity; nothing was written"
+        );
+        blk.seek(SeekFrom::Start(0))?;
         unsafe {
             const BLKROSET: i32 = libc::_IO(0x12, 93);
             let mut val: libc::c_int = 0;
@@ -215,6 +183,16 @@ mod android {
         }
         blk.write_all(data).context("flash boot failed")?;
         blk.sync_all().context("sync boot failed")?;
+        blk.seek(SeekFrom::Start(0))?;
+        let mut buffer = [0u8; 8192];
+        for chunk in data.chunks(buffer.len()) {
+            blk.read_exact(&mut buffer[..chunk.len()])
+                .context("partition readback failed; do not automatically retry")?;
+            ensure!(
+                &buffer[..chunk.len()] == chunk,
+                "partition readback mismatch; recovery may be required"
+            );
+        }
         Ok(())
     }
 
@@ -277,11 +255,16 @@ mod android {
         PathBuf::from(format!("/dev/block/by-name/{name}{slot_suffix}"))
     }
 
-    pub(super) fn post_ota() -> Result<()> {
+    pub(super) struct PreparedOta {
+        current_slot: String,
+        target_slot: i32,
+    }
+
+    pub(super) fn prepare_ota() -> Result<PreparedOta> {
         use crate::assets::BOOTCTL_PATH;
         use crate::defs::ADB_DIR;
 
-        println!("- Switching active boot slot");
+        println!("- Checking BootControl before OTA flash");
 
         let hal_info = Command::new(BOOTCTL_PATH)
             .arg("hal-info")
@@ -313,6 +296,37 @@ mod android {
             "unexpected bootctl get-current-slot output: {current_slot:?}"
         );
         let target_slot = i32::from(current_slot == "0");
+        let expected_suffix = if target_slot == 0 { "_a" } else { "_b" };
+        ensure!(
+            get_slot_suffix(true) == expected_suffix,
+            "bootctl and system slot mapping disagree"
+        );
+        ensure!(
+            !Path::new(ADB_DIR)
+                .join("post-fs-data.d/post_ota.sh")
+                .exists(),
+            "legacy post_ota.sh exists; resolve it before flashing (early boot-success marking is unsafe)"
+        );
+        Ok(PreparedOta {
+            current_slot,
+            target_slot,
+        })
+    }
+
+    pub(super) fn post_ota(prepared: PreparedOta) -> Result<()> {
+        use crate::assets::BOOTCTL_PATH;
+        let PreparedOta {
+            current_slot,
+            target_slot,
+        } = prepared;
+        let observed = Command::new(BOOTCTL_PATH)
+            .arg("get-current-slot")
+            .output()?;
+        ensure!(
+            observed.status.success()
+                && String::from_utf8_lossy(&observed.stdout).trim() == current_slot,
+            "slot changed after preflight; target partition was patched but activation was refused"
+        );
         println!("- Current slot {current_slot} -> active slot {target_slot}");
 
         // bootctl expects two argv entries: set-active-boot-slot <0|1>
@@ -328,20 +342,7 @@ mod android {
             );
         }
 
-        let post_fs_data = Path::new(ADB_DIR).join("post-fs-data.d");
-        utils::ensure_dir_exists(&post_fs_data)?;
-        let post_ota_sh = post_fs_data.join("post_ota.sh");
-
-        let sh_content = format!(
-            r"
-{BOOTCTL_PATH} mark-boot-successful
-rm -f {BOOTCTL_PATH}
-rm -f /data/adb/post-fs-data.d/post_ota.sh
-"
-        );
-
-        std::fs::write(&post_ota_sh, sh_content)?;
-        std::fs::set_permissions(post_ota_sh, std::fs::Permissions::from_mode(0o755))?;
+        // Android owns successful-boot marking after its normal health checks.
         println!("- Active boot slot switch complete");
         println!("- Next: open System Update and tap Restart (Pixel Virtual A/B)");
 
@@ -412,6 +413,38 @@ fn parse_kmi_from_boot(image: &Path) -> Result<String> {
     } else {
         bail!("no kernel found in boot image")
     }
+}
+
+const MAX_KERNEL_SIZE: usize = 64 * 1024 * 1024;
+
+struct BoundedKernel(Vec<u8>);
+
+impl std::io::Write for BoundedKernel {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        if bytes.len() > MAX_KERNEL_SIZE.saturating_sub(self.0.len()) {
+            return Err(std::io::Error::other(
+                "decoded kernel exceeds 64 MiB inspection limit",
+            ));
+        }
+        self.0.extend_from_slice(bytes);
+        Ok(bytes.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+fn inspect_boot_target(image: &Path, machine: u16) -> Result<Option<KernelTarget>> {
+    let data = map_file(image)?;
+    let boot = BootImage::parse(&data)?;
+    let Some(kernel) = boot.get_blocks().get_kernel() else {
+        return Ok(None);
+    };
+    let mut output = BoundedKernel(Vec::new());
+    kernel
+        .dump(&mut output, false)
+        .context("decode target kernel")?;
+    Ok(Some(inspect_kernel(&output.0, machine)?))
 }
 
 /// For vendor boot, prefer the `init_boot` ramdisk entry over the one with empty name,
@@ -498,6 +531,10 @@ pub struct BootPatchArgs {
     #[arg(long, default_value = None)]
     pub kmi: Option<String>,
 
+    /// Matching companion boot for a local init_boot or raw ramdisk target
+    #[arg(long)]
+    pub target_boot: Option<PathBuf>,
+
     /// target partition override (init_boot | boot | vendor_boot)
     #[cfg(target_os = "android")]
     #[arg(long, default_value = None)]
@@ -556,6 +593,7 @@ pub fn patch(args: BootPatchArgs) -> Result<()> {
             module: kmod,
             out,
             kmi,
+            target_boot,
             out_name,
             cmdline,
             allow_shell,
@@ -579,7 +617,30 @@ pub fn patch(args: BootPatchArgs) -> Result<()> {
         println!(include_str!("banner"));
 
         #[cfg(target_os = "android")]
+        let _lock = if flash || ota {
+            Some(crate::mutation::MutationLock::acquire()?)
+        } else {
+            None
+        };
+
+        #[cfg(target_os = "android")]
+        if let Some(partition) = &partition {
+            ensure!(
+                matches!(partition.as_str(), "boot" | "init_boot" | "vendor_boot"),
+                "invalid target partition"
+            );
+        }
+
+        #[cfg(target_os = "android")]
         let patch_file = image.is_some();
+
+        #[cfg(target_os = "android")]
+        if ota {
+            ensure!(
+                image.is_none() && kernel.is_none() && !ramdisk && !no_install,
+                "OTA requires automatic inactive-slot inspection and module installation; local image/kernel/config overrides are unsupported"
+            );
+        }
 
         #[cfg(target_os = "android")]
         if !patch_file {
@@ -604,48 +665,120 @@ pub fn patch(args: BootPatchArgs) -> Result<()> {
             );
         }
 
-        let kmi = kmi.map_or_else(
-            || -> Result<_> {
-                if kmod.is_some() {
-                    return Ok(String::new());
-                }
-                #[cfg(target_os = "android")]
-                if ota {
-                    let slot_suffix = get_slot_suffix(true);
-                    println!("- Trying to auto detect KMI version from boot");
-                    return parse_kmi_from_boot(Path::new(&format!(
-                        "/dev/block/by-name/boot{slot_suffix}"
-                    )));
-                }
-                #[cfg(target_os = "android")]
-                match get_current_kmi() {
-                    Ok(value) => {
-                        return Ok(value);
-                    }
-                    Err(e) => {
-                        println!("- {e}");
-                    }
-                }
-                Ok(if ramdisk {
-                    bail!("please specify kmi manually")
-                } else if let Some(image_path) = &image {
-                    println!(
-                        "- Trying to auto detect KMI version for {}",
-                        image_path.display()
-                    );
-                    parse_kmi_from_boot(image_path)?
-                } else if let Some(kernel_path) = &kernel {
-                    println!(
-                        "- Trying to auto detect KMI version for {}",
-                        kernel_path.display()
-                    );
-                    parse_kmi_from_kernel(kernel_path)?
+        let requested_kmi = kmi;
+        let machine = {
+            #[cfg(target_os = "android")]
+            {
+                if cfg!(target_arch = "aarch64") {
+                    183
                 } else {
-                    String::new()
-                })
-            },
-            Ok,
-        )?;
+                    62
+                }
+            }
+            #[cfg(not(target_os = "android"))]
+            {
+                match arch.as_str() {
+                    "aarch64" => 183,
+                    "x86_64" => 62,
+                    _ => bail!("unsupported target architecture"),
+                }
+            }
+        };
+        let target = if no_install {
+            None
+        } else if let Some(kernel_path) = &kernel {
+            let kernel_data = map_file(kernel_path)?;
+            ensure!(
+                kernel_data.len() <= MAX_KERNEL_SIZE,
+                "replacement kernel exceeds inspection limit"
+            );
+            Some(inspect_kernel(&kernel_data, machine)?)
+        } else if let Some(image_path) = &image {
+            let local = if ramdisk {
+                None
+            } else {
+                inspect_boot_target(image_path, machine)?
+            };
+            Some(match local {
+                Some(target) => target,
+                None => inspect_boot_target(target_boot.as_deref().context("init_boot/raw ramdisk requires --target-boot; --kmi alone cannot identify page size")?, machine)?
+                    .context("companion boot contains no kernel")?,
+            })
+        } else {
+            #[cfg(target_os = "android")]
+            {
+                if ota {
+                    ensure!(
+                        ksuinit::kernel_page_size()? == 4096,
+                        "16 KiB OTA mode requires independent target validation"
+                    );
+                    Some(
+                        inspect_boot_target(
+                            Path::new(&format!("/dev/block/by-name/boot{}", get_slot_suffix(true))),
+                            machine,
+                        )?
+                        .context("inactive boot contains no kernel")?,
+                    )
+                } else {
+                    Some(KernelTarget::new(
+                        &rustix::system::uname().release().to_string_lossy(),
+                        ksuinit::kernel_page_size()?,
+                        machine,
+                    )?)
+                }
+            }
+            #[cfg(not(target_os = "android"))]
+            {
+                bail!("Please specify a boot image");
+            }
+        };
+        if let (Some(requested), Some(target)) = (&requested_kmi, &target) {
+            ensure!(
+                requested == &target.kmi,
+                "explicit KMI disagrees with target kernel"
+            );
+        }
+        #[cfg(target_os = "android")]
+        if ota {
+            ensure!(
+                target.as_ref().is_some_and(|value| value.page_size == 4096),
+                "16 KiB OTA target requires independent page-mode validation"
+            );
+        }
+        let kmi = target
+            .as_ref()
+            .map(|v| v.kmi.clone())
+            .or(requested_kmi)
+            .map_or_else(
+                || -> Result<_> {
+                    #[cfg(target_os = "android")]
+                    if ota {
+                        let slot_suffix = get_slot_suffix(true);
+                        println!("- Trying to auto detect KMI version from boot");
+                        return parse_kmi_from_boot(Path::new(&format!(
+                            "/dev/block/by-name/boot{slot_suffix}"
+                        )));
+                    }
+                    Ok(if ramdisk {
+                        bail!("please specify kmi manually")
+                    } else if let Some(image_path) = &image {
+                        println!(
+                            "- Trying to auto detect KMI version for {}",
+                            image_path.display()
+                        );
+                        parse_kmi_from_boot(image_path)?
+                    } else if let Some(kernel_path) = &kernel {
+                        println!(
+                            "- Trying to auto detect KMI version for {}",
+                            kernel_path.display()
+                        );
+                        parse_kmi_from_kernel(kernel_path)?
+                    } else {
+                        String::new()
+                    })
+                },
+                Ok,
+            )?;
 
         let boot_image_file = if let Some(image) = image {
             ensure!(image.exists(), "boot image not found");
@@ -666,7 +799,16 @@ pub fn patch(args: BootPatchArgs) -> Result<()> {
 
         // try extract bootctl/busybox
         #[cfg(target_os = "android")]
-        let _ = assets::ensure_binaries(false);
+        if flash || ota {
+            assets::ensure_binaries(false).context("prepare required userspace helpers")?;
+        }
+
+        #[cfg(target_os = "android")]
+        let prepared_ota = if flash && ota {
+            Some(prepare_ota()?)
+        } else {
+            None
+        };
 
         println!("- Preparing assets");
         println!("- Unpacking boot image");
@@ -711,6 +853,15 @@ pub fn patch(args: BootPatchArgs) -> Result<()> {
             }
         };
 
+        if let Some(target) = &target {
+            validate_module(kernelsu_ko.as_ref().as_ref(), target)
+                .context("target/LKM compatibility check failed before patching")?;
+            println!(
+                "- Target: {} / {} byte kernel pages",
+                target.kmi, target.page_size
+            );
+        }
+
         let ksu_init: Box<dyn AsRef<[u8]>> = if no_install {
             Box::new(Vec::<u8>::new())
         } else if let Some(init_path) = init {
@@ -743,6 +894,12 @@ pub fn patch(args: BootPatchArgs) -> Result<()> {
             println!("- Adding KernelSU LKM");
             let is_kernelsu_patched = cpio.exists("kernelsu.ko");
 
+            #[cfg(target_os = "android")]
+            ensure!(
+                !(backup && is_kernelsu_patched),
+                "patched input cannot be labeled a stock backup; use a matching stock image"
+            );
+
             if !is_kernelsu_patched && cpio.exists("init") {
                 cpio.mv("init", "init.real")?;
             }
@@ -751,10 +908,9 @@ pub fn patch(args: BootPatchArgs) -> Result<()> {
             cpio.add("kernelsu.ko", CpioEntry::regular(0o755, kernelsu_ko))?;
 
             #[cfg(target_os = "android")]
-            if (backup || (!is_kernelsu_patched && flash))
-                && let Err(e) = do_backup(&mut cpio, &boot_image_file)
-            {
-                println!("- Backup stock image failed: {e:?}");
+            if backup || (!is_kernelsu_patched && flash) {
+                do_backup(&mut cpio, &boot_image_file)
+                    .context("required backup failed; installation aborted")?;
             }
         }
 
@@ -846,8 +1002,8 @@ pub fn patch(args: BootPatchArgs) -> Result<()> {
             println!("- Flashing new boot image");
             let bootdevice = boot_image_file.display().to_string();
             flash_partition(&bootdevice, &new_boot_bytes)?;
-            if ota {
-                post_ota()?;
+            if let Some(prepared) = prepared_ota {
+                post_ota(prepared)?;
             }
         }
 
@@ -915,6 +1071,17 @@ pub struct BootRestoreArgs {
 }
 
 pub fn restore(args: BootRestoreArgs) -> Result<()> {
+    #[cfg(target_os = "android")]
+    let _lock = if args.flash {
+        Some(crate::mutation::MutationLock::acquire()?)
+    } else {
+        None
+    };
+    restore_inner(args)
+}
+
+// Internal callers must already hold MutationLock when args.flash is set.
+pub fn restore_inner(args: BootRestoreArgs) -> Result<()> {
     let BootRestoreArgs {
         boot: image,
         out_name,
@@ -970,16 +1137,21 @@ pub fn restore(args: BootRestoreArgs) -> Result<()> {
     if let Some(backup_file) = cpio.entry_by_name(BACKUP_FILENAME) {
         let sha = String::from_utf8(backup_file.data().unwrap_or_default().to_vec())?;
         let sha = sha.trim();
+        ensure!(
+            sha.len() == 40 && sha.bytes().all(|v| v.is_ascii_hexdigit()),
+            "invalid recovery marker"
+        );
         let backup_path =
             PathBuf::from(KSU_BACKUP_DIR).join(format!("{KSU_BACKUP_FILE_PREFIX}{sha}"));
         if backup_path.is_file() {
             println!("- Using backup file {}", backup_path.display());
+            ensure!(
+                calculate_sha1(&backup_path)? == sha,
+                "backup digest mismatch; restore aborted before writing"
+            );
             stock_boot = Some(backup_path);
         } else {
             println!("- Warning: no backup {} found!", backup_path.display());
-        }
-        if let Err(e) = clean_backup(sha) {
-            println!("- Warning: Cleanup backup image failed: {e}");
         }
     } else {
         println!("- Backup info is absent!");

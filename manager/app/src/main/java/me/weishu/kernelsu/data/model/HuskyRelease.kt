@@ -10,6 +10,6 @@ data class HuskyRelease(
     val publishedAt: String,
     val body: String,
     val versionCode: Long,
-    val lkmDownloadUrl: String?,
+    val lkmAssets: List<LkmAsset>,
     val apkDownloadUrl: String?,
 )

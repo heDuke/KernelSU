@@ -1,6 +1,7 @@
 package me.weishu.kernelsu.core.tasks
 
 import org.apache.commons.compress.compressors.lz4.FramedLZ4CompressorInputStream
+import org.apache.commons.compress.compressors.lz4.BlockLZ4CompressorInputStream
 import org.apache.commons.compress.compressors.xz.XZCompressorInputStream
 import me.weishu.kernelsu.core.utils.DataSourceChannel
 import java.io.ByteArrayInputStream
@@ -19,6 +20,8 @@ import java.util.zip.GZIPInputStream
  * kernel block to find the KMI (e.g. "android15-6.6").
  */
 object BootKernelVersion {
+    private const val MAX_KERNEL_SIZE = 64 * 1024 * 1024
+    private const val LEGACY_BLOCK_SIZE = 8 * 1024 * 1024
     private const val BOOT_MAGIC = "ANDROID!"
     private const val HEADER_READ_SIZE = 64
     private const val INITIAL_KERNEL_PROBE = 1L shl 20
@@ -40,6 +43,41 @@ object BootKernelVersion {
     private val gzipMagic = byteArrayOf(0x1F, 0x8B.toByte())
     private val xzMagic = byteArrayOf(0xFD.toByte(), 0x37, 0x7A, 0x58, 0x5A, 0x00)
     private val lz4FrameMagic = byteArrayOf(0x04, 0x22, 0x4D, 0x18)
+    private val lz4LegacyMagic = byteArrayOf(0x02, 0x21, 0x4C, 0x18)
+
+    data class KernelImageInfo(val release: String, val kmi: String, val pageSizeBytes: Int)
+
+    fun parseTargetFromBoot(file: File): KernelImageInfo? {
+        FileChannel.open(file.toPath(), StandardOpenOption.READ).use { channel ->
+            val header = readRange(channel, 0, HEADER_READ_SIZE.toLong()) ?: return null
+            val (offset, size) = bootKernelBlock(header) ?: return null
+            val bytes = readRange(channel, offset.toLong(), size.toLong()) ?: return null
+            if (bytes.size != size) return null
+            return inspectKernel(bytes)
+        }
+    }
+
+    fun inspectKernel(bytes: ByteArray): KernelImageInfo? {
+        if (bytes.size > MAX_KERNEL_SIZE) return null
+        val decoded = if (isCompressedKernel(bytes, 0)) decompressPartial(bytes) ?: return null else bytes
+        if (decoded.size < 64 || !startsWithAt(decoded, 56, byteArrayOf(0x41, 0x52, 0x4D, 0x64))) return null
+        val flags = ByteBuffer.wrap(decoded, 24, 8).order(java.nio.ByteOrder.LITTLE_ENDIAN).long
+        val pageSize = when ((flags ushr 1) and 3L) {
+            1L -> 4096
+            2L -> 16384
+            3L -> 65536
+            else -> return null
+        }
+        val prefix = "Linux version ".toByteArray(StandardCharsets.US_ASCII)
+        val start = (0..decoded.size - prefix.size).firstOrNull { startsWithAt(decoded, it, prefix) }
+            ?.plus(prefix.size) ?: return null
+        val end = (start until minOf(decoded.size, start + 257)).firstOrNull {
+            decoded[it] == 0.toByte() || decoded[it] == 0x20.toByte() || decoded[it] == 0x0A.toByte()
+        } ?: return null
+        val release = String(decoded, start, end - start, StandardCharsets.US_ASCII)
+        val match = kmiRegex.find(release) ?: return null
+        return KernelImageInfo(release, "${match.groupValues[2]}-${match.groupValues[1]}", pageSize)
+    }
 
     fun parseKmiFromBoot(file: File): String? {
         FileChannel.open(file.toPath(), StandardOpenOption.READ).use { channel ->
@@ -64,7 +102,7 @@ object BootKernelVersion {
      * only the boot header plus a small banner probe.
      */
     fun parseKmiFromBoot(channel: DataSourceChannel): String? {
-        val maxSize = channel.size()
+        val maxSize = minOf(channel.size(), MAX_KERNEL_SIZE.toLong() + 65536)
         var probeSize = minOf(INITIAL_REMOTE_PROBE, maxSize)
         while (true) {
             val data = channel.readFully(0, probeSize) ?: return null
@@ -115,17 +153,17 @@ object BootKernelVersion {
         if (!startsWith(data, BOOT_MAGIC.toByteArray())) return null
         val kernelSize = data.u32le(8)
         val headerVersion = data.u32le(40)
-        if (kernelSize <= 0) return null
+        if (kernelSize <= 0 || kernelSize > MAX_KERNEL_SIZE) return null
         val headerTotal = HEADER_TOTAL_SIZE[headerVersion] ?: return null
         val pageSize = if (headerVersion >= 3) 4096L else data.u32le(36)
-        if (pageSize <= 0) return null
+        if (pageSize !in 512L..65536L || (pageSize and (pageSize - 1)) != 0L) return null
         return align(headerTotal, pageSize).toInt() to kernelSize.toInt()
     }
 
     private fun isCompressedKernel(data: ByteArray, offset: Int): Boolean {
         return startsWithAt(data, offset, gzipMagic) ||
             startsWithAt(data, offset, xzMagic) ||
-            startsWithAt(data, offset, lz4FrameMagic)
+            startsWithAt(data, offset, lz4FrameMagic) || startsWithAt(data, offset, lz4LegacyMagic)
     }
 
     private fun readRange(channel: FileChannel, position: Long, length: Long): ByteArray? {
@@ -167,6 +205,7 @@ object BootKernelVersion {
 
     private fun decompressPartial(data: ByteArray): ByteArray? {
         return try {
+            if (startsWith(data, lz4LegacyMagic)) return decompressLegacy(data)
             val stream = when {
                 startsWith(data, gzipMagic) -> GZIPInputStream(ByteArrayInputStream(data))
                 startsWith(data, xzMagic) -> XZCompressorInputStream(ByteArrayInputStream(data))
@@ -179,6 +218,32 @@ object BootKernelVersion {
         }
     }
 
+    private fun decompressLegacy(data: ByteArray): ByteArray? {
+        val output = ByteArrayOutputStream()
+        var offset = lz4LegacyMagic.size
+        while (offset < data.size) {
+            if (data.size - offset < 4) return null
+            val size = data.u32le(offset)
+            offset += 4
+            if (size == 0L) return if (offset == data.size && output.size() > 0) output.toByteArray() else null
+            if (size > LEGACY_BLOCK_SIZE + LEGACY_BLOCK_SIZE / 255 + 16 || size > data.size - offset) return null
+            BlockLZ4CompressorInputStream(ByteArrayInputStream(data, offset, size.toInt())).use { input ->
+                val buffer = ByteArray(8192)
+                var blockBytes = 0
+                while (true) {
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    if (count > LEGACY_BLOCK_SIZE - blockBytes || count > MAX_KERNEL_SIZE - output.size()) return null
+                    blockBytes += count
+                    output.write(buffer, 0, count)
+                }
+                if (blockBytes == 0) return null
+            }
+            offset += size.toInt()
+        }
+        return output.takeIf { it.size() > 0 }?.toByteArray()
+    }
+
     private fun decompressPrefix(input: InputStream): ByteArray? {
         val output = ByteArrayOutputStream()
         val buffer = ByteArray(8192)
@@ -186,6 +251,7 @@ object BootKernelVersion {
             while (true) {
                 val read = input.read(buffer)
                 if (read < 0) break
+                if (read > MAX_KERNEL_SIZE - output.size()) return null
                 output.write(buffer, 0, read)
             }
         } catch (_: IOException) {
