@@ -41,3 +41,24 @@ fn built_ddk_module_is_not_a_canary_candidate() {
     };
     assert!(validate_module(&module, &sixteen_k).is_err());
 }
+
+#[test]
+fn built_canary_module_matches_only_its_target() {
+    let Ok(path) = std::env::var("KSU_CANARY_MODULE_FIXTURE") else {
+        return;
+    };
+    let bytes = std::fs::read(path).unwrap();
+    let target =
+        KernelTarget::new("6.1.172-android14-11-g3fc92ed75e44-ab16169542", 4096, 183).unwrap();
+    validate_module(&bytes, &target).unwrap();
+    let sixteen_k = KernelTarget {
+        page_size: 16384,
+        ..target.clone()
+    };
+    assert!(validate_module(&bytes, &sixteen_k).is_err());
+    let other_release = KernelTarget {
+        release: "6.1.166-android14-11-other".into(),
+        ..target
+    };
+    assert!(validate_module(&bytes, &other_release).is_err());
+}

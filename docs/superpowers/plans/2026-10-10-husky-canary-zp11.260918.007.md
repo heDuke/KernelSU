@@ -1,8 +1,10 @@
 # HuskySU: ZP11.260918.007 Android Canary adaptation plan
 
-**Status:** Safety foundation implemented; candidate builds, remaining features
-and device validation pending. See the
+**Status:** Safety foundation implemented and matching 4K candidate built and
+checked offline; remaining features and device validation pending. See the
 [implementation progress](2026-10-11-husky-canary-implementation-progress.md).
+The [candidate report](2026-10-11-husky-canary-candidate.md) records the matching
+official build inputs, reproduction command and offline acceptance limits.
 **Device:** Pixel 8 Pro (`husky`).
 **Target:** `ZP11.260918.007`, Android Canary 2610.
 **Repository baseline:** `4252df8cf47da5ffe2f2163d3d1226c372f4e8b7`.

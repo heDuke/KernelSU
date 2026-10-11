@@ -2,6 +2,9 @@
 
 Baseline: `4252df8cf47da5ffe2f2163d3d1226c372f4e8b7`.
 Target: Pixel 8 Pro, `ZP11.260918.007`, default 4 KB mode.
+Update: a separate matching 6.1.172 / 4K engineering candidate has now been
+built and checked offline; see the [candidate report](2026-10-11-husky-canary-candidate.md).
+The artifact descriptions and test counts below describe the foundation milestone.
 This is the first implementation milestone of the
 [reviewed plan](2026-10-10-husky-canary-zp11.260918.007.md).
 No device was flashed, rebooted or used to load a module. The user has requested
