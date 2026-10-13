@@ -1,0 +1,15 @@
+[package]
+name = "husky-loader-experimental"
+version = "0.2.0"
+edition = "2024"
+rust-version = "1.88"
+
+# Intentionally independent: no production workspace or third-party crates.
+[workspace]
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

@@ -1,0 +1,67 @@
+{
+  "verification_date": "2026-10-12",
+  "tests_passed": 6,
+  "third_party_crates": 0,
+  "device_tested": false,
+  "inspect": {
+    "runs": 7,
+    "elapsed_us_median": 3642,
+    "post_exec_peak_rss_kib_max": 1708,
+    "wait4_peak_rss_kib_upper_bound": 12160,
+    "example": {
+      "device_tested": false,
+      "elapsed_us": 3642,
+      "experimental": true,
+      "imports": 206,
+      "kernel_release": "6.1.172-android14-11-g3fc92ed75e44-ab16169542",
+      "machine": 183,
+      "module_bytes": 700224,
+      "name": "kernelsu",
+      "operation": "inspect",
+      "original_sha256": "eeb1dcca4239ce6be846c304b3d57214b0d4cccca811f6f17746d86ab719bc55",
+      "post_exec_peak_rss_kib": 1708,
+      "schema": 1,
+      "signature_present": false,
+      "signature_trust": "not_verified",
+      "stage": "inspected",
+      "success": true,
+      "version_records": 136
+    }
+  },
+  "check": {
+    "runs": 7,
+    "elapsed_us_median": 10074,
+    "post_exec_peak_rss_kib_max": 2476,
+    "wait4_peak_rss_kib_upper_bound": 12160,
+    "example": {
+      "device_tested": false,
+      "elapsed_us": 16043,
+      "experimental": true,
+      "imports": 206,
+      "kernel_release": "6.1.172-android14-11-g3fc92ed75e44-ab16169542",
+      "machine": 183,
+      "module_bytes": 700224,
+      "name": "kernelsu",
+      "operation": "check",
+      "original_sha256": "eeb1dcca4239ce6be846c304b3d57214b0d4cccca811f6f17746d86ab719bc55",
+      "post_exec_peak_rss_kib": 2476,
+      "private_imports": 71,
+      "proof_trust": "user_supplied_pins_not_publisher_signature",
+      "schema": 1,
+      "signature_present": false,
+      "signature_trust": "not_verified",
+      "source_commit_claim": "3fc92ed75e44bfb2b12bc625fad7a054b939f8a6",
+      "stage": "offline_checked",
+      "success": true,
+      "version_records": 136
+    }
+  },
+  "load_without_opt_in_rejected": true,
+  "oversized_file_rejected": true,
+  "arm64_binary": {
+    "path": "/workspace/artifacts/HuskyLoader-experimental-0.1.0-arm64",
+    "bytes": 362984,
+    "sha256": "a220c470d048d97df113ee144a5e256a3ada12324c3b002a12fc84b496230a3a"
+  },
+  "scope": "host x86_64 read-only commands, same 700224-byte candidate; self-reported /proc/self/status VmHWM before final JSON output; wait4 upper bound may include pre-exec spawn memory; no device load or production comparison"
+}

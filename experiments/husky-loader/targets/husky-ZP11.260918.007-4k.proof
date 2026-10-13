@@ -1,0 +1,12 @@
+# Input pins for the current offline-audited candidate; not a signed manifest.
+schema=1
+release=6.1.172-android14-11-g3fc92ed75e44-ab16169542
+machine=183
+page_size=4096
+module_sha256=eeb1dcca4239ce6be846c304b3d57214b0d4cccca811f6f17746d86ab719bc55
+symvers_sha256=8ddcd0842039fdcb0d5421c2bf1b01d1065c0894b7487a4686d9d1b3f9d3aa71
+config_sha256=b4ba7450f12f2b6cb04f1b19b312ac448213854f7868baa7c4fa975194a8a343
+source_commit=3fc92ed75e44bfb2b12bc625fad7a054b939f8a6
+vermagic=6.1.172-android14-11-g3fc92ed75e44-ab16169542 SMP preempt mod_unload modversions aarch64
+kmi=android14-6.1
+private_imports=71

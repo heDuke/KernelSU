@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "load_attempted": false,
+  "boot_modified": false,
+  "interpreter": "/system/bin/linker64",
+  "early_init_available": "not_verified_before_system_mount",
+  "campaign_approval": false,
+  "device_tested": false,
+  "stage": "host_prepared_device_not_contacted"
+}

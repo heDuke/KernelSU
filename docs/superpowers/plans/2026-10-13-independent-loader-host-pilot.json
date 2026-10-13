@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "phase": "offline_check_same_inputs",
+  "device_tested": false,
+  "load_attempted": false,
+  "comparison_to_production": false,
+  "invariants": {
+    "original_sha256": "eeb1dcca4239ce6be846c304b3d57214b0d4cccca811f6f17746d86ab719bc55",
+    "imports": 206,
+    "private_imports": 71,
+    "version_records": 136
+  },
+  "loader_sha256": "0a8f44a65199b8702b1720763c0b005fc2d36929038648db6ab7bbcb8350bc9e",
+  "memory_scope": "self VmHWM sampled before final JSON; lower bound on whole-process peak",
+  "statistical_claim": "host pilot only; no device budget, superiority or stability claim",
+  "results": [
+    {
+      "preset": "balanced",
+      "samples": 30,
+      "wall_median_us": 6662.0,
+      "wall_p95_us": 7122,
+      "reported_post_exec_peak_rss_max_kib": 2604
+    },
+    {
+      "preset": "lean",
+      "samples": 30,
+      "wall_median_us": 6643.5,
+      "wall_p95_us": 6813,
+      "reported_post_exec_peak_rss_max_kib": 2604
+    },
+    {
+      "preset": "diagnostic",
+      "samples": 30,
+      "wall_median_us": 6726.0,
+      "wall_p95_us": 7085,
+      "reported_post_exec_peak_rss_max_kib": 2604
+    }
+  ]
+}

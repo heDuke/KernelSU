@@ -1,0 +1,1271 @@
+{
+  "schema": 1,
+  "device_tested": false,
+  "results": [
+    {
+      "command": "plan",
+      "exit_code": 0,
+      "report": {
+        "device_tested": false,
+        "elapsed_us": 6551,
+        "experimental": true,
+        "import_inventory": [
+          {
+            "name": "prepare_creds",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "kobject_del",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "_printk",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "synchronize_rcu",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "alt_cb_patch_nops",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__put_cred",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "param_ops_bool",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "override_creds",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "down_read",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "kern_path",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "path_put",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "path_umount",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "up_read",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "revert_creds",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__stack_chk_fail",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "strncpy_from_user_nofault",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "strncpy_from_user",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "get_unused_fd_flags",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "filp_open",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "fd_install",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "close_fd",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "put_unused_fd",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__check_object_size",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "gic_nonsecure_priorities",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__arch_copy_to_user",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "cpu_hwcaps",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "mutex_lock",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "mutex_unlock",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "kallsyms_lookup_size_offset",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "memset",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "_raw_spin_lock_irq",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "_raw_spin_unlock_irq",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "static_key_disable",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "strstr",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__tracepoint_sys_enter",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "tracepoint_probe_register_prio",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "kmalloc_caches",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "kmalloc_trace",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "register_kretprobe",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "kfree",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "tracepoint_probe_unregister",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "tracepoint_srcu",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "synchronize_srcu",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "unregister_kretprobe",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "_raw_spin_lock_irqsave",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "_raw_spin_unlock_irqrestore",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "tasklist_lock",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "_raw_read_lock",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "init_task",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "_raw_read_unlock",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__rcu_read_lock",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__rcu_read_unlock",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "get_task_cred",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "find_task_by_vpid",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__put_task_struct",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "refcount_warn_saturate",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "init_mm",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "memstart_addr",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__cpu_online_mask",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "stop_machine",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__num_online_cpus",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "arm64_use_ng_mappings",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__set_fixmap",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "copy_to_kernel_nofault",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "dcache_clean_inval_poc",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "fget",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "anon_inode_getfile_secure",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "selinux_blob_sizes",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "path_get",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "fput",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "module_put",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "dentry_open",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "filp_close",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "try_module_get",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "d_path",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__mutex_init",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__init_waitqueue_head",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__wake_up",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__list_del_entry_valid",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__kmalloc",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "memcpy",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "ktime_get",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__list_add_valid",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "mutex_lock_interruptible",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "init_wait_entry",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "prepare_to_wait_event",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "schedule",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "finish_wait",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "_raw_spin_lock",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "_raw_spin_unlock",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "init_pid_ns",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "find_pid_ns",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "get_pid_task",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "mntns_operations",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "ns_get_path",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "ksys_unshare",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "path_mount",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__arm64_sys_setns",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "set_fs_pwd",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "kallsyms_lookup_name",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "kallsyms_lookup",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "strlen",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "kallsyms_on_each_symbol",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "strcmp",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "strncmp",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "strchr",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "generic_file_llseek",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "kernel_read",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "fortify_panic",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "bin2hex",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "bcmp",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "crypto_alloc_shash",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "crypto_shash_digest",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "crypto_destroy_tfm",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "fsnotify_alloc_group",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "ihold",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "fsnotify_init_mark",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "fsnotify_add_mark",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "fsnotify_put_mark",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "iput",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "fsnotify_put_group",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "fsnotify_destroy_mark",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "snprintf",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "strnlen",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "full_name_hash",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "strscpy",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "iterate_dir",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "strsep",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "kstrtouint",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "kvfree_call_rcu",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "find_vpid",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "task_work_add",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "kernel_write",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "strscpy_pad",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "groups_alloc",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "groups_sort",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "set_groups",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "groups_free",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "alloc_uid",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "free_uid",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "set_cred_ucounts",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "commit_creds",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "seccomp_filter_release",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "abort_creds",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "ext4_unregister_sysfs",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "system_wq",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "queue_work_on",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "register_kprobe",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "copy_from_user_nofault",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "copy_to_user_nofault",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "unregister_kprobe",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "kvfree",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "kvmalloc_node",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "_copy_to_iter",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "security_secctx_to_secid",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "selinux_state",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "security_secid_to_secctx",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "security_release_secctx",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "policydb_load_isids",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "avc_ss_reset",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "selnl_notify_policyload",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "selinux_status_update_policyload",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__arch_copy_from_user",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "memchr",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "symtab_search",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "kstrdup",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "symtab_insert",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "kvrealloc",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "ebitmap_set_bit",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "ebitmap_get_bit",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "sscanf",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "policydb_filenametr_search",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__hashtab_insert",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "policydb_destroy",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "vmalloc",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "policydb_write",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "kmemdup",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "policydb_read",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "avtab_search_node",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "avtab_alloc",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "avtab_destroy",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "avtab_search_node_next",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "avtab_insert_nonunique",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__task_pid_nr_ns",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__get_task_comm",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "anon_inode_getfile",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "noop_llseek",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "down_write",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "up_write",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "_raw_write_lock_irq",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "change_pid",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "_raw_write_unlock_irq",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__copy_overflow",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "krealloc",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "static_key_count",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "static_key_enable",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "avc_has_perm",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "security_context_to_sid",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__free_pages",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "sidtab_destroy",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "kasan_flag_enabled",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "__alloc_pages",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "security_sid_to_context",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "security_context_str_to_sid",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "security_compute_av_user",
+            "kind": "private_pending_evidence",
+            "private_type_evidence": "unclassified"
+          },
+          {
+            "name": "scnprintf",
+            "kind": "kernel_export_with_crc",
+            "private_type_evidence": "unclassified"
+          }
+        ],
+        "imports": 206,
+        "inventory_sha256": "0c2fa6443cb5d7b74ee188308af009fafc8d12625338b8dc689047066afe6ac9",
+        "kernel_release": "6.1.172-android14-11-g3fc92ed75e44-ab16169542",
+        "kernel_resolved_imports": 135,
+        "load_attempted": false,
+        "load_permitted": false,
+        "machine": 183,
+        "module_bytes": 700224,
+        "name": "kernelsu",
+        "operation": "plan",
+        "original_sha256": "eeb1dcca4239ce6be846c304b3d57214b0d4cccca811f6f17746d86ab719bc55",
+        "output": "json",
+        "planned_strategy": "hybrid_keep_public_imports_undefined",
+        "post_exec_peak_rss_kib": 2540,
+        "private_abi_approved": false,
+        "private_bindings_pending_approval": 71,
+        "private_imports": 71,
+        "proof_trust": "user_supplied_pins_not_publisher_signature",
+        "reason_code": "ok",
+        "reviewed_input_profile": true,
+        "schema": 1,
+        "settings.cache_enabled": "false",
+        "settings.deadline_seconds": "5",
+        "settings.history_count": "0",
+        "settings.io_buffer_kib": "16",
+        "settings.kernel_log": "true",
+        "settings.log_limit_kib": "32",
+        "settings.module_limit_mib": "16",
+        "settings.output": "json",
+        "settings.verbosity": "normal",
+        "settings_generation": 0,
+        "settings_origin.cache_enabled": "default",
+        "settings_origin.deadline_seconds": "default",
+        "settings_origin.history_count": "preset",
+        "settings_origin.io_buffer_kib": "preset",
+        "settings_origin.kernel_log": "default",
+        "settings_origin.log_limit_kib": "preset",
+        "settings_origin.module_limit_mib": "default",
+        "settings_origin.output": "default",
+        "settings_origin.verbosity": "preset",
+        "settings_sha256": "ebe2de945d63a555fcc62b1e4a77c2d52eabc187359fcfa5fc1c141e4c8e91c8",
+        "signature_present": false,
+        "signature_trust": "not_verified",
+        "source_commit_claim": "3fc92ed75e44bfb2b12bc625fad7a054b939f8a6",
+        "stage": "offline_plan_private_abi_campaign_pending",
+        "success": true,
+        "version_records": 136
+      }
+    },
+    {
+      "command": "load",
+      "exit_code": 2,
+      "report": {
+        "device_tested": false,
+        "elapsed_us": 6288,
+        "error": "Private ABI/CFI classification and a device recovery campaign are not approved; no module-loading syscall is enabled in this build",
+        "experimental": true,
+        "imports": 206,
+        "kernel_release": "6.1.172-android14-11-g3fc92ed75e44-ab16169542",
+        "load_attempted": false,
+        "machine": 183,
+        "module_bytes": 700224,
+        "name": "kernelsu",
+        "operation": "load",
+        "original_sha256": "eeb1dcca4239ce6be846c304b3d57214b0d4cccca811f6f17746d86ab719bc55",
+        "output": "json",
+        "post_exec_peak_rss_kib": 2540,
+        "private_abi_approved": false,
+        "private_imports": 71,
+        "proof_trust": "user_supplied_pins_not_publisher_signature",
+        "reason_code": "campaign_not_approved",
+        "reviewed_input_profile": true,
+        "schema": 1,
+        "settings.cache_enabled": "false",
+        "settings.deadline_seconds": "5",
+        "settings.history_count": "0",
+        "settings.io_buffer_kib": "16",
+        "settings.kernel_log": "true",
+        "settings.log_limit_kib": "32",
+        "settings.module_limit_mib": "16",
+        "settings.output": "json",
+        "settings.verbosity": "normal",
+        "settings_generation": 0,
+        "settings_origin.cache_enabled": "default",
+        "settings_origin.deadline_seconds": "default",
+        "settings_origin.history_count": "preset",
+        "settings_origin.io_buffer_kib": "preset",
+        "settings_origin.kernel_log": "default",
+        "settings_origin.log_limit_kib": "preset",
+        "settings_origin.module_limit_mib": "default",
+        "settings_origin.output": "default",
+        "settings_origin.verbosity": "preset",
+        "settings_sha256": "ebe2de945d63a555fcc62b1e4a77c2d52eabc187359fcfa5fc1c141e4c8e91c8",
+        "signature_present": false,
+        "signature_trust": "not_verified",
+        "source_commit_claim": "3fc92ed75e44bfb2b12bc625fad7a054b939f8a6",
+        "stage": "campaign_gate",
+        "success": false,
+        "version_records": 136
+      }
+    },
+    {
+      "command": "settings",
+      "exit_code": 0,
+      "report": {
+        "device_tested": false,
+        "elapsed_us": 61,
+        "experimental": true,
+        "export": "created_without_overwriting_existing_file",
+        "load_attempted": false,
+        "operation": "settings.export",
+        "output": "json",
+        "post_exec_peak_rss_kib": 1144,
+        "reason_code": "ok",
+        "schema": 1,
+        "settings.cache_enabled": "false",
+        "settings.deadline_seconds": "5",
+        "settings.history_count": "0",
+        "settings.io_buffer_kib": "8",
+        "settings.kernel_log": "true",
+        "settings.log_limit_kib": "8",
+        "settings.module_limit_mib": "16",
+        "settings.output": "json",
+        "settings.verbosity": "error",
+        "settings_generation": 0,
+        "settings_origin.cache_enabled": "default",
+        "settings_origin.deadline_seconds": "default",
+        "settings_origin.history_count": "one-shot-preset",
+        "settings_origin.io_buffer_kib": "one-shot-preset",
+        "settings_origin.kernel_log": "default",
+        "settings_origin.log_limit_kib": "one-shot-preset",
+        "settings_origin.module_limit_mib": "default",
+        "settings_origin.output": "default",
+        "settings_origin.verbosity": "one-shot-preset",
+        "settings_sha256": "3c4255d1116165a946234d1a5b5fba24a158df4cdcb84b1bdfbe14b3691e8d57",
+        "stage": "preferences_only_no_load",
+        "success": true
+      }
+    },
+    {
+      "command": "settings",
+      "exit_code": 0,
+      "report": {
+        "device_tested": false,
+        "elapsed_us": 107,
+        "experimental": true,
+        "load_attempted": false,
+        "operation": "settings.import",
+        "post_exec_peak_rss_kib": 1152,
+        "reason_code": "ok",
+        "saved_generation": 1,
+        "schema": 1,
+        "stage": "preferences_only_no_load",
+        "success": true
+      }
+    },
+    {
+      "command": "settings",
+      "exit_code": 0,
+      "report": {
+        "device_tested": false,
+        "elapsed_us": 41,
+        "experimental": true,
+        "load_attempted": false,
+        "operation": "settings.validate",
+        "output": "json",
+        "post_exec_peak_rss_kib": 1204,
+        "reason_code": "ok",
+        "schema": 1,
+        "settings.cache_enabled": "false",
+        "settings.deadline_seconds": "5",
+        "settings.history_count": "0",
+        "settings.io_buffer_kib": "8",
+        "settings.kernel_log": "true",
+        "settings.log_limit_kib": "8",
+        "settings.module_limit_mib": "16",
+        "settings.output": "json",
+        "settings.verbosity": "error",
+        "settings_generation": 1,
+        "settings_origin.cache_enabled": "saved",
+        "settings_origin.deadline_seconds": "saved",
+        "settings_origin.history_count": "saved",
+        "settings_origin.io_buffer_kib": "saved",
+        "settings_origin.kernel_log": "saved",
+        "settings_origin.log_limit_kib": "saved",
+        "settings_origin.module_limit_mib": "saved",
+        "settings_origin.output": "saved",
+        "settings_origin.verbosity": "saved",
+        "settings_sha256": "3c4255d1116165a946234d1a5b5fba24a158df4cdcb84b1bdfbe14b3691e8d57",
+        "stage": "preferences_only_no_load",
+        "success": true
+      }
+    },
+    {
+      "command": "settings",
+      "exit_code": 2,
+      "report": {
+        "device_tested": false,
+        "elapsed_us": 36,
+        "error": "Stale settings generation; re-read before saving",
+        "experimental": true,
+        "load_attempted": false,
+        "operation": "settings.reset",
+        "post_exec_peak_rss_kib": 1204,
+        "reason_code": "request_or_preferences_rejected",
+        "schema": 1,
+        "success": false
+      }
+    },
+    {
+      "command": "settings",
+      "exit_code": 0,
+      "report": {
+        "device_tested": false,
+        "elapsed_us": 59,
+        "experimental": true,
+        "load_attempted": false,
+        "operation": "settings.reset",
+        "post_exec_peak_rss_kib": 1212,
+        "reason_code": "ok",
+        "saved_generation": 2,
+        "schema": 1,
+        "stage": "preferences_only_no_load",
+        "success": true
+      }
+    }
+  ]
+}
