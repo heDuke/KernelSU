@@ -20,3 +20,10 @@ Local production identity tests passed (3 tests, including wrong signer/package,
 version, multiple signers and Debug rejection). Sandbox temp-directory cleanup
 was denied; the same tests passed outside the sandbox. Full Android/Rust checks
 will run in the production workflow; no local Android SDK is available.
+
+First production run 38466425466 passed LKM, ksuinit, Android ksud checks and
+Manager clean assembleRelease/tests, then failed the final signer comparison.
+No Release was published. The Gradle APK independently verifies using Android's
+official apksig 9.3.1 library, with the trusted b37ef4db... certificate. The final
+verification now uses the official ApkVerifier certificate API directly, rather
+than parsing apksigner prose, and reports observed digests on mismatch.

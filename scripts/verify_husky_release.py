@@ -28,12 +28,11 @@ def run_tool(name, *arguments):
     ).stdout
 
 
-def verify_identity(signing, badging, certificate, version_code):
+def verify_identity(signers, badging, certificate, version_code):
     if certificate != TRUSTED_CERTIFICATE:
         raise ValueError("Production keystore no longer matches the trusted certificate")
-    signers = re.findall(r"Signer #\d+ certificate SHA-256 digest: ([0-9a-fA-F]+)", signing)
     if [digest.lower() for digest in signers] != [certificate]:
-        raise ValueError("APK signer does not match the sole production certificate")
+        raise ValueError(f"APK signer does not match the sole production certificate: {signers!r}")
     match = re.search(r"^package: name='([^']+)' versionCode='(\d+)' versionName='([^']*)'", badging, re.M)
     if match is None or match.group(1) != PACKAGE or int(match.group(2)) != version_code:
         raise ValueError("APK package or version does not match the release source")
@@ -58,8 +57,18 @@ def verify_release(directory, certificate, version_code, commit):
     if re.fullmatch(r"[0-9a-f]{40}", commit) is None:
         raise ValueError("Release must identify a full source commit")
     apk = directory / "HuskySU.apk"
+    apksigner = find_android_tool("apksigner")
+    if apksigner is None:
+        raise ValueError("Required Android tool missing: apksigner")
+    library = apksigner.resolve().parent / "lib" / "apksigner.jar"
+    if not library.is_file():
+        raise ValueError("Official apksig library missing from Android Build Tools")
+    signer_output = subprocess.run(
+        ["java", "--class-path", str(library), str(Path(__file__).with_name("VerifyApkSigner.java")), str(apk)],
+        check=True, capture_output=True, text=True,
+    ).stdout
     metadata = verify_identity(
-        run_tool("apksigner", "verify", "--verbose", "--print-certs", apk),
+        signer_output.strip().splitlines(),
         run_tool("aapt2", "dump", "badging", apk), certificate, version_code,
     )
     native = []
