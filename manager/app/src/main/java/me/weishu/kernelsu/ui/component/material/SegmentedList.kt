@@ -82,21 +82,11 @@ private const val SegmentedSpringDamping = 0.9f
 annotation class SegmentedColumnDsl
 
 @Composable
-private fun defaultSegmentedColors(): ListItemColors = ListItemDefaults.segmentedColors(
-    containerColor = colorScheme.surfaceBright,
-    disabledContainerColor = colorScheme.surfaceBright,
-    supportingContentColor = colorScheme.onSurfaceVariant
-)
+private fun defaultSegmentedColors(): ListItemColors = ListItemDefaults.segmentedColors()
 
 @Composable
-private fun defaultSingleSegmentedShape(index: Int, count: Int): ListItemShapes {
-    val base = ListItemDefaults.segmentedShapes(index, count)
-    return if (count == 1) {
-        base.copy(shape = MaterialTheme.shapes.large)
-    } else {
-        base
-    }
-}
+private fun defaultSingleSegmentedShape(index: Int, count: Int): ListItemShapes =
+    ListItemDefaults.segmentedShapes(index, count)
 
 @Composable
 fun SegmentedColumn(
@@ -156,98 +146,19 @@ fun SegmentedColumn(
     title: String = "",
     content: SegmentedColumnScope.() -> Unit,
 ) {
-    val entries = SegmentedColumnScope().apply(content).entries
+    val entries = SegmentedColumnScope().apply(content).entries.filter { it.visible }
     if (entries.isEmpty()) return
-
-    Column(modifier = modifier) {
+    Column(modifier) {
         if (title.isNotEmpty()) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                color = colorScheme.primary,
-                modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
-            )
+            Text(title, style = MaterialTheme.typography.titleSmall,
+                color = colorScheme.primary, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp))
         }
-
-        val floatSpring = spring<Float>(SegmentedSpringDamping, SegmentedSpringStiffness)
-        val dpSpring = spring<Dp>(SegmentedSpringDamping, SegmentedSpringStiffness)
-
-        val progresses = entries.mapIndexed { index, entry ->
-            key(entry.key ?: index) {
-                animateFloatAsState(
-                    targetValue = if (entry.visible) 1f else 0f,
-                    animationSpec = floatSpring,
-                    label = "SegmentedProgress"
-                )
-            }
-        }
-
-        val firstVisible = entries.indexOfFirst { it.visible }
-        val lastVisible = entries.indexOfLast { it.visible }
-
-        Layout(
-            content = {
-                entries.forEachIndexed { index, entry ->
-                    key(entry.key ?: index) {
-                        val isFirst = if (firstVisible == -1) index == 0 else index == firstVisible
-                        val isLast = if (lastVisible == -1) index == entries.lastIndex else index == lastVisible
-
-                        val topRadius by animateDpAsState(
-                            if (isFirst) SegmentedOuterRadius else SegmentedInnerRadius,
-                            dpSpring, label = "SegmentedTopRadius"
-                        )
-                        val bottomRadius by animateDpAsState(
-                            if (isLast) SegmentedOuterRadius else SegmentedInnerRadius,
-                            dpSpring, label = "SegmentedBottomRadius"
-                        )
-                        val gap by animateDpAsState(
-                            if (isFirst) 0.dp else ListItemDefaults.SegmentedGap,
-                            dpSpring, label = "SegmentedGap"
-                        )
-
-                        val shape = RoundedCornerShape(
-                            topStart = topRadius, topEnd = topRadius,
-                            bottomStart = bottomRadius, bottomEnd = bottomRadius
-                        )
-
-                        Box(
-                            modifier = Modifier
-                                .zIndex(if (entry.visible) (entries.size - index).toFloat() else -index.toFloat())
-                                .graphicsLayer {
-                                    val progress = progresses[index].value.coerceAtLeast(0f)
-                                    clip = true
-                                    this.shape = object : Shape {
-                                        override fun createOutline(
-                                            size: Size,
-                                            layoutDirection: LayoutDirection,
-                                            density: Density,
-                                        ): Outline = Outline.Rectangle(Rect(0f, 0f, size.width, size.height * progress))
-                                    }
-                                    alpha = (progress * 1.5f).coerceIn(0f, 1f)
-                                }
-                        ) {
-                            CompositionLocalProvider(
-                                LocalListItemShapes provides ListItemDefaults.segmentedShapes(0, 1).copy(shape = shape)
-                            ) {
-                                Column(modifier = Modifier.padding(top = gap)) {
-                                    entry.content()
-                                }
-                            }
-                        }
+        Column(verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)) {
+            entries.forEachIndexed { index, entry ->
+                key(entry.key ?: index) {
+                    CompositionLocalProvider(LocalListItemShapes provides ListItemDefaults.segmentedShapes(index, entries.size)) {
+                        entry.content()
                     }
-                }
-            }
-        ) { measurables, constraints ->
-            val placeables = measurables.map { it.measure(constraints) }
-            val positions = IntArray(placeables.size)
-            var y = 0f
-            placeables.forEachIndexed { index, placeable ->
-                positions[index] = y.roundToInt()
-                y += placeable.height * progresses[index].value.coerceAtLeast(0f)
-            }
-            layout(constraints.maxWidth, y.roundToInt().coerceAtLeast(0)) {
-                placeables.forEachIndexed { index, placeable ->
-                    placeable.placeRelative(0, positions[index])
                 }
             }
         }
@@ -298,6 +209,12 @@ fun SegmentedListItem(
     leadingContent: @Composable (() -> Unit)? = null,
     trailingContent: @Composable (() -> Unit)? = null,
 ) {
+    if (onClick == null && onLongClick == null) {
+        androidx.compose.material3.ListItem(modifier = modifier, headlineContent = headlineContent,
+            overlineContent = overlineContent, supportingContent = supportingContent,
+            leadingContent = leadingContent, trailingContent = trailingContent)
+        return
+    }
     SegmentedListItem(
         onClick = onClick ?: {},
         onLongClick = onLongClick,
@@ -403,9 +320,9 @@ fun SegmentedSwitchItem(
         interactionSource = interactionSource,
         colors = colors,
         headlineContent = { Text(title) },
-        leadingContent = icon?.let { { Icon(it, title) } },
+        leadingContent = icon?.let { { Icon(it, null) } },
         trailingContent = {
-            ExpressiveSwitch(
+            androidx.compose.material3.Switch(
                 checked = checked,
                 enabled = enabled,
                 onCheckedChange = null,
@@ -450,7 +367,7 @@ fun SegmentedDropdownItem(
             } else null,
             enabled = enabled,
             colors = colors,
-            leadingContent = icon?.let { { Icon(it, title) } },
+            leadingContent = icon?.let { { Icon(it, null) } },
             headlineContent = { Text(text = title) },
             supportingContent = summary?.let { { Text(it) } },
             trailingContent = {
@@ -566,7 +483,6 @@ fun SegmentedTextField(
     onValueChange: (String) -> Unit,
     enabled: Boolean = true,
     readOnly: Boolean = false,
-    colors: ListItemColors = defaultSegmentedColors(),
     textStyle: TextStyle = MaterialTheme.typography.bodyLarge,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
@@ -574,78 +490,21 @@ fun SegmentedTextField(
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     minLines: Int = 1,
     visualTransformation: VisualTransformation = VisualTransformation.None,
-    onTextLayout: (TextLayoutResult) -> Unit = {},
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
-    cursorBrush: Brush = SolidColor(colorScheme.primary),
-    placeholder: @Composable (() -> Unit)? = { Text("-") },
+    placeholder: @Composable (() -> Unit)? = null,
     leadingContent: @Composable (() -> Unit)? = null,
     trailingContent: @Composable (() -> Unit)? = null,
     supportingContent: @Composable (() -> Unit)? = null,
-    isError: Boolean = false
+    isError: Boolean = false,
 ) {
-    val bringIntoViewRequester = remember { BringIntoViewRequester() }
-    val coroutineScope = rememberCoroutineScope()
-    val focusRequester = remember { FocusRequester() }
-
-    SegmentedListItem(
-        modifier = modifier
-            .bringIntoViewRequester(bringIntoViewRequester)
-            .focusRequester(focusRequester),
-        colors = colors,
-        onClick = { focusRequester.requestFocus() },
-        leadingContent = leadingContent,
-        supportingContent = supportingContent,
-        trailingContent = trailingContent,
-        headlineContent = {
-            Column {
-                if (label.isNotEmpty()) {
-                    Text(text = label, color = if (isError) colorScheme.error else colors.contentColor)
-                }
-                BasicTextField(
-                    value = value,
-                    onValueChange = onValueChange,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(focusRequester)
-                        .onFocusChanged {
-                            if (it.isFocused) {
-                                coroutineScope.launch {
-                                    bringIntoViewRequester.bringIntoView()
-                                }
-                            }
-                        },
-                    enabled = enabled,
-                    readOnly = readOnly,
-                    textStyle = textStyle.copy(
-                        colors.supportingContentColor,
-                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                        lineHeight = MaterialTheme.typography.bodyMedium.lineHeight
-                    ),
-                    keyboardOptions = keyboardOptions,
-                    keyboardActions = keyboardActions,
-                    singleLine = singleLine,
-                    maxLines = maxLines,
-                    minLines = minLines,
-                    visualTransformation = visualTransformation,
-                    onTextLayout = onTextLayout,
-                    interactionSource = interactionSource,
-                    cursorBrush = cursorBrush,
-                    decorationBox = { innerTextField ->
-                        if (value.isEmpty() && placeholder != null) {
-                            Box(contentAlignment = Alignment.CenterStart) {
-                                CompositionLocalProvider(
-                                    LocalContentColor provides colors.supportingContentColor
-                                ) {
-                                    ProvideTextStyle(value = MaterialTheme.typography.bodyMedium) {
-                                        placeholder()
-                                    }
-                                }
-                            }
-                        }
-                        innerTextField()
-                    }
-                )
-            }
-        }
+    androidx.compose.material3.OutlinedTextField(
+        value = value, onValueChange = onValueChange, modifier = modifier.fillMaxWidth(),
+        label = label.takeIf(String::isNotBlank)?.let { { Text(it) } },
+        enabled = enabled, readOnly = readOnly, textStyle = textStyle,
+        keyboardOptions = keyboardOptions, keyboardActions = keyboardActions,
+        singleLine = singleLine, maxLines = maxLines, minLines = minLines,
+        visualTransformation = visualTransformation, interactionSource = interactionSource,
+        placeholder = placeholder, leadingIcon = leadingContent, trailingIcon = trailingContent,
+        supportingText = supportingContent, isError = isError,
     )
 }

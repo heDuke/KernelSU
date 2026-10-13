@@ -19,7 +19,6 @@ import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.data.repository.SettingsRepositoryImpl
 import me.weishu.kernelsu.ksuApp
-import me.weishu.kernelsu.ui.component.dialog.rememberConfirmDialog
 import me.weishu.kernelsu.ui.screen.flash.FlashIt
 import me.weishu.kernelsu.ui.util.DownloadService
 import me.weishu.kernelsu.ui.util.getFileName
@@ -152,18 +151,6 @@ fun IntentDispatcher(intentChannel: ReceiveChannel<Intent>) {
     val navigator = LocalNavigator.current
     val isSafeMode = Natives.isSafeMode
     val isManager = Natives.isManager
-    var pendingZipInstall by rememberSaveable(stateSaver = PendingAction.InstallModule.InstallModuleSaver) { mutableStateOf(null) }
-
-    val installDialog = rememberConfirmDialog(
-        onConfirm = {
-            pendingZipInstall?.let { action ->
-                navigator.push(Route.Flash(FlashIt.FlashModules(listOf(action.uri))))
-            }
-            pendingZipInstall = null
-        },
-        onDismiss = { pendingZipInstall = null }
-    )
-
     CollectIntentChannel(intentChannel) { intent ->
         if (!isManager) return@CollectIntentChannel
         val action = resolveIntent(intent) ?: return@CollectIntentChannel
@@ -178,18 +165,7 @@ fun IntentDispatcher(intentChannel: ReceiveChannel<Intent>) {
                     ).show()
                     return@CollectIntentChannel
                 }
-                if (action.requiresConfirmation) {
-                    pendingZipInstall = action
-                    installDialog.showConfirm(
-                        title = resources.getString(R.string.module),
-                        content = resources.getString(
-                            R.string.module_install_prompt_with_name,
-                            "\n${action.displayName}"
-                        )
-                    )
-                } else {
-                    navigator.push(Route.Flash(FlashIt.FlashModules(listOf(action.uri))))
-                }
+                navigator.push(Route.Flash(FlashIt.FlashModules(listOf(action.uri))))
             }
 
             is PendingAction.ExecuteAction -> {

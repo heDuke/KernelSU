@@ -44,7 +44,7 @@ class MainPagerState(
         navJob = coroutineScope.launch {
             val myJob = coroutineContext.job
             try {
-                pagerState.springAnimateToPage(targetIndex)
+                pagerState.animateScrollToPage(targetIndex)
             } finally {
                 if (navJob == myJob) {
                     isNavigating = false
@@ -60,51 +60,6 @@ class MainPagerState(
         if (!isNavigating && selectedPage != pagerState.currentPage) {
             selectedPage = pagerState.currentPage
         }
-    }
-}
-
-private suspend fun PagerState.springAnimateToPage(target: Int) {
-    if (target !in 0 until pageCount) return
-    var shouldSnapToTarget = false
-    scroll(MutatePriority.UserInput) {
-        val pageSize = layoutInfo.pageSize + layoutInfo.pageSpacing
-        val distance = target - currentPage - currentPageOffsetFraction
-        val scrollPixels = distance * pageSize
-        if (abs(scrollPixels) <= 0.5f) return@scroll
-
-        var consumedScroll = 0f
-        var skipScroll = false
-        Animatable(0f).animateTo(
-            targetValue = scrollPixels,
-            animationSpec = PagerNavigationSpringSpec,
-        ) {
-            if (skipScroll) return@animateTo
-
-            val delta = value - consumedScroll
-            if (abs(delta) > 0.5f) {
-                val consumed = scrollBy(delta)
-                consumedScroll += consumed
-                if (abs(delta - consumed) > 0.1f) {
-                    shouldSnapToTarget = true
-                    skipScroll = true
-                }
-            } else {
-                consumedScroll = value
-            }
-
-            if (abs(velocity) < 0.1f && abs(scrollPixels - consumedScroll) < 1.0f) {
-                skipScroll = true
-            }
-        }
-
-        val remaining = scrollPixels - consumedScroll
-        if (abs(remaining) > 0.5f) {
-            scrollBy(remaining)
-        }
-    }
-
-    if (shouldSnapToTarget || currentPage != target) {
-        scrollToPage(target)
     }
 }
 
@@ -136,6 +91,7 @@ enum class BottomBarDestination {
     SuperUser,
     Module,
     Setting,
+    Discover,
 }
 
 internal fun badgeFor(index: Int, state: NavigationBadgeState): NavBadge? = when (index) {

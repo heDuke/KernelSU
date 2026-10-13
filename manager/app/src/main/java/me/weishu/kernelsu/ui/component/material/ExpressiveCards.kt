@@ -60,7 +60,7 @@ fun ExpressiveHeroCard(
             } else if (icon != null) {
                 Icon(
                     imageVector = icon,
-                    contentDescription = title,
+                    contentDescription = null,
                     modifier = Modifier.size(48.dp),
                 )
                 Spacer(Modifier.height(12.dp))
@@ -90,7 +90,7 @@ fun ExpressiveHeroCard(
 }
 
 /**
- * Full-width primary action bar (~56.dp) with optional leading icon.
+ * Convenience layout for native adaptive buttons; style and motion remain official.
  */
 @Composable
 fun ExpressivePrimaryBar(
@@ -101,9 +101,7 @@ fun ExpressivePrimaryBar(
     tonal: Boolean = false,
     icon: ImageVector? = null,
 ) {
-    val buttonModifier = modifier
-        .fillMaxWidth()
-        .height(56.dp)
+    val buttonModifier = modifier.fillMaxWidth()
     val content: @Composable RowScope.() -> Unit = {
         if (icon != null) {
             Icon(
@@ -113,10 +111,11 @@ fun ExpressivePrimaryBar(
             )
             Spacer(Modifier.size(ButtonDefaults.IconSpacing))
         }
-        Text(text = label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(text = label)
     }
     if (tonal) {
         FilledTonalButton(
+            shapes = ButtonDefaults.shapes(),
             onClick = onClick,
             enabled = enabled,
             modifier = buttonModifier,
@@ -124,6 +123,7 @@ fun ExpressivePrimaryBar(
         )
     } else {
         Button(
+            shapes = ButtonDefaults.shapes(),
             onClick = onClick,
             enabled = enabled,
             modifier = buttonModifier,

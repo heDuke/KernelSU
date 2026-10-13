@@ -41,6 +41,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.foundation.clickable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,7 +57,7 @@ import androidx.compose.ui.unit.dp
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.KsuIsValid
-import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
+import androidx.compose.material3.Scaffold
 import me.weishu.kernelsu.ui.component.material.SegmentedColumn
 import me.weishu.kernelsu.ui.component.material.SegmentedDropdownItem
 import me.weishu.kernelsu.ui.component.material.SegmentedListItem
@@ -82,13 +83,14 @@ fun SettingPagerMaterial(
     var showBottomSheet by remember { mutableStateOf(false) }
     var showAdvanced by rememberSaveable { mutableStateOf(false) }
     val ksuValid = Natives.isManager
+    val navigator = me.weishu.kernelsu.ui.navigation3.LocalNavigator.current
 
     UninstallDialog(
         show = showUninstallDialog.value,
         onDismissRequest = { showUninstallDialog.value = false }
     )
 
-    ExpressiveScaffold(
+    Scaffold(
         topBar = {
             TopBar(scrollBehavior = scrollBehavior)
         },
@@ -101,6 +103,11 @@ fun SettingPagerMaterial(
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .verticalScroll(rememberScrollState())
         ) {
+            androidx.compose.material3.ListItem(
+                modifier = Modifier.clickable { navigator.push(me.weishu.kernelsu.ui.navigation3.Route.ExperimentalLoaderSettings) },
+                headlineContent = { Text(stringResource(R.string.loader_preferences_title)) },
+                supportingContent = { Text(stringResource(R.string.loader_preferences_only)) },
+            )
             val themeModeItems = listOf(
                 stringResource(id = R.string.settings_theme_mode_system),
                 stringResource(id = R.string.settings_theme_mode_light),

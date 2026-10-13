@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -39,6 +40,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,7 +61,7 @@ import me.weishu.kernelsu.ui.component.dialog.rememberConfirmDialog
 import me.weishu.kernelsu.ui.component.material.ExpressiveHeroCard
 import me.weishu.kernelsu.ui.component.material.ExpressiveNoticeCard
 import me.weishu.kernelsu.ui.component.material.ExpressivePrimaryBar
-import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
+import androidx.compose.material3.Scaffold
 import me.weishu.kernelsu.ui.component.material.ExpressiveSectionTitle
 import me.weishu.kernelsu.ui.component.material.TonalCard
 import me.weishu.kernelsu.ui.component.material.expressiveTopAppBarColors
@@ -74,7 +76,7 @@ fun HomePagerMaterial(
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
-    ExpressiveScaffold(
+    Scaffold(
         topBar = { TopBar(scrollBehavior = scrollBehavior) },
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { innerPadding ->
@@ -259,7 +261,7 @@ private fun HuskyUpdateCard(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp),
+                            .heightIn(min = 48.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
                     ) {
@@ -427,53 +429,32 @@ private fun StatusCard(
         }
     } else ""
 
-    val hasTags = ksuActive && (
-        workingMode.isNotEmpty() || state.isSafeMode || state.isLateLoadMode
-    )
-
-    ExpressiveHeroCard(
-        title = statusTitle,
-        summary = statusSummary,
-        icon = statusIcon,
-        containerColor = containerColor,
-        onClick = if (!state.isLateLoadMode) {
-            { actions.onInstallClick() }
-        } else {
-            null
-        },
-        tags = if (hasTags) {
-            {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    if (workingMode.isNotEmpty()) {
-                        StatusTag(
-                            label = workingMode,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                            backgroundColor = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    if (state.isSafeMode) {
-                        StatusTag(
-                            label = stringResource(id = R.string.safe_mode),
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                            backgroundColor = MaterialTheme.colorScheme.errorContainer
-                        )
-                    }
-                    if (state.isLateLoadMode) {
-                        StatusTag(
-                            label = stringResource(id = R.string.jailbreak_mode),
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                            backgroundColor = MaterialTheme.colorScheme.errorContainer
-                        )
-                    }
-                }
+    androidx.compose.material3.Card(
+        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = containerColor),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Icon(statusIcon, contentDescription = null, modifier = Modifier.size(48.dp))
+            Text(statusTitle, style = MaterialTheme.typography.headlineMedium)
+            Text(statusSummary, style = MaterialTheme.typography.bodyLarge)
+            val modes = listOfNotNull(
+                workingMode.takeIf { it.isNotBlank() },
+                stringResource(R.string.safe_mode).takeIf { state.isSafeMode },
+                stringResource(R.string.jailbreak_mode).takeIf { state.isLateLoadMode },
+            )
+            if (modes.isNotEmpty()) Text(modes.joinToString(" · "), style = MaterialTheme.typography.labelLarge)
+            androidx.compose.material3.Button(
+                shapes = androidx.compose.material3.ButtonDefaults.shapes(),
+                onClick = if (notInstalled && !state.isLateLoadMode) actions.onInstallClick else actions.onOpenEnvCheck,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(if (notInstalled && !state.isLateLoadMode) R.string.install else R.string.env_check_title))
             }
-        } else {
-            null
-        },
-    )
+            if (ksuActive && !state.isLateLoadMode) {
+                androidx.compose.material3.TextButton(onClick = actions.onInstallClick) { Text(stringResource(R.string.install)) }
+            }
+        }
+    }
 }
 
 @Composable

@@ -30,6 +30,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -148,9 +149,8 @@ import me.weishu.kernelsu.ui.component.dialog.rememberLoadingDialog
 import me.weishu.kernelsu.ui.component.material.ExpressiveHeroCard
 import me.weishu.kernelsu.ui.component.material.ExpressiveNoticeCard
 import me.weishu.kernelsu.ui.component.material.ExpressivePrimaryBar
-import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
+import androidx.compose.material3.Scaffold
 import me.weishu.kernelsu.ui.component.material.ExpressiveSectionTitle
-import me.weishu.kernelsu.ui.component.material.ExpressiveSwitch
 import me.weishu.kernelsu.ui.component.material.SearchAppBar
 import me.weishu.kernelsu.ui.component.material.SnackBarHost
 import me.weishu.kernelsu.ui.component.material.TonalCard
@@ -283,7 +283,7 @@ fun ModulePagerMaterial(
         }
     }
 
-    ExpressiveScaffold(
+    Scaffold(
         topBar = {
             SearchAppBar(
                 title = { Text(stringResource(R.string.module)) },
@@ -631,6 +631,7 @@ private fun ModuleList(
                 onAddShortcut = { type -> onModuleAddShortcut(module, type) },
                 onClick = { onClickModule(module) },
                 onExecuteAction = { actions.onExecuteModuleAction(module) },
+                onOpenDetails = { actions.onOpenModuleDetail(module); closeSearch() },
                 closeSearch = { closeSearch() }
             )
         }
@@ -1017,334 +1018,52 @@ private fun RecommendedModuleItem(
 
 @Composable
 private fun ModuleItem(
-    module: Module,
-    updateUrl: String,
-    onUninstallClicked: () -> Unit,
-    onCheckChanged: (Boolean) -> Unit,
-    onUpdate: () -> Unit,
-    onAddShortcut: (ShortcutType) -> Unit,
-    onClick: () -> Unit,
-    onExecuteAction: () -> Unit,
-    closeSearch: () -> Unit
+    module: Module, updateUrl: String, onUninstallClicked: () -> Unit,
+    onCheckChanged: (Boolean) -> Unit, onUpdate: () -> Unit,
+    onAddShortcut: (ShortcutType) -> Unit, onClick: () -> Unit,
+    onExecuteAction: () -> Unit, onOpenDetails: () -> Unit, closeSearch: () -> Unit,
 ) {
-    TonalCard(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
-    ) {
-        val haptic = LocalHapticFeedback.current
-        val textDecoration = if (!module.remove) null else TextDecoration.LineThrough
-        val interactionSource = remember { MutableInteractionSource() }
-        val indication = LocalIndication.current
-        var expanded by rememberSaveable(module.id) { mutableStateOf(false) }
-        var isOverflowing by remember { mutableStateOf(false) }
-
-        Column(
-            modifier = Modifier
-                .run {
-                    if (module.hasWebUi) {
-                        toggleable(
-                            value = module.enabled,
-                            enabled = !module.remove && module.enabled,
-                            interactionSource = interactionSource,
-                            role = Role.Button,
-                            indication = indication,
-                            onValueChange = { onClick() }
-                        )
-                    } else {
-                        this
+    Column {
+        androidx.compose.material3.ListItem(
+            modifier = Modifier.clickable(onClick = onOpenDetails),
+            headlineContent = { Text(module.name, style = MaterialTheme.typography.titleMedium) },
+            supportingContent = {
+                Column {
+                    Text("${module.version} · ${module.author}")
+                    Text(module.description)
+                    if (module.metamodule) Text("META", style = MaterialTheme.typography.labelLarge)
+                    if (module.remove || module.update) Text(stringResource(R.string.module_sheet_restart_required))
+                }
+            },
+            trailingContent = {
+                androidx.compose.material3.Switch(checked = module.enabled, enabled = !module.remove,
+                    onCheckedChange = onCheckChanged)
+            },
+        )
+        FlowRow(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (!module.remove && module.enabled) {
+                if (module.hasWebUi) {
+                    FilledTonalButton(onClick = { onClick(); closeSearch() }) { Text("WebUI") }
+                    androidx.compose.material3.TextButton(onClick = { onAddShortcut(ShortcutType.WebUI) }) {
+                        Text(stringResource(R.string.module_sheet_web_shortcut))
                     }
                 }
-                .padding(20.dp, 16.dp, 20.dp, 12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                val moduleVersion = stringResource(id = R.string.module_version)
-                val moduleAuthor = stringResource(id = R.string.module_author)
-
-                Column(
-                    modifier = Modifier.fillMaxWidth(0.8f)
-                ) {
-                    Text(
-                        text = module.name,
-                        fontWeight = FontWeight.SemiBold,
-                        style = MaterialTheme.typography.titleMedium,
-                        lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
-                        textDecoration = textDecoration,
-                    )
-
-                    Text(
-                        text = "$moduleVersion: ${module.version}",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall,
-                        textDecoration = textDecoration
-                    )
-
-                    Text(
-                        text = "$moduleAuthor: ${module.author}",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall,
-                        textDecoration = textDecoration
-                    )
+                if (module.hasActionScript) {
+                    FilledTonalButton(onClick = { onExecuteAction(); closeSearch() }) { Text(stringResource(R.string.action)) }
+                    androidx.compose.material3.TextButton(onClick = { onAddShortcut(ShortcutType.Action) }) {
+                        Text(stringResource(R.string.module_sheet_action_shortcut))
+                    }
                 }
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                ) {
-                    ExpressiveSwitch(
-                        enabled = !module.update,
-                        checked = module.enabled,
-                        onCheckedChange = {
-                            haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
-                            onCheckChanged(it)
-                        },
-                        interactionSource = if (!module.hasWebUi) interactionSource else remember { MutableInteractionSource() }
-                    )
+                if (updateUrl.isNotBlank()) {
+                    androidx.compose.material3.Button(shapes = ButtonDefaults.shapes(), onClick = onUpdate) {
+                        Text(stringResource(R.string.module_update))
+                    }
                 }
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                modifier = Modifier
-                    .animateContentSize(
-                        animationSpec = tween(
-                            durationMillis = 250,
-                            easing = FastOutSlowInEasing
-                        )
-                    )
-                    .then(
-                        if (isOverflowing || expanded) {
-                            Modifier.clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) { expanded = !expanded }
-                        } else {
-                            Modifier
-                        }
-                    ),
-                text = module.description,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyMedium,
-                overflow = if (expanded) TextOverflow.Clip else TextOverflow.Ellipsis,
-                maxLines = if (expanded) Int.MAX_VALUE else 4,
-                textDecoration = textDecoration,
-                onTextLayout = { textLayoutResult ->
-                    isOverflowing = if (expanded) {
-                        textLayoutResult.lineCount > 4
-                    } else {
-                        textLayoutResult.hasVisualOverflow
-                    }
-                }
-            )
-
-            Row(modifier = Modifier.padding(vertical = 4.dp)) {
-                if (module.metamodule) {
-                    StatusTag(
-                        "META",
-                        modifier = Modifier.padding(bottom = 4.dp),
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                        backgroundColor = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-
-            HorizontalDivider(thickness = Dp.Hairline)
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val hasUpdate = updateUrl.isNotEmpty()
-                val actionButtonsEnabled = !module.remove && module.enabled
-
-                AnimatedVisibility(
-                    visible = actionButtonsEnabled,
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        if (module.hasActionScript) {
-                            CombinedClickableButton(
-                                onClick = {
-                                    onExecuteAction()
-                                    closeSearch()
-                                },
-                                onLongClick = { onAddShortcut(ShortcutType.Action) },
-                                modifier = Modifier.defaultMinSize(52.dp, 40.dp),
-                                shape = ButtonDefaults.filledTonalShape,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                ),
-                                contentPadding = ButtonDefaults.ContentPadding
-                            ) {
-                                Icon(
-                                    modifier = Modifier.size(20.dp),
-                                    imageVector = Icons.Outlined.PlayArrow,
-                                    contentDescription = null
-                                )
-                                if (!module.hasWebUi && !hasUpdate) {
-                                    Text(
-                                        modifier = Modifier.padding(start = 7.dp),
-                                        text = stringResource(R.string.action),
-                                        fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
-                                        fontSize = MaterialTheme.typography.labelMedium.fontSize
-                                    )
-                                }
-                            }
-                        }
-
-                        if (module.hasWebUi) {
-                            CombinedClickableButton(
-                                onClick = {
-                                    onClick()
-                                    closeSearch()
-                                },
-                                onLongClick = { onAddShortcut(ShortcutType.WebUI) },
-                                modifier = Modifier.defaultMinSize(52.dp, 40.dp),
-                                shape = ButtonDefaults.filledTonalShape,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                ),
-                                contentPadding = ButtonDefaults.ContentPadding
-                            ) {
-                                Icon(
-                                    modifier = Modifier.size(20.dp),
-                                    imageVector = Icons.Outlined.Code,
-                                    contentDescription = null
-                                )
-                                if (!module.hasActionScript && !hasUpdate) {
-                                    Text(
-                                        modifier = Modifier.padding(start = 7.dp),
-                                        fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
-                                        fontSize = MaterialTheme.typography.labelMedium.fontSize,
-                                        text = stringResource(R.string.open)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.weight(1f, true))
-
-                AnimatedVisibility(
-                    visible = hasUpdate,
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    Row {
-                        Button(
-                            modifier = Modifier.defaultMinSize(56.dp, 48.dp),
-                            enabled = !module.remove,
-                            onClick = onUpdate,
-                            shape = ButtonDefaults.shape,
-                            contentPadding = ButtonDefaults.ContentPadding
-                        ) {
-                            Icon(
-                                modifier = Modifier.size(20.dp),
-                                imageVector = Icons.Outlined.Download,
-                                contentDescription = null
-                            )
-                            if (!module.hasActionScript || !module.hasWebUi) {
-                                Text(
-                                    modifier = Modifier.padding(start = 7.dp),
-                                    fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
-                                    fontSize = MaterialTheme.typography.labelMedium.fontSize,
-                                    text = stringResource(R.string.module_update)
-                                )
-                            }
-                        }
-
-                        Spacer(Modifier.width(12.dp))
-                    }
-                }
-
-                FilledTonalButton(
-                    modifier = Modifier.defaultMinSize(52.dp, 40.dp),
-                    onClick = onUninstallClicked,
-                    contentPadding = ButtonDefaults.ContentPadding
-                ) {
-                    if (!module.remove) {
-                        Icon(
-                            modifier = Modifier.size(20.dp),
-                            imageVector = Icons.Outlined.Delete,
-                            contentDescription = null,
-                        )
-                    } else {
-                        Icon(
-                            modifier = Modifier
-                                .size(20.dp)
-                                .rotate(180f),
-                            imageVector = Icons.Outlined.Refresh,
-                            contentDescription = null,
-                        )
-                    }
-                    if (!module.hasActionScript && !module.hasWebUi || !hasUpdate) {
-                        Text(
-                            modifier = Modifier.padding(start = 7.dp),
-                            fontFamily = MaterialTheme.typography.labelMedium.fontFamily,
-                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
-                            text = stringResource(if (module.remove) R.string.undo else R.string.uninstall)
-                        )
-                    }
-                }
+            androidx.compose.material3.TextButton(onClick = onUninstallClicked) {
+                Text(stringResource(if (module.remove) R.string.undo else R.string.uninstall))
             }
         }
-    }
-}
-
-@Composable
-fun CombinedClickableButton(
-    onClick: () -> Unit,
-    onLongClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    shape: Shape = ButtonDefaults.shape,
-    colors: ButtonColors = ButtonDefaults.buttonColors(),
-    border: BorderStroke? = null,
-    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
-    interactionSource: MutableInteractionSource? = null,
-    content: @Composable RowScope.() -> Unit,
-) {
-    val interactionSource = interactionSource ?: remember { MutableInteractionSource() }
-
-    Surface(
-        modifier = modifier
-            .semantics { role = Role.Button }
-            .clip(shape)
-            .combinedClickable(
-                interactionSource = interactionSource,
-                indication = LocalIndication.current,
-                enabled = enabled,
-                onClick = onClick,
-                onLongClick = onLongClick
-            ),
-        shape = shape,
-        color = if (enabled) colors.containerColor else colors.disabledContainerColor,
-        contentColor = if (enabled) colors.contentColor else colors.disabledContentColor,
-        border = border,
-    ) {
-        ProvideTextStyle(MaterialTheme.typography.labelLarge) {
-            Row(
-                Modifier
-                    .defaultMinSize(
-                        minWidth = ButtonDefaults.MinWidth,
-                        minHeight = ButtonDefaults.MinHeight,
-                    )
-                    .padding(contentPadding),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-                content = content,
-            )
-        }
+        HorizontalDivider(Modifier.padding(horizontal = 16.dp))
     }
 }

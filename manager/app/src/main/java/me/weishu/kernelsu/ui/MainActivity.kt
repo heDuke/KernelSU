@@ -181,6 +181,7 @@ class MainActivity : ComponentActivity() {
                                 entry<Route.Flash> { key -> FlashScreen(key.flashIt) }
                                 entry<Route.ExecuteModuleAction> { key -> ExecuteModuleActionScreen(key.moduleId, key.fromShortcut) }
                                 entry<Route.ModuleRepo> { ModuleRepoScreen() }
+                                entry<Route.ExperimentalLoaderSettings> { me.weishu.kernelsu.ui.screen.experimentalloader.ExperimentalLoaderSettingsScreen() }
                                 entry<Route.ModuleRepoDetail> { key -> ModuleRepoDetailScreen(key.module) }
                                 entry<Route.Home> { mainScreenEntry() }
                                 entry<Route.SuperUser> { mainScreenEntry() }
@@ -191,8 +192,12 @@ class MainActivity : ComponentActivity() {
                     }
 
                     Scaffold(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        snackbarHost = { me.weishu.kernelsu.ui.component.module.ModuleTaskStatus() },
                     ) { navDisplay() }
+                    me.weishu.kernelsu.ui.component.module.ModuleSheetHost(
+                        onViewDetails = { navigator.push(Route.ModuleRepoDetail(it)) },
+                    )
                 }
             }
         }
@@ -286,6 +291,7 @@ fun MainScreen(
                     1 -> if (isCurrentPage || contentReady) SuperUserPager(navController, bottomInnerPadding, isCurrentPage)
                     2 -> if (isCurrentPage || contentReady) ModulePager(bottomInnerPadding, isCurrentPage)
                     3 -> if (isCurrentPage || contentReady) SettingPager(navController, bottomInnerPadding)
+                    4 -> if (isCurrentPage || contentReady) ModuleRepoScreen(embedded = true, bottomInnerPadding = bottomInnerPadding, isCurrentPage = isCurrentPage)
                 }
             }
         }

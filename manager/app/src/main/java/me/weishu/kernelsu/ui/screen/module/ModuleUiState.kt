@@ -174,6 +174,7 @@ data class ModuleActions(
     val onToggleSortActionFirst: () -> Unit,
     val onToggleSortEnabledFirst: () -> Unit,
     val onOpenWebUi: (Module) -> Unit,
+    val onOpenModuleDetail: (Module) -> Unit,
     val onToggleModule: (Module) -> Unit,
     val onUninstallModule: (Module) -> Unit,
     val onUndoUninstallModule: (Module) -> Unit,

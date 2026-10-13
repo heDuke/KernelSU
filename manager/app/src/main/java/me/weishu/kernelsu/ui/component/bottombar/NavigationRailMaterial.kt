@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuOpen
+import androidx.compose.material.icons.filled.TravelExplore
+import androidx.compose.material.icons.outlined.TravelExplore
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
@@ -45,17 +47,15 @@ fun NavigationRailMaterial(
     navigationBadge: NavigationBadgeState,
     modifier: Modifier = Modifier,
 ) {
-    val isManager = Natives.isManager
-    val fullFeatured = isManager && !Natives.requireNewKernel() && rootAvailable()
     val mainPagerState = LocalMainPagerState.current
 
-    if (!fullFeatured) return
 
     val items = listOf(
         Triple(R.string.home, Icons.Filled.Home, Icons.Outlined.Home),
         Triple(R.string.superuser, Icons.Filled.Shield, Icons.Outlined.Shield),
         Triple(R.string.module, Icons.Filled.Extension, Icons.Outlined.Extension),
-        Triple(R.string.settings, Icons.Filled.Settings, Icons.Outlined.Settings)
+        Triple(R.string.settings, Icons.Filled.Settings, Icons.Outlined.Settings),
+        Triple(R.string.module_sheet_discover, Icons.Filled.TravelExplore, Icons.Outlined.TravelExplore)
     )
 
     val state = rememberWideNavigationRailState()
@@ -104,7 +104,7 @@ fun NavigationRailMaterial(
                 icon = {
                     NavigationIconWithBadge(
                         icon = if (selected) selectedIcon else unselectedIcon,
-                        contentDescription = stringResource(label),
+                        contentDescription = null,
                         badge = badgeFor(index, navigationBadge),
                     )
                 },

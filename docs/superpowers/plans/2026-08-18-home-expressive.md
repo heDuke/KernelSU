@@ -1,5 +1,9 @@
 # Home Expressive UI Implementation Plan
 
+**Superseded visual direction (2026-10-12):** Follow the
+[HuskySU Manager redesign plan](2026-10-12-huskysu-manager-redesign.md)
+for future UI work. This plan remains historical context.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Restyle the Home pager to max Material 3 Expressive: status hero, merged Husky update card with full-width actions, SegmentedColumn device info, keep Learn, remove Donate.

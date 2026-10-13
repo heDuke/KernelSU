@@ -1,5 +1,9 @@
 # HuskySU Expressive UI system
 
+Historical policy: the custom-helper-first rules below are superseded by
+[Official-native Material 3 Expressive design](2026-10-12-manager-material3-expressive-native.md).
+Use the newer spec for future work; retain this file as historical context.
+
 **Branch:** `husky-lkm`  
 **Theme:** `MaterialExpressiveTheme` + `MotionScheme.expressive()` (unchanged)
 

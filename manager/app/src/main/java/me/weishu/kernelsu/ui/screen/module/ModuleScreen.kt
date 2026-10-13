@@ -24,6 +24,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.module.ModuleInstallController
+import me.weishu.kernelsu.ui.component.module.ModuleInstallTarget
+import me.weishu.kernelsu.ui.screen.modulerepo.RepoModuleArg
+import me.weishu.kernelsu.ui.screen.modulerepo.ReleaseArg
+import me.weishu.kernelsu.ui.screen.modulerepo.ReleaseAssetArg
 import me.weishu.kernelsu.ui.navigation3.LocalNavigator
 import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.screen.flash.FlashIt
@@ -45,6 +50,10 @@ fun ModulePager(
     val viewModel = viewModel<ModuleViewModel>()
     val scope = rememberCoroutineScope()
     val rawUiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val completed by ModuleInstallController.completion.collectAsStateWithLifecycle()
+    LaunchedEffect(completed) {
+        if (completed > 0) { viewModel.markNeedRefresh(); viewModel.fetchModuleList() }
+    }
 
     val webUILauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -90,7 +99,10 @@ fun ModulePager(
             viewModel.updateSearchText("")
         },
         onRequestUpdateConfirmation = { module, updateInfo ->
-            viewModel.requestUpdateConfirmation(module, updateInfo)
+            ModuleInstallController.review(listOf(ModuleInstallTarget(
+                name = "${module.name}-${updateInfo.version}.zip", downloadUrl = updateInfo.downloadUrl,
+                version = updateInfo.version, source = module.updateJson, moduleId = module.id,
+            )))
         },
         onRequestUninstallConfirmation = { module ->
             viewModel.requestUninstallConfirmation(module)
@@ -99,25 +111,9 @@ fun ModulePager(
             viewModel.dismissConfirmRequest()
         },
         onConfirmUpdate = { request ->
-            scope.launch {
-                download(
-                    url = request.downloadUrl,
-                    fileName = request.fileName,
-                    onDownloaded = { uri ->
-                        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
-                            navigator.push(Route.Flash(FlashIt.FlashModules(listOf(uri))))
-                            viewModel.markNeedRefresh()
-                        }
-                    },
-                    onDownloading = {
-                        viewModel.emitEffect(
-                            ModuleEffect.Toast(
-                                resource.getString(R.string.module_downloading).format(request.module.name)
-                            )
-                        )
-                    },
-                )
-            }
+            ModuleInstallController.review(listOf(ModuleInstallTarget(
+                request.fileName, downloadUrl = request.downloadUrl, moduleId = request.module.id,
+            )))
             viewModel.dismissConfirmRequest()
         },
         onToggleSortActionFirst = {
@@ -125,6 +121,17 @@ fun ModulePager(
         },
         onToggleSortEnabledFirst = {
             viewModel.toggleSortEnabledFirst()
+        },
+        onOpenModuleDetail = { module ->
+            val update = rawUiState.updateInfo[module.id]
+            navigator.push(Route.ModuleRepoDetail(RepoModuleArg(module.id, module.name, module.author,
+                emptyList(), module.version, "", if (update?.downloadUrl?.isNotBlank() == true) {
+                    listOf(ReleaseArg(update.version, update.version, "",
+                        listOf(ReleaseAssetArg("${module.name}-${update.version}.zip", update.downloadUrl, 0, 0)), update.changelog))
+                } else emptyList(), summary = module.description,
+                installedVersion = module.version,
+                sourceName = context.getSharedPreferences("module-provenance", android.content.Context.MODE_PRIVATE)
+                    .getString(module.id + ".source", null) ?: context.getString(R.string.module_sheet_source_unknown))))
         },
         onOpenWebUi = { module ->
             webUILauncher.launch(
@@ -159,27 +166,10 @@ fun ModulePager(
             }
         },
         onInstallRecommended = { module ->
-            if (module.downloadUrl.isNotBlank()) {
-                scope.launch {
-                    download(
-                        url = module.downloadUrl,
-                        fileName = module.zipFileName,
-                        onDownloaded = { uri ->
-                            if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
-                                navigator.push(Route.Flash(FlashIt.FlashModules(listOf(uri))))
-                                viewModel.markNeedRefresh()
-                            }
-                        },
-                        onDownloading = {
-                            viewModel.emitEffect(
-                                ModuleEffect.Toast(
-                                    resource.getString(R.string.module_downloading).format(module.name)
-                                )
-                            )
-                        },
-                    )
-                }
-            }
+            ModuleInstallController.preview(RepoModuleArg(module.id, module.name, "", emptyList(), "", "",
+                listOf(ReleaseArg("", "", "", listOf(ReleaseAssetArg(module.zipFileName, module.downloadUrl, 0, 0)), "")),
+                summary = listOf(module.description, module.note).filter(String::isNotBlank).joinToString("\n"),
+                sourceUrl = module.homepage))
         },
         onOpenModuleRepo = { navigator.push(Route.ModuleRepo) },
         onTogglePendingSelection = { id ->
@@ -187,42 +177,10 @@ fun ModulePager(
         },
         onProcessSelectedPending = {
             val snapshot = viewModel.uiState.value
-            val items = snapshot.selectedPendingItems
-            if (items.isNotEmpty() && !snapshot.isBatchProcessing && snapshot.installButtonVisible) {
-                scope.launch {
-                    viewModel.setBatchProcessing(true)
-                    try {
-                        val uris = ArrayList<Uri>(items.size)
-                        for (item in items) {
-                            val uri = download(
-                                url = item.downloadUrl,
-                                fileName = item.fileName,
-                                onDownloading = {
-                                    viewModel.emitEffect(
-                                        ModuleEffect.Toast(
-                                            resource.getString(R.string.module_downloading).format(item.name)
-                                        )
-                                    )
-                                },
-                            )
-                            if (uri == null) {
-                                viewModel.emitEffect(
-                                    ModuleEffect.Toast(
-                                        resource.getString(R.string.module_pending_download_failed).format(item.name)
-                                    )
-                                )
-                                return@launch
-                            }
-                            uris.add(uri)
-                        }
-                        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
-                            navigator.push(Route.Flash(FlashIt.FlashModules(uris)))
-                            viewModel.markNeedRefresh()
-                        }
-                    } finally {
-                        viewModel.setBatchProcessing(false)
-                    }
-                }
+            if (snapshot.installButtonVisible) {
+                ModuleInstallController.review(snapshot.selectedPendingItems.map {
+                    ModuleInstallTarget(it.fileName, downloadUrl = it.downloadUrl, moduleId = it.id)
+                })
             }
         },
     )

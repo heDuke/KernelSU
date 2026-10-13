@@ -21,12 +21,12 @@ fun MaterialKernelSUTheme(
     val darkTheme = appSettings.colorMode.isDark || (appSettings.colorMode.isSystem && systemDarkTheme)
     val dynamicColor = appSettings.keyColor == 0
 
-    val colorScheme = rememberKernelSUColorScheme(
-        seedColor = if (dynamicColor) Color.Unspecified else Color(appSettings.keyColor),
-        isDark = darkTheme,
-        isAmoled = false,
-        paletteStyle = appSettings.paletteStyle,
-        colorSpec = appSettings.colorSpec,
+    val colorScheme = if (dynamicColor && android.os.Build.VERSION.SDK_INT >= 31) {
+        if (darkTheme) androidx.compose.material3.dynamicDarkColorScheme(context)
+        else androidx.compose.material3.dynamicLightColorScheme(context)
+    } else rememberKernelSUColorScheme(
+        seedColor = Color(appSettings.keyColor), isDark = darkTheme, isAmoled = false,
+        paletteStyle = appSettings.paletteStyle, colorSpec = appSettings.colorSpec,
     )
 
     LaunchedEffect(darkTheme) {

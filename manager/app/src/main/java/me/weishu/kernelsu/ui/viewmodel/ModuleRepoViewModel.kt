@@ -123,6 +123,9 @@ class ModuleRepoViewModel(
         }
     }
 
+    val sourceStates = repo.sources
+    fun setSourceEnabled(id: String, enabled: Boolean) { repo.setSourceEnabled(id, enabled); refresh() }
+
     fun refresh() {
         if (_uiState.value.isRefreshing) return
         viewModelScope.launch {

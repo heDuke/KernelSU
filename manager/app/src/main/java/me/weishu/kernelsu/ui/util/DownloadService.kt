@@ -17,6 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.data.repository.SettingsRepositoryImpl
@@ -105,12 +106,13 @@ class DownloadService : Service() {
     }
 
     private fun startDownload(id: Int, url: String, fileName: String) {
-        val job = serviceScope.launch {
-            val target = resolveAvailableTarget(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                fileName
-            )
+        if (activeJobs[id]?.isActive == true) return
+        val job = serviceScope.launch(start = kotlinx.coroutines.CoroutineStart.LAZY) {
+            var reserved: File? = null
             try {
+                val target = me.weishu.kernelsu.core.utils.reserveDownloadTarget(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName)
+                reserved = target
                 ksuApp.okhttpClient.newCall(Request.Builder().url(url).build()).execute()
                     .use { resp ->
                         if (!resp.isSuccessful) throw IOException("HTTP ${resp.code}")
@@ -120,10 +122,13 @@ class DownloadService : Service() {
                         FileOutputStream(target).use { fos ->
                             val buf = ByteArray(8 * 1024)
                             var soFar = 0L
+                            val startedAt = android.os.SystemClock.elapsedRealtime()
+                            var lastPublishedAt = startedAt
                             var lastNotifiedProgress = -1
                             val source = body.byteStream()
 
                             while (true) {
+                                kotlinx.coroutines.currentCoroutineContext().ensureActive()
                                 val read = source.read(buf)
                                 if (read == -1) break
                                 fos.write(buf, 0, read)
@@ -132,7 +137,12 @@ class DownloadService : Service() {
                                 if (total > 0) {
                                     val percent =
                                         ((soFar * 100L) / total).toInt().coerceIn(0, 100)
-                                    DownloadManager.updateProgress(id, percent)
+                                    val now = android.os.SystemClock.elapsedRealtime()
+                                    if (now - lastPublishedAt >= 200 || soFar == total) {
+                                        DownloadManager.updateProgress(id, percent, soFar, total,
+                                            soFar * 1000 / (now - startedAt).coerceAtLeast(1))
+                                        lastPublishedAt = now
+                                    }
 
                                     if (percent - lastNotifiedProgress >= 2 || percent == 100) {
                                         notificationManager.notify(
@@ -141,29 +151,42 @@ class DownloadService : Service() {
                                         )
                                         lastNotifiedProgress = percent
                                     }
+                                } else {
+                                    val now = android.os.SystemClock.elapsedRealtime()
+                                    if (now - lastPublishedAt >= 200) {
+                                        DownloadManager.updateProgress(id, 0, soFar, total,
+                                            soFar * 1000 / (now - startedAt).coerceAtLeast(1))
+                                        lastPublishedAt = now
+                                    }
                                 }
                             }
                             fos.flush()
+                            val duration = (android.os.SystemClock.elapsedRealtime() - startedAt).coerceAtLeast(1)
+                            DownloadManager.updateProgress(id, if (total > 0) 100 else 0, soFar, total, soFar * 1000 / duration)
                         }
                     }
 
+                kotlinx.coroutines.currentCoroutineContext().ensureActive()
                 val uri = Uri.fromFile(target)
+                runCatching {
+                    notificationManager.cancel(id)
+                    notificationManager.notify(COMPLETION_NOTIFICATION_ID_BASE + id,
+                        buildCompletionNotification(id, target.name, uri))
+                }
                 DownloadManager.markCompleted(id, uri)
-
-                notificationManager.cancel(id)
-                notificationManager.notify(
-                    COMPLETION_NOTIFICATION_ID_BASE + id,
-                    buildCompletionNotification(id, target.name, uri)
-                )
             } catch (e: CancellationException) {
+                reserved?.delete()
+                DownloadManager.markCanceled(id)
+                notificationManager.cancel(id)
                 throw e
             } catch (e: Exception) {
+                reserved?.delete()
                 DownloadManager.markFailed(id, e.message ?: "Unknown error")
 
                 notificationManager.cancel(id)
                 notificationManager.notify(
                     COMPLETION_NOTIFICATION_ID_BASE + id,
-                    buildFailureNotification(target.name)
+                    buildFailureNotification(reserved?.name ?: fileName)
                 )
             } finally {
                 activeJobs.remove(id)
@@ -171,29 +194,7 @@ class DownloadService : Service() {
             }
         }
         activeJobs[id] = job
-    }
-
-    private fun resolveAvailableTarget(
-        directory: File,
-        fileName: String
-    ): File {
-        val dotIndex = fileName.lastIndexOf('.')
-        val baseName = if (dotIndex > 0) fileName.substring(0, dotIndex) else fileName
-        val extension = if (dotIndex > 0) fileName.substring(dotIndex) else ""
-
-        var index = 0
-        while (true) {
-            val candidateName = if (index == 0) {
-                fileName
-            } else {
-                "$baseName ($index)$extension"
-            }
-            val candidate = File(directory, candidateName)
-            if (!candidate.exists()) {
-                return candidate
-            }
-            index++
-        }
+        job.start()
     }
 
     private fun buildProgressNotification(

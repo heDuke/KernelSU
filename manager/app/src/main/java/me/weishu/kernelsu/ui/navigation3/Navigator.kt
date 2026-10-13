@@ -28,6 +28,10 @@ class Navigator(
      * Push a key onto the back stack.
      */
     fun push(key: NavKey) {
+        if (key is Route.Flash && key.flashIt is me.weishu.kernelsu.ui.screen.flash.FlashIt.FlashModules) {
+            me.weishu.kernelsu.ui.component.module.ModuleInstallController.reviewLocal(key.flashIt.uris)
+            return
+        }
         backStack.add(key)
     }
 

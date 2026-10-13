@@ -1,125 +1,74 @@
 package me.weishu.kernelsu.ui.screen.modulerepo
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import me.weishu.kernelsu.ksuApp
+import me.weishu.kernelsu.ui.component.module.ModuleInstallController
 import me.weishu.kernelsu.ui.navigation3.LocalNavigator
-import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.screen.flash.FlashIt
-import me.weishu.kernelsu.ui.util.module.fetchModuleDetail
+import me.weishu.kernelsu.ui.navigation3.Route
 import me.weishu.kernelsu.ui.viewmodel.ModuleRepoViewModel
-import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel
+import okhttp3.Request
 
 @Composable
-fun ModuleRepoScreen() {
+fun ModuleRepoScreen(embedded: Boolean = false, bottomInnerPadding: androidx.compose.ui.unit.Dp = androidx.compose.ui.unit.Dp(0f), isCurrentPage: Boolean = true) {
     val navigator = LocalNavigator.current
     val viewModel = viewModel<ModuleRepoViewModel>()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val installedVm = viewModel<ModuleViewModel>()
-    val installedUiState by installedVm.uiState.collectAsStateWithLifecycle()
-
-    LaunchedEffect(Unit) {
-        if (uiState.modules.isEmpty()) {
-            viewModel.refresh()
-        }
-        if (installedUiState.moduleList.isEmpty()) {
-            installedVm.fetchModuleList()
-        }
-    }
-
-    val actions = ModuleRepoActions(
-        onBack = { navigator.pop() },
-        onRefresh = viewModel::refresh,
+    val sources by viewModel.sourceStates.collectAsStateWithLifecycle()
+    val installed = viewModel<me.weishu.kernelsu.ui.viewmodel.ModuleViewModel>(key = "catalog-installed")
+    val installedState by installed.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(isCurrentPage) { if (isCurrentPage && me.weishu.kernelsu.Natives.isManager) installed.fetchModuleList() }
+    LaunchedEffect(isCurrentPage) { if (isCurrentPage && uiState.modules.isEmpty()) viewModel.refresh() }
+    ModuleRepoScreenMaterial(uiState.copy(sources = sources), ModuleRepoActions(
+        onBack = { navigator.pop() }, onRefresh = viewModel::refresh,
         onSearchTextChange = viewModel::updateSearchText,
         onClearSearch = { viewModel.updateSearchText("") },
         onSearchStatusChange = viewModel::updateSearchStatus,
         onSetSortOrder = viewModel::setSortOrder,
-        onOpenRepoDetail = { module ->
-            val args = RepoModuleArg(
-                moduleId = module.moduleId,
-                moduleName = module.moduleName,
-                authors = module.authors,
-                authorsList = module.authorList.map { AuthorArg(it.name, it.link) },
-                latestRelease = module.latestRelease,
-                latestReleaseTime = module.latestReleaseTime,
-                releases = emptyList()
-            )
-            navigator.push(Route.ModuleRepoDetail(args))
-        },
-    )
-
-    ModuleRepoScreenMaterial(uiState, actions)
+        onSetSourceEnabled = viewModel::setSourceEnabled,
+        onOpenRepoDetail = { module -> ModuleInstallController.preview(module.toModuleArg().copy(
+            installedVersion = installedState.modules.firstOrNull { it.id == module.moduleId && !it.remove }?.version.orEmpty(),
+            installedVersionCode = installedState.modules.firstOrNull { it.id == module.moduleId && !it.remove }?.versionCode ?: 0,
+        )) },
+    ), showBack = !embedded, bottomPadding = bottomInnerPadding)
 }
 
 @Composable
 fun ModuleRepoDetailScreen(module: RepoModuleArg) {
     val navigator = LocalNavigator.current
     val uriHandler = LocalUriHandler.current
-    var readmeHtml by remember(module.moduleId) { mutableStateOf<String?>(null) }
-    var readmeLoaded by remember(module.moduleId) { mutableStateOf(false) }
-    var detailReleases by remember(module.moduleId) { mutableStateOf<List<ReleaseArg>>(emptyList()) }
-    var webUrl by remember(module.moduleId) { mutableStateOf("https://modules.kernelsu.org/module/${module.moduleId}") }
-    var sourceUrl by remember(module.moduleId) { mutableStateOf("https://github.com/KernelSU-Modules-Repo/${module.moduleId}") }
-
-    LaunchedEffect(module.moduleId) {
-        if (module.moduleId.isNotEmpty()) {
-            withContext(Dispatchers.IO) {
+    var readme by remember(module) { mutableStateOf<String?>(null) }
+    var loaded by remember(module) { mutableStateOf(false) }
+    var error by remember(module) { mutableStateOf<String?>(null) }
+    var attempt by remember(module) { mutableIntStateOf(0) }
+    LaunchedEffect(module.readmeUrl, attempt) {
+        loaded = false; error = null
+        if (module.readmeUrl.isNotBlank()) {
+            val result = withContext(Dispatchers.IO) {
                 runCatching {
-                    val detail = fetchModuleDetail(module.moduleId)
-                    if (detail != null) {
-                        readmeHtml = detail.readmeHtml
-                        if (detail.url.isNotEmpty() && detail.url != "null") {
-                            webUrl = detail.url
-                        }
-                        if (detail.sourceUrl.isNotEmpty() && detail.sourceUrl != "null") {
-                            sourceUrl = detail.sourceUrl
-                        }
-                        detailReleases = detail.releases.map { r ->
-                            ReleaseArg(
-                                tagName = r.tagName,
-                                name = r.name,
-                                publishedAt = r.publishedAt,
-                                assets = r.assets.map { a -> ReleaseAssetArg(a.name, a.downloadUrl, a.size, a.downloadCount) },
-                                descriptionHTML = r.descriptionHTML
-                            )
-                        }
-                    } else {
-                        detailReleases = emptyList()
+                    ksuApp.okhttpClient.newCall(Request.Builder().url(module.readmeUrl).build()).execute().use {
+                        check(it.isSuccessful) { "README HTTP ${it.code}" }
+                        val bytes = it.body.byteStream().use { stream -> stream.readNBytes(512 * 1024 + 1) }
+                        check(bytes.size <= 512 * 1024) { "README exceeds display limit" }
+                        bytes.toString(Charsets.UTF_8)
                     }
-                }.onSuccess {
-                    readmeLoaded = true
-                }.onFailure {
-                    readmeLoaded = true
-                    detailReleases = emptyList()
                 }
             }
-        } else {
-            readmeLoaded = true
+            readme = result.getOrNull(); error = result.exceptionOrNull()?.message
         }
+        loaded = true
     }
-
-    val state = ModuleRepoDetailUiState(
-        module = module,
-        readmeHtml = readmeHtml,
-        readmeLoaded = readmeLoaded,
-        detailReleases = detailReleases,
-        webUrl = webUrl,
-        sourceUrl = sourceUrl,
+    ModuleRepoDetailScreenMaterial(
+        ModuleRepoDetailUiState(module, readme, loaded, module.releases, module.sourceUrl, module.sourceUrl),
+        ModuleRepoDetailActions(onBack = { navigator.pop() },
+            onOpenWebUrl = { if (module.sourceUrl.isNotBlank()) uriHandler.openUri(module.sourceUrl) },
+            onOpenUrl = uriHandler::openUri,
+            onInstallModule = { navigator.push(Route.Flash(FlashIt.FlashModules(listOf(it)))) }),
+        readmeError = error, onRetryReadme = { attempt++ },
     )
-    val actions = ModuleRepoDetailActions(
-        onBack = { navigator.pop() },
-        onOpenWebUrl = { if (webUrl.isNotEmpty()) uriHandler.openUri(webUrl) },
-        onOpenUrl = uriHandler::openUri,
-        onInstallModule = { uri -> navigator.push(Route.Flash(FlashIt.FlashModules(listOf(uri)))) },
-    )
-
-    ModuleRepoDetailScreenMaterial(state, actions)
 }

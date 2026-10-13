@@ -1,6 +1,8 @@
 package me.weishu.kernelsu.ui.util
 
 import android.net.Uri
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onEach
 import me.weishu.kernelsu.ksuApp
@@ -24,7 +26,6 @@ suspend fun download(
         context = ksuApp,
         url = url,
         fileName = fileName,
-        onCompleted = onDownloaded,
     )
 
     val terminal = DownloadManager.downloads
@@ -32,9 +33,11 @@ suspend fun download(
         .first { map ->
             val status = map[downloadId]?.status
             status == DownloadManager.Status.COMPLETED ||
-                status == DownloadManager.Status.FAILED
+                status == DownloadManager.Status.FAILED || status == DownloadManager.Status.CANCELED
         }[downloadId]
-    return terminal?.resultUri.takeIf { terminal?.status == DownloadManager.Status.COMPLETED }
+    val uri = terminal?.resultUri.takeIf { terminal?.status == DownloadManager.Status.COMPLETED }
+    if (uri != null) withContext(Dispatchers.Main.immediate) { onDownloaded(uri) }
+    return uri
 }
 
 fun checkNewVersion(): LatestVersionInfo {

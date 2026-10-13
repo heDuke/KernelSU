@@ -73,6 +73,10 @@ sealed interface Route : NavKey, Parcelable {
 
     @Parcelize
     @Serializable
+    data object ExperimentalLoaderSettings : Route
+
+    @Parcelize
+    @Serializable
     data object ModuleRepo : Route
 
     @Parcelize

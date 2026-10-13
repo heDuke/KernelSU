@@ -2,109 +2,171 @@ package me.weishu.kernelsu.data.repository
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.asStateFlow
 import me.weishu.kernelsu.data.model.Author
 import me.weishu.kernelsu.data.model.ReleaseAsset
 import me.weishu.kernelsu.data.model.RepoModule
+import me.weishu.kernelsu.data.model.RepoRelease
 import me.weishu.kernelsu.ksuApp
-import me.weishu.kernelsu.ui.util.isNetworkAvailable
 import okhttp3.Request
-import org.json.JSONArray
 import org.json.JSONObject
+import java.time.Instant
 
 class ModuleRepoRepositoryImpl : ModuleRepoRepository {
-
-    companion object {
-        private const val MODULES_URL = "https://modules.kernelsu.org/modules.json"
+    private val preferences = ksuApp.getSharedPreferences("module-repositories", android.content.Context.MODE_PRIVATE)
+    private val definitions = listOf(
+        me.weishu.kernelsu.data.model.RepoSource("googlers", "Googlers Magisk Repo", "https://gr.dergoogler.com/gmr/json/modules.json"),
+        me.weishu.kernelsu.data.model.RepoSource("alt", "Magisk Modules Alt Repo", "https://magisk-modules-alt-repo.github.io/json-v2/json/modules.json"),
+        me.weishu.kernelsu.data.model.RepoSource("izzy", "IzzyOnDroid Magisk Repository", "https://apt.izzysoft.de/magisk/json/modules.json"),
+    )
+    private val mutableSources = kotlinx.coroutines.flow.MutableStateFlow(definitions.map {
+        me.weishu.kernelsu.data.model.RepoSourceStatus(it, preferences.getBoolean(it.id, true))
+    })
+    override val sources = mutableSources.asStateFlow()
+    override fun setSourceEnabled(id: String, enabled: Boolean) {
+        require(definitions.any { it.id == id })
+        preferences.edit().putBoolean(id, enabled).apply()
+        mutableSources.value = sources.value.map { if (it.source.id == id) it.copy(enabled = enabled) else it }
     }
-
     override suspend fun fetchModules(): Result<List<RepoModule>> = withContext(Dispatchers.IO) {
-        runCatching {
-            if (!isNetworkAvailable(ksuApp)) {
-                throw Exception("Network unavailable")
-            }
-
-            val request = Request.Builder().url(MODULES_URL).build()
-            ksuApp.okhttpClient.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    throw Exception("Fetch failed: ${response.code}")
+        val statuses = ArrayList<me.weishu.kernelsu.data.model.RepoSourceStatus>()
+        val combined = ArrayList<RepoModule>()
+        for (source in definitions) {
+            val enabled = preferences.getBoolean(source.id, true)
+            if (!enabled) { statuses += me.weishu.kernelsu.data.model.RepoSourceStatus(source, false); continue }
+            val cacheDir = java.io.File(ksuApp.filesDir, "module-repositories").apply { mkdirs() }
+            val cache = java.io.File(cacheDir, "${source.id}.json")
+            val result = runCatching {
+                ksuApp.okhttpClient.newCall(Request.Builder().url(source.indexUrl).build()).execute().use { response ->
+                    check(response.isSuccessful) { "HTTP ${response.code}" }
+                    val bytes = response.body.byteStream().use { it.readNBytes(8 * 1024 * 1024 + 1) }
+                    check(bytes.size <= 8 * 1024 * 1024) { "Index exceeds size limit" }
+                    val root = JSONObject(bytes.toString(Charsets.UTF_8))
+                    val parsed = parseModules(root, source)
+                    val temporary = java.io.File.createTempFile(source.id, ".part", cacheDir)
+                    try {
+                        temporary.outputStream().use { it.write(bytes); it.fd.sync() }
+                        java.nio.file.Files.move(temporary.toPath(), cache.toPath(),
+                            java.nio.file.StandardCopyOption.ATOMIC_MOVE, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                    } finally { temporary.delete() }
+                    parsed
                 }
-
-                val body = response.body.string()
-                val json = JSONArray(body)
-                (0 until json.length()).mapNotNull { idx ->
-                    val item = json.optJSONObject(idx) ?: return@mapNotNull null
-                    parseRepoModule(item)
-                }
             }
+            val cached = result.isFailure && cache.isFile
+            val modules = result.getOrNull() ?: if (cached) runCatching {
+                check(cache.length() <= 8 * 1024 * 1024)
+                parseModules(JSONObject(cache.readText()), source)
+            }.getOrDefault(emptyList()) else emptyList()
+            combined += modules
+            statuses += me.weishu.kernelsu.data.model.RepoSourceStatus(source, count = modules.size,
+                cached = cached, lastSync = if (cache.isFile) cache.lastModified() else 0,
+                error = result.exceptionOrNull()?.message)
         }
+        mutableSources.value = statuses
+        if (statuses.any { it.enabled } && statuses.filter { it.enabled }.all { it.error != null } && combined.isEmpty()) {
+            Result.failure(IllegalStateException("All enabled module sources failed"))
+        } else Result.success(combined)
+    }
+    private fun parseModules(root: JSONObject, source: me.weishu.kernelsu.data.model.RepoSource): List<RepoModule> {
+                val modules = root.getJSONArray("modules")
+                check(modules.length() <= 10000) { "Too many modules in index" }
+                return                 (0 until modules.length()).mapNotNull { index ->
+                    val item = modules.optJSONObject(index) ?: return@mapNotNull null
+                    val id = item.optString("id").trim()
+                    if (id.isEmpty()) return@mapNotNull null
+                    val versions = item.optJSONArray("versions")
+                    val latest = (0 until (versions?.length() ?: 0))
+                        .mapNotNull { versions?.optJSONObject(it) }
+                        .maxByOrNull { it.optLong("versionCode") }
+                    val downloadUrl = httpUrl(latest?.optString("zipUrl").orEmpty())
+                    val sourceUrl = httpUrl(item.optJSONObject("track")?.optString("source").orEmpty())
+                    val screenshots = item.optJSONArray("screenshots") ?: item.optJSONArray("images")
+                    val author = item.optString("author", "")
+                    val timestamp = item.optLong("timestamp")
+                    RepoModule(
+                        moduleId = id,
+                        moduleName = item.optString("name", id),
+                        authors = author,
+                        authorList = listOf(Author(author, sourceUrl)),
+                        summary = item.optString("description", ""),
+                        metamodule = item.optBoolean("metamodule") || item.optString("metamodule") == "1",
+                        stargazerCount = item.optInt("stars"),
+                        updatedAt = date(timestamp),
+                        createdAt = date(item.optLong("added")),
+                        latestRelease = latest?.optString("version") ?: item.optString("version", ""),
+                        latestReleaseTime = date(timestamp),
+                        latestVersionCode = latest?.optInt("versionCode") ?: item.optInt("versionCode"),
+                        latestAsset = downloadUrl.takeIf { it.isNotEmpty() }?.let {
+                            ReleaseAsset(
+                                name = it.substringAfterLast('/').substringBefore('?'),
+                                downloadUrl = it,
+                                size = latest?.optLong("size", item.optLong("size")) ?: item.optLong("size"),
+                            )
+                        },
+                        sourceName = source.name,
+                        sourceId = source.id,
+                        sourceUrl = sourceUrl,
+                        readmeUrl = httpUrl(item.optString("readme", "")),
+                        iconUrl = httpUrl(item.optString("icon", "")),
+                        screenshots = (0 until (screenshots?.length() ?: 0)).mapNotNull {
+                            val image = screenshots?.opt(it)
+                            httpUrl(if (image is JSONObject) image.optString("url") else image as? String ?: "")
+                                .takeIf(String::isNotEmpty)
+                        }.take(12),
+                        license = item.optString("license", "").takeUnless { it == "null" }.orEmpty(),
+                        supportUrl = httpUrl(item.optString("support", "")),
+                        donateUrl = httpUrl(item.optString("donate", "")),
+                        notes = item.optJSONObject("note")?.optString("message").orEmpty(),
+                        repositoryVerified = if (item.opt("verified") is Boolean) item.optBoolean("verified") else null,
+                        permissions = strings(item.optJSONArray("permissions")),
+                        dependencies = (strings(item.optJSONArray("require")) + strings(item.optJSONArray("dependencies")) +
+                            strings(item.optJSONObject("manager")?.optJSONObject("kernelsu")?.optJSONArray("require"))).distinct(),
+                        categories = strings(item.optJSONArray("categories")),
+                        managerRequirements = managerDescription(item.optJSONObject("manager")),
+                        kernelSuUnsupported = item.optJSONObject("manager")?.optJSONObject("kernelsu")?.optInt("min") == -1,
+                        minApi = item.optInt("minApi").takeIf { it > 0 },
+                        maxApi = item.optInt("maxApi").takeIf { it > 0 },
+                        releaseHistory = (0 until (versions?.length() ?: 0))
+                            .mapNotNull { versions?.optJSONObject(it) }
+                            .sortedByDescending { it.optLong("versionCode") }
+                            .mapNotNull { release ->
+                                val url = httpUrl(release.optString("zipUrl"))
+                                if (url.isBlank()) null else RepoRelease(
+                                    release.optString("version"), date(release.optLong("timestamp")),
+                                    ReleaseAsset(url.substringAfterLast('/').substringBefore('?'), url,
+                                        release.optLong("size", if (release == latest) item.optLong("size") else 0)),
+                                    release.optString("changelog", ""),
+                                )
+                            },
+                    )
+                }
     }
 
-    private fun parseRepoModule(item: JSONObject): RepoModule? {
-        val moduleId = item.optString("moduleId", "")
-        if (moduleId.isEmpty()) return null
-        val moduleName = item.optString("moduleName", "")
-        val authorsArray = item.optJSONArray("authors")
-        val authorList = if (authorsArray != null) {
-            (0 until authorsArray.length())
-                .mapNotNull { idx ->
-                    val authorObj = authorsArray.optJSONObject(idx) ?: return@mapNotNull null
-                    val name = authorObj.optString("name", "").trim()
-                    var link = authorObj.optString("link", "").trim()
-                    if (link.startsWith("`") && link.endsWith("`") && link.length >= 2) {
-                        link = link.substring(1, link.length - 1)
-                    }
-                    if (name.isEmpty()) null else Author(name = name, link = link)
-                }
-        } else {
-            emptyList()
-        }
-        val authors = if (authorList.isNotEmpty()) authorList.joinToString(", ") { it.name } else item.optString("authors", "")
-        val summary = item.optString("summary", "")
-        val metamodule = item.optBoolean("metamodule", false)
-        val stargazerCount = item.optInt("stargazerCount", 0)
-        val updatedAt = item.optString("updatedAt", "")
-        val createdAt = item.optString("createdAt", "")
 
-        var latestRelease = ""
-        var latestReleaseTime = ""
-        var latestVersionCode = 0
-        var latestAsset: ReleaseAsset? = null
-        val lr = item.optJSONObject("latestRelease")
-        if (lr != null) {
-            val lrName = lr.optString("name", lr.optString("version", ""))
-            val lrTime = lr.optString("time", "")
-            var lrUrl = lr.optString("downloadUrl", "")
-            lrUrl = lrUrl.trim().let {
-                var s = it
-                if (s.startsWith("`") && s.endsWith("`") && s.length >= 2) {
-                    s = s.substring(1, s.length - 1)
-                }
-                s
-            }
-
-            latestVersionCode = lr.optInt("versionCode", 0)
-            latestRelease = lrName
-            latestReleaseTime = lrTime
-            if (lrUrl.isNotEmpty()) {
-                val fileName = lrUrl.substringAfterLast('/')
-                latestAsset = ReleaseAsset(name = fileName, downloadUrl = lrUrl, size = 0L)
-            }
-        }
-
-        return RepoModule(
-            moduleId = moduleId,
-            moduleName = moduleName,
-            authors = authors,
-            authorList = authorList,
-            summary = summary,
-            metamodule = metamodule,
-            stargazerCount = stargazerCount,
-            updatedAt = updatedAt,
-            createdAt = createdAt,
-            latestRelease = latestRelease,
-            latestReleaseTime = latestReleaseTime,
-            latestVersionCode = latestVersionCode,
-            latestAsset = latestAsset,
-        )
+    private fun managerDescription(managers: JSONObject?): String {
+        if (managers == null) return ""
+        return managers.keys().asSequence().map { provider ->
+            val rule = managers.optJSONObject(provider) ?: return@map provider
+            val parts = ArrayList<String>()
+            val minimum = (rule.opt("min") as? Number)?.toInt()
+            val maximum = (rule.opt("max") as? Number)?.toInt()
+            if (minimum == -1) parts += ksuApp.getString(me.weishu.kernelsu.R.string.module_sheet_provider_unsupported)
+            else minimum?.let { parts += ksuApp.getString(me.weishu.kernelsu.R.string.module_sheet_minimum_version, it) }
+            maximum?.let { parts += ksuApp.getString(me.weishu.kernelsu.R.string.module_sheet_maximum_version, it) }
+            val required = strings(rule.optJSONArray("require"))
+            if (required.isNotEmpty()) parts += ksuApp.getString(me.weishu.kernelsu.R.string.module_sheet_dependencies) + ": " + required.joinToString(", ")
+            provider + ": " + parts.joinToString("; ")
+        }.joinToString("\n")
     }
+
+    private fun strings(array: org.json.JSONArray?): List<String> =
+        (0 until (array?.length() ?: 0).coerceAtMost(64)).mapNotNull { array?.optString(it)?.takeIf(String::isNotBlank) }
+
+    private fun date(seconds: Long): String = if (seconds > 0) {
+        runCatching { Instant.ofEpochSecond(seconds).toString().substringBefore('T') }.getOrDefault("")
+    } else ""
+
+    private fun httpUrl(value: String): String = value.trim().takeIf {
+        it.startsWith("https://") || it.startsWith("http://")
+    }.orEmpty()
 }

@@ -16,9 +16,9 @@ import androidx.compose.ui.graphics.Shape
 @Composable
 fun TonalCard(
     modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceBright,
+    containerColor: Color = CardDefaults.cardColors().containerColor,
     contentColor: Color = contentColorFor(containerColor),
-    shape: Shape = MaterialTheme.shapes.large,
+    shape: Shape = CardDefaults.shape,
     enabled: Boolean = true,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,

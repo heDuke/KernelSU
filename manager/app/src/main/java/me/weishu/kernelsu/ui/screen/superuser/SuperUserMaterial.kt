@@ -69,7 +69,7 @@ import me.weishu.kernelsu.data.model.AppInfo
 import me.weishu.kernelsu.ui.component.AppIconImage
 import me.weishu.kernelsu.ui.component.ScrollToTopOnChange
 import me.weishu.kernelsu.ui.component.material.ExpressiveHeroCard
-import me.weishu.kernelsu.ui.component.material.ExpressiveScaffold
+import androidx.compose.material3.Scaffold
 import me.weishu.kernelsu.ui.component.material.SearchAppBar
 import me.weishu.kernelsu.ui.component.material.SegmentedColumn
 import me.weishu.kernelsu.ui.component.material.SegmentedItem
@@ -98,7 +98,7 @@ fun SuperUserPagerMaterial(
     val haptic = LocalHapticFeedback.current
     val snackbarHostState = remember { SnackbarHostState() }
 
-    ExpressiveScaffold(
+    Scaffold(
         topBar = {
             SearchAppBar(
                 snackbarHostState = snackbarHostState,

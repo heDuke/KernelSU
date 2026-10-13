@@ -1,5 +1,9 @@
 # Home screen — max Material 3 Expressive
 
+**Superseded visual direction (2026-10-12):** See
+[HuskySU Manager redesign, repositories and LKM validation](../plans/2026-10-12-huskysu-manager-redesign.md).
+This document remains historical context.
+
 **Branch:** `husky-lkm`  
 **Scope:** `HomeMaterial.kt` (+ few `strings.xml` entries). No theme rewrite.
 

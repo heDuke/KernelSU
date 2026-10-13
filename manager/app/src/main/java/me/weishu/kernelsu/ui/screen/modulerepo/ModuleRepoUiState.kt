@@ -18,6 +18,7 @@ data class ModuleRepoUiState(
     val modules: List<RepoModule> = emptyList(),
     val searchStatus: SearchStatus = SearchStatus(""),
     val searchResults: List<RepoModule> = emptyList(),
+    val sources: List<me.weishu.kernelsu.data.model.RepoSourceStatus> = emptyList(),
     val error: Throwable? = null
 )
 
@@ -29,6 +30,7 @@ data class ModuleRepoActions(
     val onClearSearch: () -> Unit,
     val onSearchStatusChange: (SearchStatus) -> Unit,
     val onSetSortOrder: (RepoSort) -> Unit,
+    val onSetSourceEnabled: (String, Boolean) -> Unit,
     val onOpenRepoDetail: (RepoModule) -> Unit,
 )
 
