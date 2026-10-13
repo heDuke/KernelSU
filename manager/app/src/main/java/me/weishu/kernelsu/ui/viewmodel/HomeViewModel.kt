@@ -184,10 +184,11 @@ class HomeViewModel(
 
     private suspend fun selectCurrentAsset(release: HuskyRelease): LkmAsset? = try {
         selectLkmAsset(release.lkmAssets, LoaderClient.currentKmi().trim(),
-            LoaderClient.currentPageSize())
+            LoaderClient.currentPageSize(), Os.uname().release)
     } catch (error: Exception) {
         if (error is kotlinx.coroutines.CancellationException) throw error
-        _uiState.update { it.copy(huskyUpdateStatus = HuskyUpdateStatus.Error, huskyError = error.message) }
+        _uiState.update { it.copy(huskyUpdateStatus = HuskyUpdateStatus.NoMatchingLkm,
+            huskyError = release.lkmMetadataError ?: ksuApp.getString(R.string.husky_lkm_target_unavailable, Os.uname().release)) }
         null
     }
 
@@ -219,10 +220,16 @@ class HomeViewModel(
         )
     }
 
-    private fun applyRelease(release: HuskyRelease) {
+    private suspend fun applyRelease(release: HuskyRelease) {
         val current = _uiState.value
         val installed = current.ksuVersion?.toLong() ?: 0L
         val hasLkmUpdate = release.versionCode == 0L || release.versionCode > installed
+        val candidate = try {
+            selectLkmAsset(release.lkmAssets, LoaderClient.currentKmi().trim(),
+                LoaderClient.currentPageSize(), Os.uname().release)
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (_: Exception) { null }
         val apkInfo = release.apkDownloadUrl?.let { apkUrl ->
             LatestVersionInfo(
                 versionCode = release.versionCode.toInt().coerceAtLeast(0),
@@ -234,12 +241,15 @@ class HomeViewModel(
         _uiState.update {
             it.copy(
                 huskyRelease = release,
-                huskyUpdateStatus = if (hasLkmUpdate) {
+                huskyUpdateStatus = if (candidate == null) {
+                    HuskyUpdateStatus.NoMatchingLkm
+                } else if (hasLkmUpdate) {
                     HuskyUpdateStatus.Available
                 } else {
                     HuskyUpdateStatus.UpToDate
                 },
-                huskyError = null,
+                huskyError = if (candidate == null) release.lkmMetadataError ?:
+                    ksuApp.getString(R.string.husky_lkm_target_unavailable, Os.uname().release) else null,
                 latestVersionInfo = apkInfo,
             )
         }

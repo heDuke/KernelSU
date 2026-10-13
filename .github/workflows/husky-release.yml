@@ -283,6 +283,7 @@ jobs:
           - KMI: \`android14-6.1\` + \`android16-6.12\` (OTA inactive slot)
           - Assets: \`HuskySU.apk\`, \`android14-6.1_kernelsu.ko\`, \`android16-6.12_kernelsu.ko\`
           - Changes: native Material 3 Expressive controls, accessibility fixes and GKI-independent UI eligibility
+          - Fix: independent Manager/driver build numbers are distinct from interface incompatibility; LKM updates require verified exact kernel release, KMI and page-size metadata
           - Production package/certificate verified; manifest and SHA256SUMS included
           - Generic LKM builds require exact target validation. They are not the pinned ZP11.260918.007 / 6.1.172 Canary candidate.
           - Canary private-ABI/CFI, cold-boot/recovery and full visual acceptance remain incomplete. Independent experimental loading remains disabled.

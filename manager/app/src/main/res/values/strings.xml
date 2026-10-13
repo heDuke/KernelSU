@@ -13,6 +13,12 @@
     <string name="home_unsupported">Unsupported</string>
     <string name="home_unsupported_reason">KernelSU only supports GKI kernels now, but you can patch the image for GKI devices.</string>
     <string name="home_version_mismatch">Manager version (%1$d) and KernelSU driver version (%2$d) mismatch.</string>
+    <string name="home_driver_incompatible">Driver interface requires an update</string>
+    <string name="env_check_build_different">Interface compatible (UAPI %3$d). Manager build %1$d, driver build %2$d. A build-number difference alone does not require flashing.</string>
+    <string name="env_check_driver_incompatible">Driver update required: Manager UAPI %1$d, driver UAPI %2$d; minimum driver requirements also apply.</string>
+    <string name="env_check_driver_interface_unknown">Driver interface compatibility could not be verified.</string>
+    <string name="husky_lkm_metadata_unavailable">This release has no verified LKM target metadata. Keep the current driver; Manager updates can be installed independently.</string>
+    <string name="husky_lkm_target_unavailable">This release has no LKM for kernel %1$s with the current page size. Keep the current driver; Manager updates can be installed independently.</string>
     <string name="home_device_model">Device model</string>
     <string name="home_kernel">Kernel version</string>
     <string name="home_manager_version">Manager version</string>

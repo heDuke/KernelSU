@@ -1,6 +1,7 @@
 package me.weishu.kernelsu.data.repository
 
 import android.os.Build
+import android.system.Os
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.Natives
@@ -10,6 +11,10 @@ import me.weishu.kernelsu.data.model.EnvCheckItem
 import me.weishu.kernelsu.data.model.EnvCheckReport
 import me.weishu.kernelsu.data.model.EnvCheckSeverity
 import me.weishu.kernelsu.data.model.Module
+import me.weishu.kernelsu.data.model.DriverVersionStatus
+import me.weishu.kernelsu.data.model.driverVersionStatus
+import me.weishu.kernelsu.data.model.selectLkmAsset
+import me.weishu.kernelsu.ui.util.LoaderClient
 import me.weishu.kernelsu.ksuApp
 import me.weishu.kernelsu.ui.screen.home.getManagerVersion
 import me.weishu.kernelsu.ui.util.getSELinuxStatusRaw
@@ -118,18 +123,26 @@ class EnvCheckRepositoryImpl(
         val ksuVersion = runCatching { Natives.version }.getOrNull()?.takeIf { it > 0 }
         val items = mutableListOf<EnvCheckItem>()
         if (ksuVersion != null) {
-            val match = ksuVersion.toLong() == manager.versionCode
+            val managerUapi = runCatching { Natives.managerUAPIVersion }.getOrDefault(0)
+            val driverUapi = runCatching { Natives.kernelUAPIVersion }.getOrNull()
+            val status = driverVersionStatus(manager.versionCode, ksuVersion, managerUapi, driverUapi,
+                runCatching { Natives.requireNewKernel() }.getOrDefault(false))
             items += item(
                 id = "version_match",
                 group = EnvCheckGroup.Version,
                 title = str(R.string.env_check_item_version_match),
-                detail = if (match) {
-                    str(R.string.env_check_version_matched, manager.versionCode)
-                } else {
-                    str(R.string.env_check_version_mismatch, manager.versionCode, ksuVersion)
+                detail = when (status) {
+                    DriverVersionStatus.Matched -> str(R.string.env_check_version_matched, manager.versionCode)
+                    DriverVersionStatus.BuildDifferent -> str(R.string.env_check_build_different, manager.versionCode, ksuVersion, managerUapi)
+                    DriverVersionStatus.Incompatible -> str(R.string.env_check_driver_incompatible, managerUapi, driverUapi ?: 0)
+                    else -> str(R.string.env_check_driver_interface_unknown)
                 },
-                severity = if (match) EnvCheckSeverity.Pass else EnvCheckSeverity.Fail,
-                raw = "manager=${manager.versionCode},driver=$ksuVersion",
+                severity = when (status) {
+                    DriverVersionStatus.Matched, DriverVersionStatus.BuildDifferent -> EnvCheckSeverity.Pass
+                    DriverVersionStatus.Incompatible -> EnvCheckSeverity.Fail
+                    else -> EnvCheckSeverity.Unknown
+                },
+                raw = "manager=${manager.versionCode},driver=$ksuVersion,manager_uapi=$managerUapi,driver_uapi=$driverUapi",
             )
         }
         if (runCatching { Natives.isManager }.getOrDefault(false) &&
@@ -149,16 +162,23 @@ class EnvCheckRepositoryImpl(
                 onSuccess = { release ->
                     val current = ksuVersion?.toLong()
                     val upToDate = current != null && current >= release.versionCode
+                    val candidate = try {
+                        selectLkmAsset(release.lkmAssets, LoaderClient.currentKmi().trim(),
+                            LoaderClient.currentPageSize(), Os.uname().release)
+                    } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+                    catch (_: Exception) { null }
                     items += item(
                         id = "version_husky_lkm",
                         group = EnvCheckGroup.Version,
                         title = huskyTitle,
-                        detail = if (upToDate) {
+                        detail = if (candidate == null) {
+                            release.lkmMetadataError ?: str(R.string.husky_lkm_target_unavailable, Os.uname().release)
+                        } else if (upToDate) {
                             str(R.string.env_check_husky_up_to_date, release.tag)
                         } else {
                             str(R.string.env_check_husky_update, release.tag)
                         },
-                        severity = if (upToDate) EnvCheckSeverity.Pass else EnvCheckSeverity.Warn,
+                        severity = if (candidate == null) EnvCheckSeverity.Unknown else if (upToDate) EnvCheckSeverity.Pass else EnvCheckSeverity.Warn,
                         raw = release.tag,
                     )
                 },

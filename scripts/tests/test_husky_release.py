@@ -1,4 +1,5 @@
 import importlib.util
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -39,6 +40,19 @@ class ProductionIdentityTest(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     release.verify_release(directory, release.TRUSTED_CERTIFICATE, 32638, "a" * 40)
             self.assertEqual(list(directory.iterdir()), [])
+
+    def test_actual_module_target_and_inconsistent_vermagic(self):
+        module = Path(os.environ.get("KSU_RELEASE_MODULE_FIXTURE", "dist-husky/android14-6.1_kernelsu.ko"))
+        if not module.is_file():
+            self.skipTest("built release module fixture required")
+        data = module.read_bytes()
+        target = release.module_target("android14-6.1_kernelsu.ko", data)
+        self.assertEqual(target["kmi"], "android14-6.1")
+        self.assertIn(target["page_size"], (4096, 16384, 65536))
+        original = ("vermagic=" + target["kernel_release"]).encode()
+        mutated = data.replace(original, original[:-1] + (b"x" if original[-1:] != b"x" else b"y"), 1)
+        with self.assertRaises(ValueError):
+            release.module_target("android14-6.1_kernelsu.ko", mutated)
 
 
 if __name__ == "__main__":

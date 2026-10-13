@@ -8,10 +8,15 @@ import kotlin.coroutines.coroutineContext
 import me.weishu.kernelsu.core.utils.VerifiedArtifact
 import me.weishu.kernelsu.data.model.HuskyRelease
 import me.weishu.kernelsu.data.model.LkmAsset
+import me.weishu.kernelsu.data.model.LkmTarget
+import me.weishu.kernelsu.data.model.ReleaseManifestAsset
+import me.weishu.kernelsu.data.model.applyLkmTargets
+import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ksuApp
 import me.weishu.kernelsu.ui.util.isNetworkAvailable
 import okhttp3.Request
 import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 import java.io.IOException
 
@@ -37,7 +42,7 @@ class HuskyReleaseRepositoryImpl : HuskyReleaseRepository {
                 .header("Accept", "application/vnd.github+json")
                 .build()
 
-            ksuApp.okhttpClient.newCall(request).execute().use { response ->
+            val release = ksuApp.okhttpClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
                     throw IOException("Fetch failed: ${response.code}")
                 }
@@ -46,6 +51,33 @@ class HuskyReleaseRepositoryImpl : HuskyReleaseRepository {
                     compareBy<HuskyRelease> { it.versionCode }.thenBy { it.publishedAt }
                 ) ?: throw IOException("No husky release")
             }
+            loadTargetMetadata(release)
+        }
+    }
+
+    private suspend fun loadTargetMetadata(release: HuskyRelease): HuskyRelease {
+        return try {
+            val asset = requireNotNull(release.manifestAsset) { "Release has no target manifest" }
+            require(asset.sizeBytes in 1L..262144L && asset.sha256?.matches(Regex("[0-9a-fA-F]{64}")) == true) {
+                "Release target manifest cannot be verified"
+            }
+            val file = File(ksuApp.cacheDir, "husky-targets/${asset.sha256}.json")
+            downloadToFile(asset.url, file, asset.sizeBytes, requireNotNull(asset.sha256)).getOrThrow()
+            val manifest = JSONObject(file.readText())
+            require(manifest.getInt("schema_version") == 2) { "Release has no exact module targets" }
+            val array = manifest.getJSONArray("module_targets")
+            val targets = (0 until array.length()).map { index ->
+                val item = array.getJSONObject(index)
+                LkmTarget(item.getString("name"), item.getLong("size"), item.getString("sha256"),
+                    item.getString("kmi"), item.getString("kernel_release"), item.getInt("page_size"))
+            }
+            release.copy(lkmAssets = applyLkmTargets(release.lkmAssets, targets))
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            android.util.Log.w("HuskyRelease", "LKM target manifest rejected", error)
+            // Keep the independent APK update even when the LKM target is unknown.
+            release.copy(lkmAssets = emptyList(), lkmMetadataError = ksuApp.getString(R.string.husky_lkm_metadata_unavailable))
         }
     }
 
@@ -78,6 +110,7 @@ class HuskyReleaseRepositoryImpl : HuskyReleaseRepository {
 
             val lkmAssets = ArrayList<LkmAsset>()
             var apkUrl: String? = null
+            var manifestAsset: ReleaseManifestAsset? = null
             val assets = item.optJSONArray("assets")
             if (assets != null) {
                 for (j in 0 until assets.length()) {
@@ -92,9 +125,11 @@ class HuskyReleaseRepositoryImpl : HuskyReleaseRepository {
                             asset.optLong("size", 0), asset.optString("digest", "").takeIf { it.startsWith("sha256:") }?.removePrefix("sha256:"))
                     }
                     if (name == APK_ASSET) apkUrl = url
+                    if (name == "manifest.json") manifestAsset = ReleaseManifestAsset(url,
+                        asset.optLong("size", 0), asset.optString("digest", "").takeIf { it.startsWith("sha256:") }?.removePrefix("sha256:"))
                 }
             }
-            if (lkmAssets.isEmpty()) continue
+            if (lkmAssets.isEmpty() && apkUrl == null) continue
 
             val match = TAG_VERSION.find(tag)
             val versionCode = match?.groupValues?.getOrNull(1)?.toLongOrNull() ?: 0L
@@ -107,6 +142,7 @@ class HuskyReleaseRepositoryImpl : HuskyReleaseRepository {
                 versionCode = versionCode,
                 lkmAssets = lkmAssets.toList(),
                 apkDownloadUrl = apkUrl,
+                manifestAsset = manifestAsset,
             )
         }
         return result

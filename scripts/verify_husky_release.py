@@ -13,6 +13,7 @@ from zipfile import ZipFile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from repack_apk import find_android_tool  # noqa: E402
+from scripts.audit_canary_lkm import Elf  # noqa: E402
 
 PACKAGE = "me.weishu.kernelsu.husky.fork"
 TRUSTED_CERTIFICATE = "b37ef4db671d6d1dd44d1b42efdd63effece3265649734a9d665ff5939c59553"
@@ -53,6 +54,25 @@ def describe(name, data):
     return {"name": name, "size": len(data), "sha256": hashlib.sha256(data).hexdigest()}
 
 
+def module_target(name, data):
+    check_elf(data, 183, module=True)
+    elf = Elf(data)
+    info = {}
+    for entry in elf.section_data(elf.sections[".modinfo"]).split(b"\0"):
+        if entry and b"=" in entry:
+            key, value = entry.decode("ascii").split("=", 1)
+            if key in ("ksu_kmi", "ksu_page_shift", "ksu_kernel_release", "vermagic"):
+                if key in info:
+                    raise ValueError("Duplicate module target identity")
+                info[key] = value
+    release = info["vermagic"].split()[0]
+    shift = int(info["ksu_page_shift"])
+    if (shift not in (12, 14, 16) or info["ksu_kernel_release"] != release
+            or info["ksu_kmi"] != name.removesuffix("_kernelsu.ko")):
+        raise ValueError("Module target identity is inconsistent")
+    return {**describe(name, data), "kmi": info["ksu_kmi"], "kernel_release": release, "page_size": 1 << shift}
+
+
 def verify_release(directory, certificate, version_code, commit):
     if re.fullmatch(r"[0-9a-f]{40}", commit) is None:
         raise ValueError("Release must identify a full source commit")
@@ -79,13 +99,16 @@ def verify_release(directory, certificate, version_code, commit):
             check_elf(data, machine)
             native.append(describe(name, data))
     assets = [describe(apk.name, apk.read_bytes())]
+    targets = []
     for name in MODULES:
         data = (directory / name).read_bytes()
         check_elf(data, 183, module=True)
         assets.append(describe(name, data))
+        targets.append(module_target(name, data))
     manifest = {
-        "schema_version": 1, "source_commit": commit, "manager": metadata,
+        "schema_version": 2, "source_commit": commit, "manager": metadata,
         "native_payloads": native, "assets": assets,
+        "module_targets": targets,
         "module_scope": "Generic KMI builds; exact target validation required. Not the pinned ZP11.260918.007 / 6.1.172 Canary candidate.",
         "experimental_load_enabled": False,
         "validation_limits": ["Canary private ABI/CFI", "cold boot and recovery campaign", "full device visual acceptance"],

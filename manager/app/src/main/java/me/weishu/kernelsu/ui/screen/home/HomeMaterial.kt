@@ -102,7 +102,7 @@ fun HomePagerMaterial(
             } else if (state.showKernelPrBuildWarning) {
                 WarningCard(stringResource(id = R.string.home_pr_kernel_warning), level = WarningLevel.Notice)
             }
-            // Version mismatch is already reflected on the status hero — skip duplicate notice.
+            // Interface/minimum-driver requirements are independent of build counters.
             if (state.showUAPIMisMatchWarning) {
                 WarningCard(
                     stringResource(
@@ -160,7 +160,7 @@ private fun HuskyUpdateCard(
             lkmTitle = stringResource(R.string.husky_not_installed_title)
             lkmSummary = stringResource(R.string.husky_not_installed_guidance)
         }
-        state.huskyUpdateStatus == HuskyUpdateStatus.Error -> {
+        state.huskyUpdateStatus == HuskyUpdateStatus.Error || state.huskyUpdateStatus == HuskyUpdateStatus.NoMatchingLkm -> {
             lkmTitle = stringResource(R.string.husky_update_card_title)
             lkmSummary = state.huskyError ?: stringResource(R.string.husky_update_card_summary)
         }
@@ -214,7 +214,8 @@ private fun HuskyUpdateCard(
                 text = lkmSummary,
                 style = MaterialTheme.typography.bodyMedium,
                 color = contentColor,
-                maxLines = 6,
+                maxLines = if (state.huskyUpdateStatus == HuskyUpdateStatus.NoMatchingLkm ||
+                    state.huskyUpdateStatus == HuskyUpdateStatus.Error) Int.MAX_VALUE else 6,
                 overflow = TextOverflow.Ellipsis,
             )
             if (state.canDirectInstallLkm) {
@@ -401,11 +402,7 @@ private fun StatusCard(
         else -> Icons.Outlined.Info
     }
     val statusTitle = when {
-        versionMismatch -> stringResource(
-            R.string.home_version_mismatch,
-            state.currentManagerVersionCode,
-            state.ksuVersion ?: 0,
-        )
+        versionMismatch -> stringResource(R.string.home_driver_incompatible)
         ksuActive -> stringResource(R.string.home_working)
         else -> stringResource(R.string.home_not_detected)
     }

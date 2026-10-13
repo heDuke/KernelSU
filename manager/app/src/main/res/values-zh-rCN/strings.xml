@@ -13,6 +13,12 @@
     <string name="home_unsupported">不支持</string>
     <string name="home_unsupported_reason">KernelSU 现在只支持 GKI 内核，但是你可以为 GKI 设备补丁镜像</string>
     <string name="home_version_mismatch">管理器版本 (%1$d) 与 KernelSU 驱动版本 (%2$d) 不匹配！</string>
+    <string name="home_driver_incompatible">驱动接口需要更新</string>
+    <string name="env_check_build_different">通信接口兼容（UAPI %3$d）。管理器构建 %1$d，驱动构建 %2$d；无需仅为构建编号不同而刷写。</string>
+    <string name="env_check_driver_incompatible">驱动需要更新：管理器 UAPI %1$d，驱动 UAPI %2$d；同时检查最低驱动版本要求。</string>
+    <string name="env_check_driver_interface_unknown">无法确认驱动通信接口兼容性。</string>
+    <string name="husky_lkm_metadata_unavailable">此版本缺少可验证的 LKM 目标信息。请保留当前驱动；Manager 更新可以独立安装。</string>
+    <string name="husky_lkm_target_unavailable">此版本没有匹配内核 %1$s 及当前页大小的 LKM。请保留当前驱动；Manager 更新可以独立安装。</string>
     <string name="home_device_model">设备型号</string>
     <string name="home_kernel">内核版本</string>
     <string name="home_manager_version">管理器版本</string>

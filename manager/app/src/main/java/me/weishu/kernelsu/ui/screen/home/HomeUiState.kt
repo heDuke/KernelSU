@@ -4,6 +4,8 @@ import androidx.compose.runtime.Immutable
 import me.weishu.kernelsu.KernelVersion
 import me.weishu.kernelsu.data.model.EnvCheckSeverity
 import me.weishu.kernelsu.data.model.HuskyRelease
+import me.weishu.kernelsu.data.model.DriverVersionStatus
+import me.weishu.kernelsu.data.model.driverVersionStatus
 import me.weishu.kernelsu.ui.util.module.LatestVersionInfo
 
 enum class HuskyUpdateStatus {
@@ -12,6 +14,7 @@ enum class HuskyUpdateStatus {
     Available,
     UpToDate,
     Error,
+    NoMatchingLkm,
     Downloading,
 }
 
@@ -60,7 +63,8 @@ data class HomeUiState(
         get() = isManager && !isManagerPrBuild && isKernelPrBuild
 
     val showVersionMismatchWarning: Boolean
-        get() = ksuVersion != null && ksuVersion.toLong() != currentManagerVersionCode
+        get() = driverVersionStatus(currentManagerVersionCode, ksuVersion, managerUAPIVersion,
+            kernelUAPIVersion, requiresNewKernel) == DriverVersionStatus.Incompatible
 
     val hasUpdate: Boolean
         get() = latestVersionInfo.versionCode > currentManagerVersionCode
