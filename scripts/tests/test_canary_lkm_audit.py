@@ -2,6 +2,7 @@
 """Exercise audit rejection using mutations of the real compiled module."""
 import importlib.util
 import os
+import struct
 import tempfile
 import unittest
 from pathlib import Path
@@ -43,6 +44,25 @@ class CandidateAuditTest(unittest.TestCase):
             path = Path(directory) / "module.ko"
             path.write_bytes(self.module.read_bytes()[:64])
             with self.assertRaises(ValueError):
+                audit.audit(path, **self.inputs)
+
+    def test_missing_import_crc(self):
+        data = bytearray(self.module.read_bytes())
+        elf = audit.Elf(data)
+        section = elf.sections["__versions"]
+        records = list(struct.iter_unpack("<Q56s", elf.section_data(section)))
+        imports = {name for name, _, index, _ in elf.symbols() if not index}
+        removed = next(audit.Elf.string(name, 0) for _, name in records
+                       if audit.Elf.string(name, 0) in imports)
+        kept = b"".join(struct.pack("<Q56s", crc, name) for crc, name in records
+                        if audit.Elf.string(name, 0) != removed)
+        data[section[4]:section[4] + len(kept)] = kept
+        table = struct.unpack_from("<Q", data, 40)[0]
+        struct.pack_into("<Q", data, table + elf.headers.index(section) * 64 + 32, len(kept))
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "module.ko"
+            path.write_bytes(data)
+            with self.assertRaisesRegex(ValueError, "missing symbol CRC records"):
                 audit.audit(path, **self.inputs)
 
 

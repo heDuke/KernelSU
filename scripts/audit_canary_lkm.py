@@ -106,6 +106,8 @@ def audit(module, vmlinux, symvers, image, config):
         require(name not in versions and expected_versions.get(name) == crc, "symbol CRC mismatch: " + name)
         versions[name] = crc
     require("module_layout" in versions, "module_layout version absent")
+    missing = (set(unresolved) & expected_versions.keys()) - versions.keys()
+    require(not missing, "missing symbol CRC records: " + ", ".join(sorted(missing)))
     return {"support_state": "offline_checked_candidate", "device_tested": False,
             "build_id": "ZP11.260918.007", "kernel_release": RELEASE, "page_size_bytes": 4096,
             "module_sha256": digest(module), "symbols_resolved": len(unresolved),

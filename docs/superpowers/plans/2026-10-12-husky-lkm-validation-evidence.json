@@ -1,0 +1,27 @@
+{
+  "verification_date": "2026-10-12",
+  "auditor_state_at_probe": "before the subsequent CRC completeness fix; current regression rejects the missing record",
+  "scope": "offline ELF model and matching-source inspection; not real kernel loading",
+  "device_tested": false,
+  "target_kernel_release": "6.1.172-android14-11-g3fc92ed75e44-ab16169542",
+  "module_sha256": "eeb1dcca4239ce6be846c304b3d57214b0d4cccca811f6f17746d86ab719bc55",
+  "original_imports": 206,
+  "imports_in_official_symvers": 135,
+  "imports_without_official_symvers": 71,
+  "recorded_versions": 136,
+  "original_missing_exported_import_versions": [],
+  "offline_rewritten_to_SHN_ABS": 206,
+  "post_model_unresolved_symbols": 0,
+  "post_model_sha256": "e22a6794f838d499ed8a81d31f80e418fa786875f029dd960b36b31f9d0c82d0",
+  "post_model_bytes_changed": 2051,
+  "version_and_modinfo_sections_unchanged": true,
+  "module_signature_trailer_present": false,
+  "candidate_exported_symbols": [],
+  "candidate_protected_export_overlap": [],
+  "missing_crc_probe": {
+    "removed_symbol": "kobject_del",
+    "current_audit_accepted": true,
+    "accepted_version_records": 135,
+    "finding": "audit checks recorded CRC values but does not require coverage of every exported import"
+  }
+}
