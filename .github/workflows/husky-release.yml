@@ -113,7 +113,7 @@ jobs:
       manager_package: me.weishu.kernelsu.husky.fork
 
   build-manager:
-    needs: [prepare-signing]
+    needs: [prepare-signing, build-ksud]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -145,11 +145,38 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       - uses: android-actions/setup-android@v4
 
+      - name: Download ARM64 ksud for JNI packaging
+        uses: actions/download-artifact@v8
+        with:
+          name: ksud-aarch64-linux-android
+          path: manager/app/src/main/jniLibs/arm64-v8a
+
+      - name: Download x86_64 ksud for JNI packaging
+        uses: actions/download-artifact@v8
+        with:
+          name: ksud-x86_64-linux-android
+          path: manager/app/src/main/jniLibs/x86_64
+
+      - name: Prepare required JNI binaries
+        run: |
+          mv app/src/main/jniLibs/arm64-v8a/ksud app/src/main/jniLibs/arm64-v8a/libksud.so
+          mv app/src/main/jniLibs/x86_64/ksud app/src/main/jniLibs/x86_64/libksud.so
+          test -s app/src/main/jniLibs/arm64-v8a/libksud.so
+          test -s app/src/main/jniLibs/x86_64/libksud.so
+
       - name: Assemble HuskySU release
         run: |
-          ./gradlew clean assembleRelease \
+          ./gradlew clean assembleRelease testDebugUnitTest \
             -PKSU_PACKAGE_NAME=me.weishu.kernelsu.husky.fork \
             -PKSU_NAME=HuskySU
+
+      - name: Upload production Manager test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: husky-manager-unit-tests
+          path: manager/app/build/test-results/testDebugUnitTest/
+          if-no-files-found: warn
 
       - uses: actions/upload-artifact@v7
         with:
@@ -172,6 +199,8 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
+
+      - uses: android-actions/setup-android@v4
 
       - name: Download artifacts
         uses: actions/download-artifact@v8
@@ -220,6 +249,14 @@ jobs:
           cp -f dist-lkm/*_kernelsu.ko dist-husky/
           ls -la dist-husky
 
+      - name: Verify production APK and write manifest
+        env:
+          EXPECTED_CERTIFICATE: ${{ needs.prepare-signing.outputs.expected_hash }}
+          EXPECTED_VERSION_CODE: ${{ needs.prepare-signing.outputs.version_code }}
+        run: |
+          python3 -m unittest discover -s scripts/tests -p test_husky_release.py
+          python3 scripts/verify_husky_release.py dist-husky
+
       - uses: actions/upload-artifact@v7
         with:
           name: husky-release
@@ -238,23 +275,29 @@ jobs:
             TAG="husky-v${VC}-${GITHUB_SHA::7}"
           fi
           TITLE="HuskySU ${VN} (${VC})"
-          BODY=$(cat <<EOF
+          cat > release-notes.md <<EOF
           ## HuskySU (Pixel 8 Pro / husky)
 
           - App: **HuskySU**
           - Package: \`me.weishu.kernelsu.husky.fork\`
           - KMI: \`android14-6.1\` + \`android16-6.12\` (OTA inactive slot)
           - Assets: \`HuskySU.apk\`, \`android14-6.1_kernelsu.ko\`, \`android16-6.12_kernelsu.ko\`
+          - Changes: native Material 3 Expressive controls, accessibility fixes and GKI-independent UI eligibility
+          - Production package/certificate verified; manifest and SHA256SUMS included
+          - Generic LKM builds require exact target validation. They are not the pinned ZP11.260918.007 / 6.1.172 Canary candidate.
+          - Canary private-ABI/CFI, cold-boot/recovery and full visual acceptance remain incomplete. Independent experimental loading remains disabled.
 
           Based on [KernelSU](https://github.com/tiann/KernelSU). See docs/README Credits.
 
           Commit: \`${GITHUB_SHA}\`
           EOF
-          )
           gh release create "$TAG" \
             dist-husky/HuskySU.apk \
             dist-husky/android14-6.1_kernelsu.ko \
             dist-husky/android16-6.12_kernelsu.ko \
+            dist-husky/manifest.json \
+            dist-husky/SHA256SUMS \
+            --target "$GITHUB_SHA" \
             --title "$TITLE" \
-            --notes "$BODY"
+            --notes-file release-notes.md
           echo "Released $TAG"

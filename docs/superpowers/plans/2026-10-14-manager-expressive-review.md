@@ -9,9 +9,9 @@ not a mandatory eligibility label. Preserve exact target/module validation.
   report absent/unrecognized KernelSU without claiming unsupported hardware.
 - [x] Use native Expressive theme defaults, paired color roles, accessible native
   toggle semantics and labelled search actions; retain native navigation/sheets.
-- [ ] Check changed behavior with focused tests and required Manager build.
-- [ ] Record findings, validation outcomes and physical visual-review limits.
-- [ ] Restore unreachable Rust dependency sources with unchanged commit pins;
+- [x] Check changed behavior with existing tests and required Manager build.
+- [x] Record findings, validation outcomes and physical visual-review limits.
+- [x] Restore unreachable Rust dependency sources with unchanged commit pins;
   complete the full CI chain before producing the APK, as selected by the user.
 
 ## Findings and validation
@@ -72,6 +72,25 @@ in sequence, and loader/contract host regressions run before publishing artifact
 Local cargo ndk check/clippy were attempted but cargo-ndk and NDK are absent;
 cargo fmt succeeded outside the sandbox after access denial inside it. Android
 compilation/lint evidence must come from the full CI run, not plain host checks.
+
+## Final validation at 1617d547
+
+PR: https://github.com/heDuke/KernelSU/pull/1 (draft; not merged).
+Full pipeline: https://github.com/heDuke/KernelSU/actions/runs/38462306548.
+Build Manager, Clippy and Rustfmt workflows all completed successfully.
+ARM64 cargo ndk compilation/Clippy/format and all ksud targets passed.
+Manager clean assembleRelease + testDebugUnitTest passed: 13 tests passed,
+1 real-image-fixture test skipped. Loader/contracts: 13 passed, 1 real-candidate
+fixture test ignored. These fixture omissions are retained as limits, not passes.
+
+Final manager artifact ID 11847806738, ZIP SHA-256
+f58f1e3b9cf5359cf86d475889ec1958c3e41ea0a7a80155688290a0d0085393.
+Extracted APK SHA-256
+48102d723e743310c1df0ecee44714b8f14652aeda6053d1b204317a69e4ad70.
+Saved locally under the device evidence directory with PR in the file name.
+The PR package/temporary signer is not trusted by the production Canary LKM.
+No APK was installed and no further boot operation was performed in this review.
+Physical visual/font/TalkBack/rotation/reduced-motion validation remains pending.
 
 Context7 is unavailable in this session. Primary references inspected:
 https://developer.android.com/develop/ui/compose/designsystems/material3
