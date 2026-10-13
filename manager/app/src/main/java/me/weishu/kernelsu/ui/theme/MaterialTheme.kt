@@ -37,12 +37,9 @@ fun MaterialKernelSUTheme(
         }
     }
 
-    val animatedColorScheme = colorScheme.animateAsState()
-
     MaterialExpressiveTheme(
-        colorScheme = animatedColorScheme,
+        colorScheme = colorScheme,
         motionScheme = MotionScheme.expressive(),
-        typography = Typography,
         content = {
             MonetColorsProvider.UpdateCss(colorScheme)
             content()

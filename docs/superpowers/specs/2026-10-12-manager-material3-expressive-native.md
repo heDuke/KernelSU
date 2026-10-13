@@ -5,6 +5,14 @@ Manager code and local build/tests completed, physical-device acceptance pending
 Scope: Android phone/tablet Manager, including experimental-loader settings and
 operation screens. Wear OS components are not used for this application.
 
+2026-10-14 review: GKI is not a mandatory UI eligibility condition. A kernel
+version heuristic must not label the device unsupported, hide installation
+choices or suppress the actual working mode. Missing Manager access is an
+unknown installation/authorization state. Integrated mode is labelled Built-in;
+LKM remains LKM. Selected image/module identity, page size, API, ABI, signature
+and recovery requirements retain their own validation; this UI policy does not
+claim support for arbitrary non-GKI targets.
+
 This is the authoritative visual direction, superseding the restrained iOS-style
 presentation in the earlier Manager plan and the custom-helper-first policy in
 the older Expressive UI system. Repository and loader verification requirements

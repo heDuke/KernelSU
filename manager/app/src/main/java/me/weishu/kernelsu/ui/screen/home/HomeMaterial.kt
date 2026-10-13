@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.HealthAndSafety
@@ -32,6 +31,7 @@ import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.SystemUpdateAlt
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.contentColorFor
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
@@ -103,9 +103,6 @@ fun HomePagerMaterial(
                 WarningCard(stringResource(id = R.string.home_pr_kernel_warning), level = WarningLevel.Notice)
             }
             // Version mismatch is already reflected on the status hero — skip duplicate notice.
-            if (state.showGkiWarning) {
-                WarningCard(stringResource(id = R.string.home_gki_warning), level = WarningLevel.Notice)
-            }
             if (state.showUAPIMisMatchWarning) {
                 WarningCard(
                     stringResource(
@@ -187,6 +184,7 @@ private fun HuskyUpdateCard(
     } else {
         MaterialTheme.colorScheme.surfaceBright
     }
+    val contentColor = contentColorFor(containerColor)
 
     val otaTitle = stringResource(R.string.husky_ota_slot_title)
     val otaSummary = stringResource(R.string.husky_ota_slot_summary)
@@ -196,6 +194,7 @@ private fun HuskyUpdateCard(
     TonalCard(
         shape = MaterialTheme.shapes.extraLarge,
         containerColor = containerColor,
+        contentColor = contentColor,
     ) {
         Column(
             modifier = Modifier
@@ -214,7 +213,7 @@ private fun HuskyUpdateCard(
             Text(
                 text = lkmSummary,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = contentColor,
                 maxLines = 6,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -295,7 +294,7 @@ private fun HuskyUpdateCard(
                 Text(
                     text = otaSummary,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = contentColor,
                 )
                 ExpressivePrimaryBar(
                     label = otaAction,
@@ -387,20 +386,19 @@ private fun StatusCard(
     actions: HomeActions,
 ) {
     val ksuActive = state.ksuVersion != null
-    val notInstalled = !ksuActive && state.kernelVersion.isGKI()
+    val notInstalled = !ksuActive
     val versionMismatch = state.showVersionMismatchWarning
 
     val containerColor = when {
         versionMismatch -> MaterialTheme.colorScheme.tertiaryContainer
         ksuActive -> MaterialTheme.colorScheme.secondaryContainer
-        else -> MaterialTheme.colorScheme.errorContainer
+        else -> MaterialTheme.colorScheme.surfaceContainerHigh
     }
 
     val statusIcon = when {
         versionMismatch -> Icons.Outlined.Warning
         ksuActive -> Icons.Outlined.CheckCircle
-        notInstalled -> Icons.Outlined.Warning
-        else -> Icons.Outlined.Block
+        else -> Icons.Outlined.Info
     }
     val statusTitle = when {
         versionMismatch -> stringResource(
@@ -409,8 +407,7 @@ private fun StatusCard(
             state.ksuVersion ?: 0,
         )
         ksuActive -> stringResource(R.string.home_working)
-        notInstalled -> stringResource(R.string.home_not_installed)
-        else -> stringResource(R.string.home_unsupported)
+        else -> stringResource(R.string.home_not_detected)
     }
     val statusSummary = when {
         versionMismatch -> stringResource(
@@ -418,14 +415,13 @@ private fun StatusCard(
             "${state.ksuVersion}-${state.kernelUAPIVersion}",
         )
         ksuActive -> stringResource(R.string.home_working_version, "${state.ksuVersion}-${state.kernelUAPIVersion}")
-        notInstalled -> stringResource(R.string.home_click_to_install)
-        else -> stringResource(R.string.home_unsupported_reason)
+        else -> stringResource(R.string.home_not_detected_summary)
     }
     val workingMode = if (ksuActive) {
         when (state.lkmMode) {
             null -> ""
             true -> "LKM"
-            else -> "GKI"
+            else -> stringResource(R.string.working_mode_builtin)
         }
     } else ""
 
@@ -486,7 +482,6 @@ private fun EnvSummaryCard(
         summary = summary,
         icon = Icons.Outlined.HealthAndSafety,
         containerColor = containerColor,
-        onClick = actions.onOpenEnvCheck,
         footer = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (state.envAlignAvailable) {

@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="home_not_detected">未检测到 KernelSU</string>
+    <string name="home_not_detected_summary">请检查安装情况与管理器授权。兼容性需要根据目标镜像和模块核验，GKI 并非必要条件。</string>
+    <string name="working_mode_builtin">内置</string>
+    <string name="search_close">关闭搜索</string>
+    <string name="search_clear">清空搜索</string>
     <string name="home">主页</string>
     <string name="home_not_installed">未安装</string>
     <string name="home_click_to_install">点击安装</string>

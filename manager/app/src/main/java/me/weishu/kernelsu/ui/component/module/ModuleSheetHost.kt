@@ -86,7 +86,7 @@ fun ModuleSheetHost(onViewDetails: (RepoModuleArg) -> Unit) {
                     item {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             ModuleArtwork(module.iconUrl, null, Modifier.size(64.dp))
-                            Column {
+                            Column(Modifier.weight(1f)) {
                                 Text(module.moduleName.ifBlank { module.moduleId }, style = MaterialTheme.typography.headlineSmall)
                                 Text(module.authors, style = MaterialTheme.typography.bodyMedium)
                             }

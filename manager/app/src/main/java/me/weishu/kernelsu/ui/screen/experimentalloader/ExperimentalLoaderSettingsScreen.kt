@@ -3,7 +3,9 @@ package me.weishu.kernelsu.ui.screen.experimentalloader
 import android.util.AtomicFile
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -11,6 +13,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -95,23 +98,30 @@ fun ExperimentalLoaderSettingsScreen() {
             }
             item {
                 Text(stringResource(R.string.loader_preferences_preset), style = MaterialTheme.typography.titleLarge)
-                listOf("balanced", "lean", "diagnostic").forEach { name ->
-                    ListItem(modifier = Modifier.clickable(enabled = ready && !saving) { draft = draft.withPreset(name) },
-                        headlineContent = { Text(stringResource(when(name) { "balanced" -> R.string.loader_preferences_balanced; "lean" -> R.string.loader_preferences_lean; else -> R.string.loader_preferences_diagnostic })) }, trailingContent = { RadioButton(selected = draft.preset == name,
-                            enabled = ready && !saving, onClick = { draft = draft.withPreset(name) }) })
+                Column(Modifier.selectableGroup()) {
+                    listOf("balanced", "lean", "diagnostic").forEach { name ->
+                        PreferenceRadioItem(
+                            label = stringResource(when(name) { "balanced" -> R.string.loader_preferences_balanced; "lean" -> R.string.loader_preferences_lean; else -> R.string.loader_preferences_diagnostic }),
+                            selected = draft.preset == name, enabled = ready && !saving,
+                            onClick = { draft = draft.withPreset(name) },
+                        )
+                    }
                 }
             }
             item {
-                ListItem(headlineContent = { Text(stringResource(R.string.loader_preferences_capture)) },
+                ListItem(modifier = Modifier.toggleable(value = effective["kernel_log"] == "true",
+                    enabled = ready && !saving, role = Role.Switch,
+                    onValueChange = { set("kernel_log", it.toString()) }),
+                    headlineContent = { Text(stringResource(R.string.loader_preferences_capture)) },
                     trailingContent = { Switch(effective["kernel_log"] == "true", enabled = ready && !saving,
-                        onCheckedChange = { set("kernel_log", it.toString()) }) })
+                        onCheckedChange = null) })
                 Text(stringResource(R.string.loader_preferences_buffer), style = MaterialTheme.typography.titleMedium)
                 if (androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f) {
-                    listOf("8", "16", "32", "64").forEach { value ->
-                        ListItem(headlineContent = { Text("$value KiB") }, trailingContent = {
-                            RadioButton(selected = effective["io_buffer_kib"] == value, enabled = ready && !saving,
-                                onClick = { set("io_buffer_kib", value) })
-                        })
+                    Column(Modifier.selectableGroup()) {
+                        listOf("8", "16", "32", "64").forEach { value ->
+                            PreferenceRadioItem(label = "$value KiB", selected = effective["io_buffer_kib"] == value,
+                                enabled = ready && !saving, onClick = { set("io_buffer_kib", value) })
+                        }
                     }
                 } else SingleChoiceSegmentedButtonRow {
                     listOf("8", "16", "32", "64").forEachIndexed { index, value ->
@@ -123,16 +133,20 @@ fun ExperimentalLoaderSettingsScreen() {
             }
             item {
                 Text(stringResource(R.string.loader_preferences_output), style = MaterialTheme.typography.titleMedium)
-                listOf("json", "text").forEach { value ->
-                    ListItem(headlineContent = { Text(if (value == "json") "JSON" else stringResource(R.string.loader_preferences_text)) },
-                        trailingContent = { RadioButton(selected = effective["output"] == value, enabled = ready && !saving,
-                            onClick = { set("output", value) }) })
+                Column(Modifier.selectableGroup()) {
+                    listOf("json", "text").forEach { value ->
+                        PreferenceRadioItem(label = if (value == "json") "JSON" else stringResource(R.string.loader_preferences_text),
+                            selected = effective["output"] == value, enabled = ready && !saving,
+                            onClick = { set("output", value) })
+                    }
                 }
                 Text(stringResource(R.string.loader_preferences_verbosity), style = MaterialTheme.typography.titleMedium)
-                listOf("error", "normal", "debug").forEach { value ->
-                    ListItem(headlineContent = { Text(stringResource(when(value) { "error" -> R.string.loader_preferences_error; "normal" -> R.string.loader_preferences_normal; else -> R.string.loader_preferences_debug })) },
-                        trailingContent = { RadioButton(selected = effective["verbosity"] == value, enabled = ready && !saving,
-                            onClick = { set("verbosity", value) }) })
+                Column(Modifier.selectableGroup()) {
+                    listOf("error", "normal", "debug").forEach { value ->
+                        PreferenceRadioItem(label = stringResource(when(value) { "error" -> R.string.loader_preferences_error; "normal" -> R.string.loader_preferences_normal; else -> R.string.loader_preferences_debug }),
+                            selected = effective["verbosity"] == value, enabled = ready && !saving,
+                            onClick = { set("verbosity", value) })
+                    }
                 }
                 Text(stringResource(R.string.loader_preferences_log_limit, effective["log_limit_kib"]!!.toInt()))
                 Slider(value = effective["log_limit_kib"]!!.toFloat(), onValueChange = { set("log_limit_kib", it.toInt().toString()) },
@@ -190,4 +204,13 @@ fun ExperimentalLoaderSettingsScreen() {
             }
         }
     }
+}
+
+@Composable
+private fun PreferenceRadioItem(label: String, selected: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    ListItem(
+        modifier = Modifier.selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onClick),
+        headlineContent = { Text(label) },
+        trailingContent = { RadioButton(selected = selected, enabled = enabled, onClick = null) },
+    )
 }

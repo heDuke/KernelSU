@@ -51,6 +51,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
+import me.weishu.kernelsu.R
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -160,7 +162,7 @@ fun SearchAppBar(
                                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             ),
                         ) {
-                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, null)
+                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.search_close))
                         }
                     } else {
                         Icon(Icons.Filled.Search, null)
@@ -170,7 +172,7 @@ fun SearchAppBar(
                     if (isSearchExpanded && currentQuery.isNotEmpty()) {
                         IconButton(
                             onClick = { clearSearchText() },
-                            content = { Icon(Icons.Filled.Close, null) }
+                            content = { Icon(Icons.Filled.Close, stringResource(R.string.search_clear)) }
                         )
                     }
                 },

@@ -5,7 +5,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.R
-import me.weishu.kernelsu.getKernelVersion
 import me.weishu.kernelsu.data.model.EnvCheckGroup
 import me.weishu.kernelsu.data.model.EnvCheckItem
 import me.weishu.kernelsu.data.model.EnvCheckReport
@@ -49,7 +48,6 @@ class EnvCheckRepositoryImpl(
 
     private fun rootItems(): List<EnvCheckItem> {
         val ksuVersion = runCatching { Natives.version }.getOrNull()?.takeIf { it > 0 }
-        val kernel = getKernelVersion()
         val ksuTitle = str(R.string.env_check_item_kernelsu)
         return buildList {
             when {
@@ -63,22 +61,13 @@ class EnvCheckRepositoryImpl(
                         raw = ksuVersion.toString(),
                     )
                 )
-                kernel.isGKI() -> add(
-                    item(
-                        id = "root_not_installed",
-                        group = EnvCheckGroup.Root,
-                        title = ksuTitle,
-                        detail = str(R.string.env_check_root_not_installed),
-                        severity = EnvCheckSeverity.Fail,
-                    )
-                )
                 else -> add(
                     item(
-                        id = "root_unsupported",
+                        id = "root_not_detected",
                         group = EnvCheckGroup.Root,
                         title = ksuTitle,
-                        detail = str(R.string.env_check_root_unsupported),
-                        severity = EnvCheckSeverity.Fail,
+                        detail = str(R.string.home_not_detected_summary),
+                        severity = EnvCheckSeverity.Unknown,
                     )
                 )
             }
@@ -91,10 +80,10 @@ class EnvCheckRepositoryImpl(
                         title = str(R.string.env_check_item_working_mode),
                         detail = when (lkm) {
                             true -> str(R.string.env_check_mode_lkm)
-                            false -> str(R.string.env_check_mode_gki)
+                            false -> str(R.string.working_mode_builtin)
                             null -> str(R.string.env_check_unknown)
                         },
-                        severity = if (lkm == false) EnvCheckSeverity.Warn else EnvCheckSeverity.Pass,
+                        severity = if (lkm == null) EnvCheckSeverity.Unknown else EnvCheckSeverity.Pass,
                         raw = lkm?.toString().orEmpty(),
                     )
                 )

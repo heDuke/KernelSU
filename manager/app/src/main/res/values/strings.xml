@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="home_not_detected">KernelSU not detected</string>
+    <string name="home_not_detected_summary">Check installation and Manager authorization. Compatibility must be checked against the target image and module; GKI is not a requirement.</string>
+    <string name="working_mode_builtin">Built-in</string>
+    <string name="search_close">Close search</string>
+    <string name="search_clear">Clear search</string>
     <string name="home">Home</string>
     <string name="home_not_installed">Not installed</string>
     <string name="home_click_to_install">Tap to install</string>

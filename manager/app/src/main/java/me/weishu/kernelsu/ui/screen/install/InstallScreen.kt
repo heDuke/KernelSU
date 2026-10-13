@@ -23,7 +23,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import me.weishu.kernelsu.R
-import me.weishu.kernelsu.getKernelVersion
 import me.weishu.kernelsu.ui.component.choosekmidialog.ChooseKmiDialog
 import me.weishu.kernelsu.ui.component.dialog.DownloadDialog
 import me.weishu.kernelsu.ui.component.dialog.rememberLoadingDialog
@@ -67,13 +66,11 @@ fun InstallScreen() {
     val defaultPartition by produceState(initialValue = "") { value = getDefaultPartition() }
     val rootAvailable by produceState(initialValue = false) { value = rootAvailable() }
     val isAbDevice by produceState(initialValue = false) { value = isAbDevice() }
-    val isGkiDevice by produceState(initialValue = false) { value = getKernelVersion().isGKI() }
-
     val selectFileTip = stringResource(id = R.string.select_file_tip, defaultPartition)
-    val selectFileTipNoGki = stringResource(id = R.string.select_file_tip_nogki)
     val downloadFileMsg = stringResource(id = R.string.download_dialog_msg)
-    val selectFileSummary = if (isGkiDevice) selectFileTip else selectFileTipNoGki
-    val canDirectInstall = rootAvailable && isGkiDevice
+    val selectFileSummary = selectFileTip
+    // Eligibility is checked against the selected image/module by the patcher.
+    val canDirectInstall = rootAvailable
     LaunchedEffect(canDirectInstall, installMethod) {
         when {
             installMethod is InstallMethod.DownloadFile -> {
@@ -88,7 +85,6 @@ fun InstallScreen() {
     val installMethodOptions = remember(
         rootAvailable,
         isAbDevice,
-        isGkiDevice,
         selectFileSummary,
         advancedOptionsShown,
         installMethod,
@@ -227,7 +223,7 @@ fun InstallScreen() {
     ) {
         if (it.resultCode == Activity.RESULT_OK) {
             it.data?.data?.let { uri ->
-                installMethod = InstallMethod.SelectFile(uri, summary = if (isGkiDevice) selectFileTip else selectFileTipNoGki)
+                installMethod = InstallMethod.SelectFile(uri, summary = selectFileSummary)
             }
         }
     }

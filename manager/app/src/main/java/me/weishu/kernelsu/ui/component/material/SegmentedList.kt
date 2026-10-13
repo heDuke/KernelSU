@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +45,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -210,7 +213,7 @@ fun SegmentedListItem(
     trailingContent: @Composable (() -> Unit)? = null,
 ) {
     if (onClick == null && onLongClick == null) {
-        androidx.compose.material3.ListItem(modifier = modifier, headlineContent = headlineContent,
+        androidx.compose.material3.ListItem(modifier = modifier, colors = colors, headlineContent = headlineContent,
             overlineContent = overlineContent, supportingContent = supportingContent,
             leadingContent = leadingContent, trailingContent = trailingContent)
         return
@@ -312,9 +315,15 @@ fun SegmentedSwitchItem(
     val interactionSource = remember { MutableInteractionSource() }
 
     SegmentedListItem(
-        onClick = {
+        modifier = Modifier.clip(
+            (LocalListItemShapes.current ?: ListItemDefaults.segmentedShapes(0, 1)).shape
+        ).toggleable(
+            value = checked,
+            enabled = enabled,
+            role = Role.Switch,
+        ) {
             haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
-            onCheckedChange(!checked)
+            onCheckedChange(it)
         },
         enabled = enabled,
         interactionSource = interactionSource,
