@@ -11,6 +11,8 @@ not a mandatory eligibility label. Preserve exact target/module validation.
   toggle semantics and labelled search actions; retain native navigation/sheets.
 - [ ] Check changed behavior with focused tests and required Manager build.
 - [ ] Record findings, validation outcomes and physical visual-review limits.
+- [ ] Restore unreachable Rust dependency sources with unchanged commit pins;
+  complete the full CI chain before producing the APK, as selected by the user.
 
 ## Findings and validation
 
@@ -44,6 +46,32 @@ prove production Manager authorization on the installed Canary candidate.
 Visual limits: captured installed-app frame was partly covered by a user video
 overlay and does not represent the modified build. No full visual/font/TalkBack/
 rotation/reduced-motion acceptance is claimed. Device evidence stays local.
+
+## Rust build-chain repair
+
+First PR CI run 38460711816 failed before Manager compilation: the fixed
+Kernel-SU/adb_client source was unreachable. All four Kernel-SU dependency
+repositories return 404 through authenticated API reads. User chose to repair
+the full build chain rather than use an old daemon merely for UI compilation.
+
+Recovered the exact existing commit objects from public repositories:
+
+| Dependency | Reachable source | Unchanged commit |
+| --- | --- | --- |
+| adb_client | 5ec1cff/adb_client | d97a966435bebaa55017834869dec08150826aa7 |
+| java-properties | MySU-org/java-properties | 42a4aa941b70ded2dd3be9e9f892471023e70229 |
+| prop-rs / prop-rs-android | MySU-org/ksu_props | 6f5723105d8d4cacad31d83d343defbf032c7b33 |
+| ksuinit rustix | MySU-org/rustix | 4a53fbc7cb7a07cabe87125cc21dbc27db316259 |
+
+Only source URLs and explicit full rev selectors change in manifests/lockfile;
+crate versions, checksums, features and dependency edges are preserved. Source
+commit objects were found by exact SHA, not selected from a moving default branch.
+CI Rust builds now use --locked, ARM64 checks run cargo ndk check, clippy and fmt
+in sequence, and loader/contract host regressions run before publishing artifacts.
+
+Local cargo ndk check/clippy were attempted but cargo-ndk and NDK are absent;
+cargo fmt succeeded outside the sandbox after access denial inside it. Android
+compilation/lint evidence must come from the full CI run, not plain host checks.
 
 Context7 is unavailable in this session. Primary references inspected:
 https://developer.android.com/develop/ui/compose/designsystems/material3
