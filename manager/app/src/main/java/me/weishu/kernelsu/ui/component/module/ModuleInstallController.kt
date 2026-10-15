@@ -109,6 +109,10 @@ internal object ModuleInstallController {
         val snapshot = state.value
         if (!snapshot.visible || mutablePreview.value != null || snapshot.stage != ModuleSheetStage.REVIEW || snapshot.targets.isEmpty() || snapshot.targets.any { it.kernelSuUnsupported } ||
             (snapshot.incompatible && !acknowledgeIncompatibility)) return
+        if (!me.weishu.kernelsu.core.utils.ModuleMutationGate.tryAcquire()) {
+            mutableState.update { it.copy(error = ksuApp.getString(me.weishu.kernelsu.R.string.dashboard_module_busy)) }
+            return
+        }
         mutableState.value = snapshot.copy(stage = ModuleSheetStage.VALIDATING, error = null, log = "")
         scope.launch {
             var restartRequired = false
@@ -174,7 +178,10 @@ internal object ModuleInstallController {
             } catch (error: Exception) {
                 mutableState.update { it.copy(stage = ModuleSheetStage.FAILED,
                     error = error.message ?: error.javaClass.simpleName, restartRequired = restartRequired) }
-            } finally { completion.value += 1 }
+            } finally {
+                me.weishu.kernelsu.core.utils.ModuleMutationGate.release()
+                completion.value += 1
+            }
         }
     }
 

@@ -22,6 +22,8 @@ object LoaderClient {
         forceBackup: Boolean,
         onStdout: (String) -> Unit,
         onStderr: (String) -> Unit,
+        outputUri: Uri? = null,
+        flashSourceImage: Boolean = false,
     ): FlashResult = installBoot(
         boot,
         lkm,
@@ -32,6 +34,8 @@ object LoaderClient {
         forceBackup,
         onStdout,
         onStderr,
+        outputUri,
+        flashSourceImage,
     )
 
     fun flashRestore(

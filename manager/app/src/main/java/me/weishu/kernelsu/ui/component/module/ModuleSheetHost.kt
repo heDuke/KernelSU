@@ -37,6 +37,7 @@ import me.weishu.kernelsu.ui.util.reboot
 @Composable
 fun ModuleSheetHost(onViewDetails: (RepoModuleArg) -> Unit) {
     val operation by ModuleInstallController.state.collectAsStateWithLifecycle()
+    val mutationBusy by me.weishu.kernelsu.core.utils.ModuleMutationGate.busy.collectAsStateWithLifecycle()
     val preview by ModuleInstallController.previewOverlay.collectAsStateWithLifecycle()
     val state = preview?.let { ModuleSheetState(visible = true, preview = it) } ?: operation
     if (!state.visible) return
@@ -146,6 +147,8 @@ fun ModuleSheetHost(onViewDetails: (RepoModuleArg) -> Unit) {
                         }
                     }
                     item {
+                        state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                        if (mutationBusy) Text(stringResource(R.string.dashboard_module_busy))
                         Text(stringResource(R.string.module_sheet_review_notice), style = MaterialTheme.typography.bodyMedium)
                         if (!Natives.isManager || Natives.isSafeMode) {
                             Text(stringResource(R.string.module_sheet_root_unavailable), color = MaterialTheme.colorScheme.error)
@@ -186,7 +189,7 @@ fun ModuleSheetHost(onViewDetails: (RepoModuleArg) -> Unit) {
                 when (state.stage) {
                     ModuleSheetStage.PREVIEW -> {
                         Button(shapes = ButtonDefaults.shapes(), onClick = ModuleInstallController::reviewPreview,
-                            enabled = module?.releases?.firstOrNull()?.assets?.firstOrNull()?.downloadUrl?.isNotBlank() == true && !operation.busy && !module.kernelSuUnsupported && Natives.isManager && !Natives.isSafeMode,
+                            enabled = module?.releases?.firstOrNull()?.assets?.firstOrNull()?.downloadUrl?.isNotBlank() == true && !operation.busy && !mutationBusy && !module.kernelSuUnsupported && Natives.isManager && !Natives.isSafeMode,
                             modifier = Modifier.fillMaxWidth()) { Text(stringResource(when {
                             module?.installedVersion?.isNotBlank() == true && module.installedVersion == module.latestRelease -> R.string.module_sheet_reinstall
                             module?.installedVersionCode?.let { it > 0 && module.latestVersionCode > it } == true -> R.string.module_update
@@ -199,7 +202,7 @@ fun ModuleSheetHost(onViewDetails: (RepoModuleArg) -> Unit) {
                         }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.module_sheet_details)) }
                     }
                     ModuleSheetStage.REVIEW -> Button(shapes = ButtonDefaults.shapes(), onClick = { ModuleInstallController.confirm(acknowledged) },
-                        enabled = Natives.isManager && !Natives.isSafeMode && state.targets.none { it.kernelSuUnsupported } && (!state.incompatible || acknowledged),
+                        enabled = !mutationBusy && Natives.isManager && !Natives.isSafeMode && state.targets.none { it.kernelSuUnsupported } && (!state.incompatible || acknowledged),
                         modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.module_sheet_confirm)) }
                     else -> if (state.restartRequired && !state.busy) {
                         Button(shapes = ButtonDefaults.shapes(), onClick = { scope.launch { withContext(Dispatchers.IO) {

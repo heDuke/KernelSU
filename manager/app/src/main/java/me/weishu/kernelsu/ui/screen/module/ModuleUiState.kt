@@ -64,6 +64,7 @@ const val MAX_MODULE_PENDING_SELECTION = 5
 data class ModuleUiState(
     val isRefreshing: Boolean = false,
     val hasLoaded: Boolean = false,
+    val loadError: String? = null,
     val modules: List<Module> = emptyList(),
     val moduleList: List<Module> = emptyList(),
     val updateInfo: Map<String, ModuleUpdateInfo> = emptyMap(),

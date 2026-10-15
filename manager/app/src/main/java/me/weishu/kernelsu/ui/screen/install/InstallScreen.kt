@@ -2,6 +2,14 @@ package me.weishu.kernelsu.ui.screen.install
 
 import android.app.Activity
 import android.content.Intent
+import android.net.Uri
+import androidx.compose.material3.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import me.weishu.kernelsu.ui.screen.home.DashboardInfo
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.SnackbarHostState
@@ -22,6 +30,7 @@ import androidx.lifecycle.compose.dropUnlessResumed
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.choosekmidialog.ChooseKmiDialog
 import me.weishu.kernelsu.ui.component.dialog.DownloadDialog
@@ -39,7 +48,7 @@ import me.weishu.kernelsu.ui.util.probeRemoteBootPartitions
 import me.weishu.kernelsu.ui.util.rootAvailable
 
 @Composable
-fun InstallScreen() {
+fun InstallScreen(preselectedLkm: Uri? = null, preferOta: Boolean = false, checkOnlyMode: Boolean = false) {
     val navigator = LocalNavigator.current
     val context = LocalContext.current
     val snackbarHost = remember { SnackbarHostState() }
@@ -52,7 +61,7 @@ fun InstallScreen() {
     var downloadDialogShown by rememberSaveable { mutableStateOf(false) }
     var remotePartitions by rememberSaveable { mutableStateOf(emptyList<String>()) }
     var remotePartitionSelectionIndex by rememberSaveable { mutableIntStateOf(0) }
-    var lkmSelection by rememberSaveable { mutableStateOf<LkmSelection>(LkmSelection.KmiNone) }
+    var lkmSelection by rememberSaveable { mutableStateOf<LkmSelection>(preselectedLkm?.let { LkmSelection.LkmUri(it) } ?: LkmSelection.KmiNone) }
     var partitionSelectionIndex by rememberSaveable { mutableIntStateOf(0) }
     var hasCustomSelected by rememberSaveable { mutableStateOf(false) }
     val showChooseKmiDialog = rememberSaveable { mutableStateOf(false) }
@@ -60,25 +69,43 @@ fun InstallScreen() {
     var allowShell by rememberSaveable { mutableStateOf(false) }
     var enableAdb by rememberSaveable { mutableStateOf(false) }
     var forceBackup by rememberSaveable { mutableStateOf(false) }
+    var flashLocalImage by rememberSaveable { mutableStateOf(false) }
+    var outputUri by rememberSaveable { mutableStateOf<Uri?>(null) }
+    var review by rememberSaveable { mutableStateOf<InstallReviewSnapshot?>(null) }
+    var reviewing by remember { mutableStateOf(false) }
+    var checking by remember { mutableStateOf(false) }
+    var reviewError by rememberSaveable { mutableStateOf<String?>(null) }
+    val outputPicker = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
+        if (uri != null) outputUri = uri
+    }
+    val reportExport = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
+        val report = review?.report
+        if (uri != null && report != null) scope.launch {
+            runCatching { withContext(kotlinx.coroutines.Dispatchers.IO) {
+                requireNotNull(context.contentResolver.openOutputStream(uri)).bufferedWriter().use { it.write(report) }
+            } }.exceptionOrNull()?.let { snackbarHost.showSnackbar(it.message.orEmpty()) }
+        }
+    }
 
     val currentKmi by produceState(initialValue = "") { value = getCurrentKmi() }
     val partitions by produceState(initialValue = emptyList()) { value = getAvailablePartitions() }
     val defaultPartition by produceState(initialValue = "") { value = getDefaultPartition() }
     val rootAvailable by produceState(initialValue = false) { value = rootAvailable() }
-    val isAbDevice by produceState(initialValue = false) { value = isAbDevice() }
+    val isAbDevice by produceState<Boolean?>(initialValue = null) { value = isAbDevice() }
     val selectFileTip = stringResource(id = R.string.select_file_tip, defaultPartition)
     val downloadFileMsg = stringResource(id = R.string.download_dialog_msg)
     val selectFileSummary = selectFileTip
     // Eligibility is checked against the selected image/module by the patcher.
     val canDirectInstall = rootAvailable
-    LaunchedEffect(canDirectInstall, installMethod) {
+    LaunchedEffect(canDirectInstall, installMethod, isAbDevice) {
+        if (preferOta && isAbDevice == null) return@LaunchedEffect
         when {
             installMethod is InstallMethod.DownloadFile -> {
                 installMethod = if (canDirectInstall) InstallMethod.DirectInstall else null
                 downloadDialogShown = false
             }
             installMethod == null && canDirectInstall -> {
-                installMethod = InstallMethod.DirectInstall
+                installMethod = if (preferOta && isAbDevice == true) InstallMethod.DirectInstallToInactiveSlot else InstallMethod.DirectInstall
             }
         }
     }
@@ -92,7 +119,7 @@ fun InstallScreen() {
         buildList {
             if (canDirectInstall) {
                 add(InstallMethod.DirectInstall)
-                if (isAbDevice) add(InstallMethod.DirectInstallToInactiveSlot)
+                if (isAbDevice == true) add(InstallMethod.DirectInstallToInactiveSlot)
                 if (installMethod is InstallMethod.SelectFile && !advancedOptionsShown) {
                     add(InstallMethod.SelectFile(summary = selectFileSummary))
                 }
@@ -130,33 +157,88 @@ fun InstallScreen() {
         }
     }
 
-    val onInstall = {
-        installMethod?.let { method ->
-            navigator.push(
-                Route.Flash(
-                    when (method) {
-                        is InstallMethod.DownloadFile -> FlashIt.DownloadBoot(
-                            url = method.url ?: return@let,
-                            partition = method.partition ?: return@let,
-                            lkm = lkmSelection,
-                            allowShell = allowShell,
-                            enableAdb = enableAdb,
-                            backup = forceBackup
-                        )
-                        else -> FlashIt.FlashBoot(
-                            boot = if (method is InstallMethod.SelectFile) method.uri else null,
-                            lkm = lkmSelection,
-                            ota = method is InstallMethod.DirectInstallToInactiveSlot,
-                            partition = partitions.getOrNull(partitionSelectionIndex),
-                            allowShell = allowShell,
-                            enableAdb = enableAdb,
-                            backup = method is InstallMethod.SelectFile && forceBackup
-                        )
+    fun prepare(checkOnly: Boolean) {
+        val readOnly = checkOnly || checkOnlyMode
+        val method = installMethod ?: return
+        if (reviewing) return
+        reviewing = true; reviewError = null
+        // Snapshot selections before doing IO; subsequent UI edits cannot change this operation.
+        val selection = lkmSelection
+        val partition = if (method is InstallMethod.DownloadFile) method.partition else partitions.getOrNull(partitionSelectionIndex)
+        val chosenOutput = outputUri
+        val chosenShell = allowShell; val chosenAdb = enableAdb; val chosenBackup = forceBackup
+        val chosenOta = method is InstallMethod.DirectInstallToInactiveSlot
+        val chosenLocalFlash = flashLocalImage && method is InstallMethod.SelectFile
+        scope.launch {
+            val inputs = linkedMapOf<String, String>()
+            try {
+                if (method is InstallMethod.SelectFile) requireNotNull(method.uri) { resources.getString(R.string.dashboard_select_input) }
+                val image = (method as? InstallMethod.SelectFile)?.uri?.let { stageBootInput(context, it, false) }
+                image?.let { inputs[it.uri.toString()] = it.sha256 }
+                val module = (selection as? LkmSelection.LkmUri)?.uri?.let { stageBootInput(context, it, true) }
+                module?.let { inputs[it.uri.toString()] = it.sha256 }
+                val frozenSelection = module?.let { LkmSelection.LkmUri(it.uri) } ?: selection
+                val page = withContext(kotlinx.coroutines.Dispatchers.IO) { runCatching { me.weishu.kernelsu.ui.util.getKernelPageSize() }.getOrNull() }
+                val release = android.system.Os.uname().release
+                val chosenSlot = withContext(kotlinx.coroutines.Dispatchers.IO) { getSlotSuffix(chosenOta) }
+                if (isAbDevice == true) require(chosenSlot in setOf("_a", "_b")) { "Cannot determine the target slot" }
+                val metadata = module?.inspection
+                val direct = method is InstallMethod.DirectInstall || method is InstallMethod.DirectInstallToInactiveSlot || chosenLocalFlash
+                val targetRelease = if (chosenLocalFlash) image?.inspection?.release else release
+                val targetPage = if (chosenLocalFlash) image?.inspection?.kernelPageSize else page
+                val targetKmi = if (chosenLocalFlash) image?.inspection?.kmi else currentKmi
+                val conflict = (direct && (partition == null || partition !in partitions)) ||
+                    (chosenLocalFlash && (targetRelease == null || targetPage == null || image?.inspection?.partition != partition || !android.os.Build.SUPPORTED_ABIS.contains("arm64-v8a"))) ||
+                    (metadata != null && direct && ((metadata.release != null && targetRelease != null && metadata.release != targetRelease) ||
+                    (metadata.kernelPageSize != null && targetPage != null && metadata.kernelPageSize != targetPage) ||
+                    (metadata.kmi != null && !targetKmi.isNullOrBlank() && metadata.kmi != targetKmi)))
+                val operation = if (method is InstallMethod.DownloadFile) FlashIt.DownloadBoot(
+                    url = requireNotNull(method.url), partition = requireNotNull(method.partition), lkm = frozenSelection,
+                    allowShell = chosenShell, enableAdb = chosenAdb, backup = chosenBackup)
+                else FlashIt.FlashBoot(boot = image?.uri, lkm = frozenSelection,
+                    ota = method is InstallMethod.DirectInstallToInactiveSlot, partition = partition,
+                    allowShell = chosenShell, enableAdb = chosenAdb, backup = method is InstallMethod.SelectFile && chosenBackup,
+                    outputUri = if (image != null) chosenOutput else null, flashSourceImage = chosenLocalFlash)
+                val unknown = resources.getString(R.string.dashboard_unknown)
+                val report = buildString {
+                    appendLine(resources.getString(R.string.dashboard_review))
+                    appendLine(resources.getString(method.label))
+                    appendLine("${resources.getString(R.string.dashboard_device)}: ${android.os.Build.MODEL}")
+                    appendLine("${resources.getString(R.string.dashboard_build)}: ${android.os.Build.ID}")
+                    appendLine("${resources.getString(R.string.dashboard_kernel)}: $release")
+                    appendLine("KMI: $currentKmi")
+                    appendLine("${resources.getString(R.string.dashboard_page_size)}: ${page ?: unknown}")
+                    appendLine("${resources.getString(R.string.dashboard_restore_target)}: ${partition ?: unknown} $chosenSlot")
+                    appendLine("${resources.getString(R.string.dashboard_output)}: " + resources.getString(if (chosenLocalFlash) R.string.dashboard_patch_flash_output else if (direct) R.string.dashboard_direct_output else R.string.dashboard_local_output))
+                    if (image != null) appendLine("output_uri=${chosenOutput ?: resources.getString(R.string.dashboard_default_output)}")
+                    for (input in listOfNotNull(image, module)) {
+                        appendLine(); appendLine("${resources.getString(R.string.dashboard_file)}: ${input.name}")
+                        appendLine("format=${input.inspection.format} bytes=${input.bytes}")
+                        appendLine("SHA-256=${input.sha256}")
+                        appendLine("declared_release=${input.inspection.release ?: unknown}")
+                        appendLine("declared_kmi=${input.inspection.kmi ?: unknown}; image_partition=${input.inspection.partition ?: unknown}")
+                        appendLine("declared_kernel_page_size=${input.inspection.kernelPageSize ?: unknown}")
+                        appendLine("image_alignment=${input.inspection.imagePageSize ?: unknown}")
+                        appendLine("signature_present=${input.inspection.signaturePresent ?: unknown}; signature_trust=$unknown; CFI/CRC=$unknown")
                     }
-                )
-            )
+                    if (method is InstallMethod.DownloadFile) appendLine("remote_url=${method.url}; remote_digest=$unknown")
+                    appendLine("allow_shell=$chosenShell enable_adbd=$chosenAdb force_stock_backup=$chosenBackup")
+                    appendLine(resources.getString(R.string.dashboard_experimental_gate))
+                    appendLine(resources.getString(R.string.dashboard_preflight_note))
+                    if (conflict) appendLine(resources.getString(R.string.dashboard_check_failure))
+                    appendLine("load_attempted=false; partitions_written=false")
+                }
+                review = InstallReviewSnapshot(operation, report, inputs, !conflict, readOnly,
+                    expectedSlot = chosenSlot, expectedRelease = release, expectedFingerprint = android.os.Build.FINGERPRINT)
+            } catch (error: Exception) {
+                releaseReviewedInputs(context, inputs)
+                if (error is CancellationException) throw error
+                reviewError = error.message
+                snackbarHost.showSnackbar(error.message ?: resources.getString(R.string.dashboard_report_error))
+            } finally { reviewing = false }
         }
     }
+    val onInstall = { prepare(false) }
 
     ChooseKmiDialog(
         show = showChooseKmiDialog.value,
@@ -240,7 +322,7 @@ fun InstallScreen() {
         installMethodOptions = installMethodOptions,
         canSelectPartition = installMethod is InstallMethod.DirectInstall ||
             installMethod is InstallMethod.DirectInstallToInactiveSlot ||
-            installMethod is InstallMethod.DownloadFile,
+            installMethod is InstallMethod.DownloadFile || (installMethod is InstallMethod.SelectFile && flashLocalImage),
         advancedOptionsShown = advancedOptionsShown,
         allowShell = allowShell,
         enableAdb = enableAdb,
@@ -248,8 +330,17 @@ fun InstallScreen() {
         canForceBackup = installMethod is InstallMethod.SelectFile,
         showAdvancedSelectFile = canDirectInstall,
         selectFileSummary = selectFileSummary,
+        flashLocalImage = flashLocalImage,
+        canFlashLocalImage = rootAvailable && !checkOnlyMode,
+        checkOnly = checkOnlyMode,
+        reviewing = reviewing,
+        outputSummary = outputUri?.toString(),
     )
     val actions = InstallScreenActions(
+        onCheckOnly = { prepare(true) },
+        onSelectLocalFlash = { flashLocalImage = it },
+        onPickOutput = { outputPicker.launch("HuskySU-patched-${System.currentTimeMillis()}.img") },
+        onClearOutput = { outputUri = null },
         onBack = dropUnlessResumed { navigator.pop() },
         onSelectMethod = { method -> installMethod = method },
         onDownloadFile = { downloadDialogShown = true },
@@ -301,4 +392,36 @@ fun InstallScreen() {
     )
 
     InstallScreenMaterial(state, actions, snackbarHost)
+    review?.let { snapshot ->
+        fun dismissReview() {
+            if (!checking) { review = null; scope.launch { releaseReviewedInputs(context, snapshot.inputs) } }
+        }
+        ModalBottomSheet(sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden), onDismissRequest = ::dismissReview) {
+            Column(Modifier.fillMaxWidth().heightIn(max = 650.dp).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(if (snapshot.checkOnly) R.string.dashboard_check_only else R.string.dashboard_review), style = MaterialTheme.typography.headlineSmall)
+                androidx.compose.foundation.text.selection.SelectionContainer { Text(snapshot.report) }
+                Text(stringResource(R.string.dashboard_install_warning))
+                reviewError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                TextButton(onClick = { reportExport.launch("HuskySU-preflight-${System.currentTimeMillis()}.txt") }) { Text(stringResource(R.string.dashboard_export)) }
+                if (!snapshot.checkOnly) Button(enabled = snapshot.allowed && !checking, shapes = ButtonDefaults.shapes(), onClick = {
+                    checking = true
+                    scope.launch {
+                        try {
+                            verifyReviewedInputs(context, snapshot.inputs)
+                            if ((snapshot.operation as? FlashIt.FlashBoot)?.let { it.boot == null || it.flashSourceImage } == true) {
+                                val op = snapshot.operation as FlashIt.FlashBoot
+                                check(android.os.Build.FINGERPRINT == snapshot.expectedFingerprint && android.system.Os.uname().release == snapshot.expectedRelease) { "Device/build changed; review again" }
+                                check(withContext(kotlinx.coroutines.Dispatchers.IO) { getSlotSuffix(op.ota) } == snapshot.expectedSlot) { "Target slot changed; review again" }
+                                check(withContext(kotlinx.coroutines.Dispatchers.IO) { me.weishu.kernelsu.Natives.isManager && !me.weishu.kernelsu.Natives.isSafeMode && !me.weishu.kernelsu.Natives.requireNewKernel() && rootAvailable() }) { resources.getString(R.string.dashboard_permission_missing) }
+                            }
+                            review = null
+                            navigator.push(Route.Flash(snapshot.operation))
+                        } catch (error: Exception) { if (error is CancellationException) throw error; reviewError = error.message }
+                        finally { checking = false }
+                    }
+                }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.dashboard_confirm_write)) }
+                TextButton(enabled = !checking, onClick = ::dismissReview) { Text(stringResource(android.R.string.cancel)) }
+            }
+        }
+    }
 }

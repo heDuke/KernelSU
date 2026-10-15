@@ -22,11 +22,20 @@ internal data class InstallUiState(
     val canForceBackup: Boolean,
     val showAdvancedSelectFile: Boolean,
     val selectFileSummary: String?,
+    val flashLocalImage: Boolean = false,
+    val canFlashLocalImage: Boolean = false,
+    val checkOnly: Boolean = false,
+    val reviewing: Boolean = false,
+    val outputSummary: String? = null,
 )
 
 @Immutable
 internal data class InstallScreenActions(
     val onBack: () -> Unit,
+    val onCheckOnly: () -> Unit,
+    val onSelectLocalFlash: (Boolean) -> Unit,
+    val onPickOutput: () -> Unit,
+    val onClearOutput: () -> Unit,
     val onSelectMethod: (InstallMethod) -> Unit,
     val onDownloadFile: () -> Unit,
     val onSelectBootImage: () -> Unit,

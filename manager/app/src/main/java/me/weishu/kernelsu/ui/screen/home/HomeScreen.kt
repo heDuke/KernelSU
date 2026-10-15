@@ -1,6 +1,17 @@
 package me.weishu.kernelsu.ui.screen.home
 
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import me.weishu.kernelsu.ui.LocalMainPagerState
+import me.weishu.kernelsu.ui.component.module.ModuleInstallController
+import me.weishu.kernelsu.ui.viewmodel.ModuleViewModel
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,12 +48,64 @@ fun HomePager(
     val context = LocalContext.current
     val loadingDialog = rememberLoadingDialog()
 
-    var hasActivated by remember { mutableStateOf(false) }
-    if (isCurrentPage) hasActivated = true
-
-    if (hasActivated) {
-        LaunchedEffect(Unit) {
-            viewModel.refresh()
+    val moduleViewModel = viewModel<ModuleViewModel>()
+    val moduleState by moduleViewModel.uiState.collectAsStateWithLifecycle()
+    val completed by ModuleInstallController.completion.collectAsStateWithLifecycle()
+    val lifecycle = LocalLifecycleOwner.current
+    val pager = LocalMainPagerState.current
+    val scope = rememberCoroutineScope()
+    val batchBusy by me.weishu.kernelsu.core.utils.ModuleMutationGate.busy.collectAsStateWithLifecycle()
+    val modulePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+        if (uris.isNotEmpty()) ModuleInstallController.reviewLocal(uris)
+    }
+    val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
+        if (uri != null) scope.launch {
+            val state = viewModel.uiState.value
+            val report = buildString {
+                appendLine("HuskySU home diagnostics")
+                appendLine("manager=${state.systemInfo.managerVersion}")
+                appendLine("kernel=${state.systemInfo.kernelVersion} driver=${state.ksuVersion} mode=${state.lkmMode}")
+                appendLine("device=${state.systemInfo.deviceModel} page_size=${state.pageSize} slot=${state.slot}")
+                appendLine("manager_authorized=${state.isManager} root=${state.isRootAvailable} safe_mode=${state.isSafeMode}")
+                appendLine("observed_incidents=${state.runtime.total} record_error=${state.runtimeError}")
+                state.runtime.events.forEach { appendLine("${it.at} ${it.code}") }
+                appendLine(state.envReport?.toPlainReport().orEmpty())
+                appendLine("load_attempted=false; observation report is not a load/boot/recovery proof")
+            }
+            val result = withContext(Dispatchers.IO) { runCatching {
+                requireNotNull(context.contentResolver.openOutputStream(uri)).bufferedWriter().use { it.write(report) }
+            } }
+            Toast.makeText(context, result.exceptionOrNull()?.message ?: context.getString(R.string.dashboard_export), Toast.LENGTH_LONG).show()
+        }
+    }
+    fun batch(restore: Boolean) {
+        if (batchBusy) return
+        scope.launch {
+            try {
+                val result = HomeModuleBatch.run(restore)
+                Toast.makeText(context, result.fold({ if (it == 0) context.getString(R.string.dashboard_no_todos) else "$it · " + context.getString(R.string.reboot_to_apply) }, { it.message }), Toast.LENGTH_LONG).show()
+                moduleViewModel.fetchModuleList(checkUpdate = true)
+            } finally { moduleViewModel.markNeedRefresh() }
+        }
+    }
+    LaunchedEffect(isCurrentPage, lifecycle) {
+        if (!isCurrentPage) return@LaunchedEffect
+        lifecycle.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.resumeObservation()
+            try {
+                var initial = true
+                while (true) {
+                    viewModel.refresh(includeEnvironment = initial)
+                    initial = false
+                    delay(30_000)
+                }
+            } finally { viewModel.pauseObservation() }
+        }
+    }
+    LaunchedEffect(isCurrentPage, uiState.isFullFeatured, completed) {
+        if (isCurrentPage && uiState.isFullFeatured) {
+            moduleViewModel.initializePreferences()
+            moduleViewModel.fetchModuleList(checkUpdate = true)
         }
     }
 
@@ -60,20 +123,7 @@ fun HomePager(
 
     LaunchedEffect(viewModel) {
         viewModel.flashLkm.collect { uri ->
-            val partition = withContext(Dispatchers.IO) {
-                getDefaultPartition().ifBlank { null }
-            }
-            navigator.push(
-                Route.Flash(
-                    FlashIt.FlashBoot(
-                        boot = null,
-                        lkm = LkmSelection.LkmUri(uri),
-                        ota = false,
-                        partition = partition,
-                        allowShell = true,
-                    )
-                )
-            )
+            navigator.push(Route.InstallLkm(uri.toString()))
         }
     }
 
@@ -93,6 +143,17 @@ fun HomePager(
     val actions = HomeActions(
         onInstallClick = { navigator.push(Route.Install) },
         onOpenUrl = uriHandler::openUri,
+        onRefresh = { viewModel.refresh(); if (uiState.isFullFeatured) moduleViewModel.fetchModuleList(checkUpdate = true) },
+        onCheckInputs = { navigator.push(Route.InstallCheck) },
+        onInstallModule = { modulePicker.launch("application/zip") },
+        onOpenModules = { pager.animateToPage(2) },
+        onOpenLoader = { navigator.push(Route.ExperimentalLoaderSettings) },
+        onExportReport = { export.launch("HuskySU-diagnostics-${System.currentTimeMillis()}.txt") },
+        onReboot = { scope.launch(Dispatchers.IO) {
+            if (me.weishu.kernelsu.Natives.isManager && me.weishu.kernelsu.ui.util.rootAvailable()) me.weishu.kernelsu.ui.util.reboot()
+        } },
+        onDisableModules = { batch(false) },
+        onRestoreModules = { batch(true) },
         onCheckHuskyUpdate = viewModel::checkHuskyUpdate,
         onUpdateLkm = viewModel::updateLkm,
         onDownloadLkmToDownloads = viewModel::downloadLkmToDownloads,
@@ -109,25 +170,14 @@ fun HomePager(
                 viewModel.checkHuskyUpdate()
             }
         },
-        onInstallInactiveSlot = {
-            val partition = null
-            navigator.push(
-                Route.Flash(
-                    FlashIt.FlashBoot(
-                        boot = null,
-                        lkm = LkmSelection.KmiNone,
-                        ota = true,
-                        partition = partition,
-                        allowShell = true,
-                    )
-                )
-            )
-        },
+        onInstallInactiveSlot = { navigator.push(Route.InstallOta) },
     )
 
     HomePagerMaterial(
-        state = uiState,
+        state = uiState.copy(moduleBatchBusy = batchBusy),
         actions = actions,
         bottomInnerPadding = bottomInnerPadding,
+        modules = moduleState,
+        active = isCurrentPage,
     )
 }

@@ -272,14 +272,39 @@ sealed class LkmSelection : Parcelable {
     data object KmiNone : LkmSelection()
 }
 
-private fun writeLkmFile(lkm: LkmSelection): File? {
-    if (lkm !is LkmSelection.LkmUri) return null
-    val file = File.createTempFile("kernelsu-lkm-", ".ko", ksuApp.cacheDir)
-    ksuApp.contentResolver.openInputStream(lkm.uri)?.use { input ->
-        file.outputStream().use { output -> input.copyTo(output) }
-    }
-    return file
+/** Resolve only files created by the private review staging area. */
+internal fun reviewedBootFile(uri: Uri): File? {
+    if (uri.scheme != "content" || uri.authority != "${BuildConfig.APPLICATION_ID}.fileprovider") return null
+    val parts = uri.pathSegments
+    if (parts.size != 3 || parts[0] != "cache" || parts[1] != "boot-review" ||
+        !parts[2].matches(Regex("input-[a-zA-Z0-9_-]+\\.(img|ko)"))) return null
+    val directory = File(ksuApp.cacheDir, "boot-review").canonicalFile
+    val file = File(directory, parts[2])
+    return file.takeIf { it.isFile && !java.nio.file.Files.isSymbolicLink(it.toPath()) && it.canonicalFile.parentFile == directory }
 }
+
+private fun copyBootInput(uri: Uri, module: Boolean): File {
+    reviewedBootFile(uri)?.let { return it }
+    val file = File.createTempFile("kernelsu-input-", if (module) ".ko" else ".img", ksuApp.cacheDir)
+    try {
+        requireNotNull(ksuApp.contentResolver.openInputStream(uri)).use { input ->
+            file.outputStream().use { output ->
+                val buffer = ByteArray(16384); var total = 0L
+                while (true) {
+                    val count = input.read(buffer); if (count < 0) break
+                    total += count
+                    require(total <= if (module) 16L * 1024 * 1024 else 512L * 1024 * 1024) { "Input exceeds size limit" }
+                    output.write(buffer, 0, count)
+                }
+            }
+        }
+        return file
+    } catch (error: Exception) { file.delete(); throw error }
+}
+
+private fun writeLkmFile(lkm: LkmSelection): File? = (lkm as? LkmSelection.LkmUri)?.let { copyBootInput(it.uri, true) }
+
+private fun bootArgument(value: String): String = "'" + value.replace("'", "'\\''") + "'"
 
 private fun bootPatchFlags(
     allowShell: Boolean,
@@ -301,65 +326,49 @@ fun installBoot(
     forceBackup: Boolean,
     onStdout: (String) -> Unit,
     onStderr: (String) -> Unit,
+    outputUri: Uri? = null,
+    flashSourceImage: Boolean = false,
 ): FlashResult {
-    val resolver = ksuApp.contentResolver
-
-    val bootFile = bootUri?.let { uri ->
-        with(resolver.openInputStream(uri)) {
-            val bootFile = File.createTempFile("kernelsu-boot-", ".img", ksuApp.cacheDir)
-            bootFile.outputStream().use { output ->
-                this?.copyTo(output)
-            }
-
-            bootFile
+    var bootFile: File? = null
+    var lkmFile: File? = null
+    var outputDirectory: File? = null
+    try {
+        bootFile = bootUri?.let { copyBootInput(it, false) }
+        lkmFile = writeLkmFile(lkm)
+        if (outputUri != null) {
+            require(bootFile != null) { "Output destination requires a source image" }
+            outputDirectory = java.nio.file.Files.createTempDirectory(ksuApp.cacheDir.toPath(), "patched-output-").toFile()
         }
-    }
-
-    var cmd = "boot-patch"
-
-    cmd += if (bootFile == null) {
-        // no boot.img, use -f to flash
-        " -f"
-    } else {
-        " -b ${bootFile.absolutePath}"
-    }
-    cmd += bootPatchFlags(allowShell, enableAdb, forceBackup)
-
-    if (ota) {
-        cmd += " -u"
-    }
-
-    val lkmFile = writeLkmFile(lkm)
-    if (lkmFile != null) {
-        cmd += " -m ${lkmFile.absolutePath}"
-    } else if (lkm is LkmSelection.KmiString) {
-        cmd += " --kmi ${lkm.value}"
-    }
-
-    if (bootFile != null) {
-        val downloadsDir =
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        cmd += " -o $downloadsDir"
-    }
-
-    partition?.let { part ->
-        cmd += " --partition $part"
-    }
-
-    val result = flashWithIO("${getKsuDaemonPath()} $cmd", onStdout, onStderr)
-    Log.i("KernelSU", "install boot result: ${result.isSuccess}")
-
-    bootFile?.delete()
-    lkmFile?.delete()
-
-    // if boot uri is empty, it is direct install, when success, we should show reboot button
-    val showReboot = bootUri == null && result.isSuccess // we create a temporary val here, to avoid calc showReboot double
-    if (showReboot) { // because we decide do not update ksud when startActivity
-        if (!install()) {
-            return FlashResult(1, "Boot image patched, but userspace installation failed. Complete userspace installation before rebooting.", false)
+        var cmd = "boot-patch"
+        cmd += if (bootFile == null) " -f" else " -b ${bootArgument(bootFile.absolutePath)}"
+        require(!flashSourceImage || (bootFile != null && !ota)) { "Local image write requires a source image and current-slot review" }
+        if (flashSourceImage) cmd += " -f"
+        cmd += bootPatchFlags(allowShell, enableAdb, forceBackup)
+        if (ota) cmd += " -u"
+        if (lkmFile != null) cmd += " -m ${bootArgument(lkmFile.absolutePath)}"
+        else if (lkm is LkmSelection.KmiString) cmd += " --kmi ${bootArgument(lkm.value)}"
+        if (bootFile != null) {
+            val destination = outputDirectory ?: Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            cmd += " -o ${bootArgument(destination.absolutePath)}"
         }
+        partition?.let { cmd += " --partition ${bootArgument(it)}" }
+        val result = flashWithIO("${bootArgument(getKsuDaemonPath())} $cmd", onStdout, onStderr)
+        if (result.isSuccess && outputDirectory != null && outputUri != null) {
+            val generated = outputDirectory.listFiles()?.filter { it.isFile && it.extension == "img" }?.singleOrNull()
+            require(generated != null && generated.length() in 1..536_870_912) { "Patched output is missing or ambiguous" }
+            check(getRootShell().newJob().add("chmod 0644 ${bootArgument(generated.absolutePath)}").exec().isSuccess) { "Cannot read generated image" }
+            requireNotNull(ksuApp.contentResolver.openOutputStream(outputUri)).use { output -> generated.inputStream().use { it.copyTo(output, 16384) } }
+            onStdout("- Patched image exported to the selected document")
+        }
+        val showReboot = (bootUri == null || flashSourceImage) && result.isSuccess
+        if (showReboot && !install()) return FlashResult(1, "Boot image patched, but userspace installation failed. Complete userspace installation before rebooting.", false)
+        return FlashResult(result, showReboot)
+    } catch (error: Exception) {
+        onStderr(error.message ?: error.toString())
+        return FlashResult(1, error.message ?: error.toString(), false)
+    } finally {
+        bootFile?.delete(); lkmFile?.delete(); outputDirectory?.deleteRecursively()
     }
-    return FlashResult(result, showReboot)
 }
 
 fun downloadBoot(

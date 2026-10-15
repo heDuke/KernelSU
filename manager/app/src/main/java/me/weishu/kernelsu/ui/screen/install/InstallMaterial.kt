@@ -32,6 +32,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -218,10 +219,25 @@ internal fun InstallScreenMaterial(
                     )
                 }
             }
+            if (uiState.installMethod is InstallMethod.SelectFile) {
+                androidx.compose.material3.ListItem(content = { Text(stringResource(R.string.dashboard_local_output)) },
+                    leadingContent = { androidx.compose.material3.RadioButton(selected = !uiState.flashLocalImage, onClick = { actions.onSelectLocalFlash(false) }) })
+                androidx.compose.material3.ListItem(content = { Text(stringResource(R.string.dashboard_patch_flash_output)) },
+                    supportingContent = { Text(stringResource(R.string.dashboard_local_flash_requirements)) },
+                    leadingContent = { androidx.compose.material3.RadioButton(selected = uiState.flashLocalImage, enabled = uiState.canFlashLocalImage, onClick = { actions.onSelectLocalFlash(true) }) })
+                TextButton(enabled = !uiState.reviewing, onClick = actions.onPickOutput, modifier = Modifier.padding(horizontal = 16.dp)) {
+                    Text(stringResource(R.string.dashboard_pick_output))
+                }
+                Text(uiState.outputSummary ?: stringResource(R.string.dashboard_default_output), modifier = Modifier.padding(horizontal = 16.dp))
+                if (uiState.outputSummary != null) TextButton(onClick = actions.onClearOutput, modifier = Modifier.padding(horizontal = 16.dp)) { Text(stringResource(android.R.string.cancel)) }
+            }
+            if (!uiState.checkOnly) TextButton(enabled = uiState.installMethod != null && !uiState.reviewing, onClick = actions.onCheckOnly, modifier = Modifier.padding(horizontal = 16.dp)) {
+                Text(stringResource(R.string.dashboard_check_only))
+            }
             ExpressivePrimaryBar(
-                label = stringResource(R.string.install_next),
-                onClick = actions.onNext,
-                enabled = uiState.installMethod != null,
+                label = stringResource(if (uiState.checkOnly) R.string.dashboard_check_only else R.string.install_next),
+                onClick = if (uiState.checkOnly) actions.onCheckOnly else actions.onNext,
+                enabled = uiState.installMethod != null && !uiState.reviewing,
                 icon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 modifier = Modifier.padding(horizontal = 16.dp),
             )

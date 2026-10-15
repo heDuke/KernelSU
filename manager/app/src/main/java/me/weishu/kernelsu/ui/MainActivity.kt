@@ -178,6 +178,9 @@ class MainActivity : ComponentActivity() {
                                 entry<Route.TemplateEditor> { key -> TemplateEditorScreen(key.template, key.readOnly) }
                                 entry<Route.AppProfile> { key -> AppProfileScreen(key.uid) }
                                 entry<Route.Install> { InstallScreen() }
+                                entry<Route.InstallLkm> { key -> InstallScreen(preselectedLkm = android.net.Uri.parse(key.uri)) }
+                                entry<Route.InstallOta> { InstallScreen(preferOta = true) }
+                                entry<Route.InstallCheck> { InstallScreen(checkOnlyMode = true) }
                                 entry<Route.Flash> { key -> FlashScreen(key.flashIt) }
                                 entry<Route.ExecuteModuleAction> { key -> ExecuteModuleActionScreen(key.moduleId, key.fromShortcut) }
                                 entry<Route.ModuleRepo> { ModuleRepoScreen() }

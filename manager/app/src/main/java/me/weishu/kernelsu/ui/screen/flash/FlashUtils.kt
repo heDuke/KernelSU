@@ -78,6 +78,8 @@ sealed class FlashIt : Parcelable {
         val allowShell: Boolean = false,
         val enableAdb: Boolean = false,
         val backup: Boolean = false,
+        val outputUri: Uri? = null,
+        val flashSourceImage: Boolean = false,
     ) : FlashIt()
 
     @Parcelize
@@ -130,7 +132,9 @@ fun flashIt(
             flashIt.enableAdb,
             flashIt.backup,
             onStdout,
-            onStderr
+            onStderr,
+            outputUri = flashIt.outputUri,
+            flashSourceImage = flashIt.flashSourceImage,
         )
 
         is FlashIt.DownloadBoot -> downloadBoot(

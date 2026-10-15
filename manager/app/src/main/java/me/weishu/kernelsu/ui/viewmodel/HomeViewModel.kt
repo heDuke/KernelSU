@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.BuildConfig
 import me.weishu.kernelsu.Natives
@@ -50,7 +51,7 @@ class HomeViewModel(
     private val envCheckRepo: EnvCheckRepository = EnvCheckRepositoryImpl(),
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(buildState())
+    private val _uiState = MutableStateFlow(buildState(checkRoot = false))
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     private val _flashLkm = MutableSharedFlow<Uri>(extraBufferCapacity = 1)
@@ -59,37 +60,62 @@ class HomeViewModel(
     private val _userMessages = MutableSharedFlow<String>(extraBufferCapacity = 1)
     val userMessages: SharedFlow<String> = _userMessages.asSharedFlow()
 
-    fun refresh() {
-        viewModelScope.launch {
-            val previous = _uiState.value
+    private val runtimeRepo = me.weishu.kernelsu.data.repository.HomeRuntimeRepository()
+    private var refreshJob: kotlinx.coroutines.Job? = null
+
+    fun resumeObservation() { runtimeRepo.start() }
+    fun pauseObservation() {
+        runtimeRepo.pause()
+        _uiState.update { it.copy(runtime = it.runtime.pause()) }
+    }
+
+    fun refresh(includeEnvironment: Boolean = true) {
+        if (includeEnvironment) refreshEnvSummary()
+        if (refreshJob?.isActive == true) return
+        refreshJob = viewModelScope.launch {
             val (baseState, abDevice) = withContext(Dispatchers.IO) {
-                buildState() to isAbDevice()
+                val state = buildState()
+                val faults = buildSet {
+                    if (state.isSafeMode) add("safe_mode")
+                    if (state.ksuVersion != null && !state.isRootAvailable) add("root_unavailable")
+                    if (state.requiresNewKernel || state.showVersionMismatchWarning) add("interface_mismatch")
+                }
+                state.copy(loaded = true, observedAt = android.os.SystemClock.elapsedRealtime(),
+                    runtime = runtimeRepo.observe(state.ksuVersion != null, faults), runtimeError = runtimeRepo.error,
+                    pageSize = runCatching { me.weishu.kernelsu.ui.util.getKernelPageSize() }.getOrNull(),
+                    slot = runCatching { me.weishu.kernelsu.ui.util.getSlotSuffix(false) }.getOrNull()) to isAbDevice()
             }
             _uiState.update {
                 baseState.copy(
-                    huskyRelease = previous.huskyRelease,
-                    huskyUpdateStatus = previous.huskyUpdateStatus,
-                    huskyError = previous.huskyError,
-                    latestVersionInfo = previous.latestVersionInfo,
+                    runtime = runtimeRepo.record,
+                    huskyRelease = it.huskyRelease,
+                    huskyUpdateStatus = it.huskyUpdateStatus,
+                    huskyError = it.huskyError,
+                    latestVersionInfo = it.latestVersionInfo,
                     isAbDevice = abDevice,
-                    envOverall = previous.envOverall,
-                    envSummaryLine = previous.envSummaryLine,
+                    envReport = it.envReport,
+                    envOverall = it.envOverall,
+                    envSummaryLine = it.envSummaryLine,
                 )
             }
-            if (baseState.checkUpdateEnabled && previous.huskyRelease == null) {
+            if (baseState.checkUpdateEnabled && _uiState.value.huskyUpdateStatus == HuskyUpdateStatus.Idle) {
                 checkHuskyRelease()
             }
         }
-        refreshEnvSummary()
     }
 
+    private var envJob: kotlinx.coroutines.Job? = null
     private fun refreshEnvSummary() {
-        viewModelScope.launch {
-            envCheckRepo.runCheck().fold(
+        envJob?.cancel()
+        envJob = viewModelScope.launch {
+            val result = envCheckRepo.runCheck()
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            result.fold(
                 onSuccess = { report ->
                     val summary = report.worstItem?.let { "${it.title}: ${it.detail}" }
                     _uiState.update {
                         it.copy(
+                            envReport = report,
                             envOverall = report.overall,
                             envSummaryLine = summary,
                         )
@@ -98,6 +124,7 @@ class HomeViewModel(
                 onFailure = { error ->
                     _uiState.update {
                         it.copy(
+                            envReport = null,
                             envOverall = EnvCheckSeverity.Unknown,
                             envSummaryLine = error.message,
                         )
@@ -255,14 +282,14 @@ class HomeViewModel(
         }
     }
 
-    private fun buildState(): HomeUiState {
+    private fun buildState(checkRoot: Boolean = true): HomeUiState {
         val kernelVersion = getKernelVersion()
         val isManager = Natives.isManager
         val ksuVersion = if (isManager) Natives.version else null
         val kernelUAPIVersion = if (isManager) Natives.kernelUAPIVersion else null
         val managerUAPIVersion = Natives.managerUAPIVersion
         val lkmMode = ksuVersion?.let { Natives.isLkmMode }
-        val isRootAvailable = rootAvailable()
+        val isRootAvailable = checkRoot && rootAvailable()
         val managerVersion = getManagerVersion(ksuApp)
 
         return HomeUiState(
@@ -287,7 +314,7 @@ class HomeViewModel(
                 managerVersion = "${managerVersion.versionName} (${managerVersion.versionCode}-${managerUAPIVersion})",
                 deviceModel = resolveDeviceName(),
                 fingerprint = Build.FINGERPRINT,
-                selinuxStatus = getSELinuxStatusRaw(),
+                selinuxStatus = if (checkRoot) getSELinuxStatusRaw() else "",
                 seccompStatus = runCatching {
                     Os.prctl(21 /* PR_GET_SECCOMP */, 0, 0, 0, 0)
                 }.getOrDefault(-1),

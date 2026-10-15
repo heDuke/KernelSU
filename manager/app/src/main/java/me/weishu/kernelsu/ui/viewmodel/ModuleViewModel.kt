@@ -251,17 +251,17 @@ class ModuleViewModel(
     }
 
     suspend fun loadModuleList(resort: Boolean = true) {
-        val parsedModules = withContext(Dispatchers.IO) {
-            repo.getModules().getOrElse {
-                Log.e(TAG, "fetchModuleList: ", it)
-                emptyList()
-            }
+        val result = withContext(Dispatchers.IO) { repo.getModules() }
+        val parsedModules = result.getOrElse { error ->
+            _uiState.update { it.copy(loadError = error.message ?: error.toString()) }
+            return
         }
 
         withContext(Dispatchers.Main) {
             _uiState.update {
                 it.copy(
                     modules = parsedModules,
+                    loadError = null,
                 ).reconcilePendingSelection()
             }
             // Trigger recalculation of moduleList
@@ -418,56 +418,74 @@ class ModuleViewModel(
 
     fun toggleModule(module: Module) {
         viewModelScope.launch {
-            val res = ksuApp.resources
-            val success = withContext(Dispatchers.IO) {
-                toggleModuleUtil(module.id, !module.enabled)
+            if (!me.weishu.kernelsu.core.utils.ModuleMutationGate.tryAcquire()) {
+                emitEffect(ModuleEffect.SnackBar(ksuApp.getString(R.string.module_sheet_task_busy)))
+                return@launch
             }
-            if (success) {
-                fetchModuleList(checkUpdate = true, resort = false)
-                emitEffect(ModuleEffect.SnackBar(res.getString(R.string.reboot_to_apply)))
-            } else {
-                val message = if (module.enabled) R.string.module_failed_to_disable else R.string.module_failed_to_enable
-                emitEffect(ModuleEffect.SnackBar(res.getString(message).format(module.name)))
-            }
+            try {
+                val res = ksuApp.resources
+                val success = withContext(Dispatchers.IO) {
+                    toggleModuleUtil(module.id, !module.enabled)
+                }
+                if (success) {
+                    fetchModuleList(checkUpdate = true, resort = false)
+                    emitEffect(ModuleEffect.SnackBar(res.getString(R.string.reboot_to_apply)))
+                } else {
+                    val message = if (module.enabled) R.string.module_failed_to_disable else R.string.module_failed_to_enable
+                    emitEffect(ModuleEffect.SnackBar(res.getString(message).format(module.name)))
+                }
+            } finally { me.weishu.kernelsu.core.utils.ModuleMutationGate.release() }
         }
     }
 
     fun uninstallModule(module: Module) {
         viewModelScope.launch {
-            val res = ksuApp.resources
-            val success = withContext(Dispatchers.IO) {
-                uninstallModuleUtil(module.id)
+            if (!me.weishu.kernelsu.core.utils.ModuleMutationGate.tryAcquire()) {
+                emitEffect(ModuleEffect.SnackBar(ksuApp.getString(R.string.module_sheet_task_busy)))
+                return@launch
             }
-            if (success) {
-                fetchModuleList(checkUpdate = true, resort = false)
-            }
-            _uiState.update { it.copy(confirmDialogState = null) }
-            emitEffect(
-                ModuleEffect.SnackBar(
-                    res.getString(
-                        if (success) R.string.module_uninstall_success else R.string.module_uninstall_failed
-                    ).format(module.name)
+            try {
+                val res = ksuApp.resources
+                val success = withContext(Dispatchers.IO) {
+                    uninstallModuleUtil(module.id)
+                }
+                if (success) {
+                    fetchModuleList(checkUpdate = true, resort = false)
+                }
+                _uiState.update { it.copy(confirmDialogState = null) }
+                emitEffect(
+                    ModuleEffect.SnackBar(
+                        res.getString(
+                            if (success) R.string.module_uninstall_success else R.string.module_uninstall_failed
+                        ).format(module.name)
+                    )
                 )
-            )
+            } finally { me.weishu.kernelsu.core.utils.ModuleMutationGate.release() }
         }
     }
 
     fun undoUninstallModule(module: Module) {
         viewModelScope.launch {
-            val res = ksuApp.resources
-            val success = withContext(Dispatchers.IO) {
-                undoUninstallModuleUtil(module.id)
+            if (!me.weishu.kernelsu.core.utils.ModuleMutationGate.tryAcquire()) {
+                emitEffect(ModuleEffect.SnackBar(ksuApp.getString(R.string.module_sheet_task_busy)))
+                return@launch
             }
-            if (success) {
-                fetchModuleList(checkUpdate = true, resort = false)
-            }
-            emitEffect(
-                ModuleEffect.SnackBar(
-                    res.getString(
-                        if (success) R.string.module_undo_uninstall_success else R.string.module_undo_uninstall_failed
-                    ).format(module.name)
+            try {
+                val res = ksuApp.resources
+                val success = withContext(Dispatchers.IO) {
+                    undoUninstallModuleUtil(module.id)
+                }
+                if (success) {
+                    fetchModuleList(checkUpdate = true, resort = false)
+                }
+                emitEffect(
+                    ModuleEffect.SnackBar(
+                        res.getString(
+                            if (success) R.string.module_undo_uninstall_success else R.string.module_undo_uninstall_failed
+                        ).format(module.name)
+                    )
                 )
-            )
+            } finally { me.weishu.kernelsu.core.utils.ModuleMutationGate.release() }
         }
     }
 

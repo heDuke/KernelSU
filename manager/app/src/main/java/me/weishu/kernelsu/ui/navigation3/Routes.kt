@@ -69,6 +69,18 @@ sealed interface Route : NavKey, Parcelable {
 
     @Parcelize
     @Serializable
+    data class InstallLkm(val uri: String) : Route
+
+    @Parcelize
+    @Serializable
+    data object InstallOta : Route
+
+    @Parcelize
+    @Serializable
+    data object InstallCheck : Route
+
+    @Parcelize
+    @Serializable
     data class ModuleRepoDetail(@Serializable(with = RepoModuleArgSerializer::class) val module: RepoModuleArg) : Route
 
     @Parcelize
