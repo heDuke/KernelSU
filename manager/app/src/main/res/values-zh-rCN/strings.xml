@@ -220,6 +220,8 @@ KernelSU 完成后，请回到系统更新点击重新启动。
     <string name="flash_running_summary">请保持此页面打开。刷写期间音量键会被忽略。</string>
     <string name="flash_success_summary">重启后新镜像才会生效。</string>
     <string name="flash_failed_summary">请先保存并检查日志，再重试。</string>
+    <string name="module_zip_unsupported_method">此模块包使用了 %1$s 压缩（方法 %2$d），安装器不支持。支持的方法：%3$s。请使用 Deflate 重新打包 ZIP（例如 zip -r）后重试。</string>
+    <string name="module_zip_invalid">该文件不是有效或可读取的模块 ZIP。请重新下载，或使用 Deflate 重新打包。</string>
     <string name="selected_lkm">已选择的 LKM：%s</string>
     <string name="save_log">保存日志</string>
     <string name="log_saved">日志已保存</string>

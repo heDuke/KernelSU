@@ -178,8 +178,18 @@ internal object ModuleInstallController {
                     mutableState.update { it.copy(stage = ModuleSheetStage.SUCCESS, restartRequired = restartRequired) }
                 } finally { prepared.forEach(File::delete) }
             } catch (error: Exception) {
+                android.util.Log.e("KernelSU", "Module installation failed", error)
+                val message = when (error) {
+                    is me.weishu.kernelsu.core.utils.UnsupportedZipMethodException -> ksuApp.getString(
+                        me.weishu.kernelsu.R.string.module_zip_unsupported_method,
+                        me.weishu.kernelsu.core.utils.zipMethodName(error.method), error.method,
+                        me.weishu.kernelsu.core.utils.KSUD_SUPPORTED_ZIP_METHODS.values.joinToString(", "))
+                    is java.util.zip.ZipException, is java.io.IOException ->
+                        ksuApp.getString(me.weishu.kernelsu.R.string.module_zip_invalid)
+                    else -> error.message ?: error.javaClass.simpleName
+                }
                 mutableState.update { it.copy(stage = ModuleSheetStage.FAILED,
-                    error = error.message ?: error.javaClass.simpleName, restartRequired = restartRequired) }
+                    error = message, restartRequired = restartRequired) }
             } finally {
                 me.weishu.kernelsu.core.utils.ModuleMutationGate.release()
                 completion.value += 1

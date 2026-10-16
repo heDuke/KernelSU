@@ -249,6 +249,8 @@
     <string name="flash_running_summary">Keep this screen open. Volume keys are ignored until flashing finishes.</string>
     <string name="flash_success_summary">Reboot to apply the new image.</string>
     <string name="flash_failed_summary">Save the log and review the output before retrying.</string>
+    <string name="module_zip_unsupported_method">This module package uses %1$s compression (method %2$d), which the installer does not support. Supported: %3$s. Repack the ZIP with Deflate (e.g. zip -r) and try again.</string>
+    <string name="module_zip_invalid">This file is not a valid or readable module ZIP. Download it again or repack it with Deflate.</string>
     <string name="selected_lkm">Selected LKM: %s</string>
     <string name="save_log">Save logs</string>
     <string name="log_saved">Logs saved</string>
