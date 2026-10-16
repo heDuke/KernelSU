@@ -247,9 +247,11 @@ fun runModuleAction(
 }
 
 fun restoreBoot(
-    onStdout: (String) -> Unit, onStderr: (String) -> Unit
+    onStdout: (String) -> Unit, onStderr: (String) -> Unit, expectedImageSha256: String? = null
 ): FlashResult {
-    val result = flashWithIO("${getKsuDaemonPath()} boot-restore -f", onStdout, onStderr)
+    if (expectedImageSha256 != null && !expectedImageSha256.matches(Regex("[0-9a-f]{64}"))) return FlashResult(1, "Invalid recovery review", false)
+    val expected = expectedImageSha256?.let { " --expected-image-sha256 $it" }.orEmpty()
+    val result = flashWithIO("${getKsuDaemonPath()} boot-restore -f$expected", onStdout, onStderr)
     return FlashResult(result)
 }
 
@@ -589,7 +591,9 @@ fun getSepolicy(pkg: String): String {
 
 fun setSepolicy(pkg: String, rules: String): Boolean {
     val shell = getRootShell()
-    val result = shell.newJob().add("${getKsuDaemonPath()} profile set-sepolicy $pkg '$rules'")
+    val escapedKey = pkg.replace("'", "'\\''")
+    val escapedRules = rules.replace("'", "'\\''")
+    val result = shell.newJob().add("${getKsuDaemonPath()} profile set-sepolicy '$escapedKey' '$escapedRules'")
         .to(ArrayList(), null).exec()
     Log.i(TAG, "set sepolicy result: ${result.code}")
     return result.isSuccess

@@ -157,6 +157,8 @@ enum Commands {
 
 #[derive(clap::Subcommand, Debug)]
 enum BootInfo {
+    /// Read and verify the stock backup linked to the current boot image; never flash.
+    RecoveryCheck,
     /// show actual kernel page size, unaffected by userspace compatibility mode
     KernelPageSize,
     /// show current kmi version
@@ -748,6 +750,14 @@ pub fn run() -> Result<()> {
         Commands::BootPatch(boot_patch) => crate::boot_patch::patch(boot_patch),
 
         Commands::BootInfo { command } => match command {
+            BootInfo::RecoveryCheck => {
+                #[cfg(target_os = "android")]
+                crate::boot_patch::recovery_check()?;
+                #[cfg(not(target_os = "android"))]
+                anyhow::bail!("Recovery inspection requires Android");
+                #[cfg(target_os = "android")]
+                return Ok(());
+            }
             BootInfo::KernelPageSize => {
                 println!("{}", ksuinit::kernel_page_size()?);
                 return Ok(());

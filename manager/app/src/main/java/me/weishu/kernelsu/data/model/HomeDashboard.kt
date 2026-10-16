@@ -5,21 +5,57 @@ enum class DashboardSize { Compact, Standard, Expanded }
 enum class DashboardCard { Status, Access, Runtime, Incidents, Todos, Shortcuts, Versions, Modules, Device, Compatibility }
 enum class DashboardShortcut { InstallModule, Flash, Diagnostics, Reboot, CheckUpdates, Loader, DisableModules, RestoreModules }
 
+/** A reboot is confirmed only by two known, different boot identities. */
+data class PendingModuleChanges(val boot: String = "", val pending: Boolean = false) {
+    fun observe(current: String): PendingModuleChanges = when {
+        current.isEmpty() -> this
+        boot.isNotEmpty() && boot.substringBefore(':') == current.substringBefore(':') && boot != current -> PendingModuleChanges(current)
+        else -> copy(boot = current)
+    }
+    fun changed(current: String): PendingModuleChanges = observe(current).copy(pending = true)
+}
+
+enum class DashboardSection(val cards: List<DashboardCard>) {
+    Runtime(listOf(DashboardCard.Status, DashboardCard.Access, DashboardCard.Runtime, DashboardCard.Incidents)),
+    Actions(listOf(DashboardCard.Todos, DashboardCard.Shortcuts)),
+    Versions(listOf(DashboardCard.Versions, DashboardCard.Modules)),
+    Device(listOf(DashboardCard.Device, DashboardCard.Compatibility));
+}
+
 data class DashboardLayout(
     val sizes: Map<DashboardCard, DashboardSize> = DashboardCard.entries.associateWith {
-        if (it.ordinal < 4) DashboardSize.Compact else DashboardSize.Standard
+        if (it.ordinal < 4 || it == DashboardCard.Modules || it == DashboardCard.Compatibility) DashboardSize.Compact else DashboardSize.Standard
     },
     val shortcuts: List<DashboardShortcut> = listOf(DashboardShortcut.InstallModule, DashboardShortcut.Flash,
         DashboardShortcut.Diagnostics, DashboardShortcut.Reboot),
+    val cards: List<DashboardCard> = listOf(DashboardCard.Status, DashboardCard.Access, DashboardCard.Runtime,
+        DashboardCard.Incidents, DashboardCard.Modules, DashboardCard.Compatibility),
 ) {
-    fun serialize(): String = "1\n" + DashboardCard.entries.joinToString(",") { "${it.name}=${sizes.getValue(it).name}" } +
-        "\n" + shortcuts.joinToString(",") { it.name }
+    init {
+        require(cards.size in 1..DashboardCard.entries.size && cards.distinct().size == cards.size)
+        require(DashboardCard.Compatibility in cards)
+    }
+
+    fun serialize(): String = "2\n" + DashboardCard.entries.joinToString(",") { "${it.name}=${sizes.getValue(it).name}" } +
+        "\n" + shortcuts.joinToString(",") { it.name } + "\n" + cards.joinToString(",") { it.name }
+
+    /** Keep reading order and fill a lone compact card's row instead of leaving a hole. */
+    fun rows(entries: List<DashboardCard> = cards): List<List<DashboardCard>> = buildList {
+        var index = 0
+        while (index < entries.size) {
+            val paired = sizes.getValue(entries[index]) == DashboardSize.Compact &&
+                index + 1 < entries.size && sizes.getValue(entries[index + 1]) == DashboardSize.Compact
+            val count = if (paired) 2 else 1
+            add(entries.subList(index, index + count))
+            index += count
+        }
+    }
 
     companion object {
         fun parse(text: String): DashboardLayout {
             require(text.length <= 2048)
             val lines = text.split('\n')
-            require(lines.size == 3 && lines[0] == "1")
+            require((lines.size == 3 && lines[0] == "1") || (lines.size == 4 && lines[0] == "2"))
             val sizes = linkedMapOf<DashboardCard, DashboardSize>()
             lines[1].split(',').forEach {
                 val field = it.split('='); require(field.size == 2)
@@ -29,7 +65,8 @@ data class DashboardLayout(
             require(sizes.keys == DashboardCard.entries.toSet())
             val shortcuts = lines[2].split(',').map(DashboardShortcut::valueOf)
             require(shortcuts.size in 1..6 && shortcuts.distinct().size == shortcuts.size)
-            return DashboardLayout(sizes, shortcuts)
+            val cards = if (lines[0] == "2") lines[3].split(',').map(DashboardCard::valueOf) else DashboardLayout().cards
+            return DashboardLayout(sizes, shortcuts, cards)
         }
     }
 }

@@ -21,13 +21,17 @@ import me.weishu.kernelsu.ui.util.getDefaultPartition
 import me.weishu.kernelsu.ui.util.getRootShell
 import me.weishu.kernelsu.ui.util.getSlotSuffix
 import me.weishu.kernelsu.ui.util.rootAvailable
+import me.weishu.kernelsu.ui.util.RecoveryReadiness
+import me.weishu.kernelsu.ui.util.inspectRecovery
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Backup
 import java.io.File
 import java.security.MessageDigest
 
 private fun quote(value: String) = "'" + value.replace("'", "'\\''") + "'"
 
 @Composable
-internal fun HomeBackupPanel(enabled: Boolean) {
+internal fun HomeBackupSheet(enabled: Boolean, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val navigator = LocalNavigator.current
     val scope = rememberCoroutineScope()
@@ -38,9 +42,15 @@ internal fun HomeBackupPanel(enabled: Boolean) {
     var selected by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     var restore by remember { mutableStateOf(false) }
+    var readiness by remember { mutableStateOf<RecoveryReadiness?>(null) }
+    var inspecting by remember { mutableStateOf(false) }
+    var inspectionError by remember { mutableStateOf<String?>(null) }
+    var refreshToken by remember { mutableIntStateOf(0) }
     var target by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(enabled) {
+    LaunchedEffect(enabled, refreshToken) {
+        readiness = null; inspectionError = null
         if (!enabled) return@LaunchedEffect
+        inspecting = true
         withContext(Dispatchers.IO) {
             runCatching {
                 val result = getRootShell().newJob().add(roots.joinToString("\n") {
@@ -50,7 +60,10 @@ internal fun HomeBackupPanel(enabled: Boolean) {
                 result.out.filter { path -> roots.any { parent -> path.matches(Regex(Regex.escape(parent) + "/ksu_backup_[0-9a-f]{40}")) } }.distinct().take(32)
             }
         }.fold(onSuccess = { files = it }, onFailure = { error = it.message })
-        target = withContext(Dispatchers.IO) { runCatching { getDefaultPartition() + getSlotSuffix(false) }.getOrNull() }
+        withContext(Dispatchers.IO) { runCatching { inspectRecovery() } }.fold(
+            onSuccess = { readiness = it; target = it.image.substringAfterLast('/') },
+            onFailure = { inspectionError = it.message; target = null })
+        inspecting = false
     }
     val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
         val path = selected
@@ -76,29 +89,48 @@ internal fun HomeBackupPanel(enabled: Boolean) {
             busy = false
         }
     }
-    if (!enabled) Text(stringResource(R.string.dashboard_unavailable))
-    else if (files == null && error == null) LoadingIndicator()
-    else {
-        if (files.isNullOrEmpty()) Text(stringResource(R.string.dashboard_no_readable_backup))
+    HomeInformationSheet("backups", stringResource(R.string.dashboard_backup), onDismiss = onDismiss,
+        dismissEnabled = !busy, footer = {
+            Button(enabled = enabled && !busy && !inspecting && readiness != null, onClick = { restore = true },
+                shapes = ButtonDefaults.shapes(), modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.dashboard_restore_current)) }
+        }) {
+        HomeStateCard(stringResource(if (readiness != null) R.string.home_sheet_backup_matched else R.string.home_sheet_backup_unknown),
+            stringResource(R.string.dashboard_backup_note), Icons.Outlined.Backup, if (readiness != null) HomeTone.Primary else HomeTone.Neutral)
+        if (!enabled) Text(stringResource(R.string.dashboard_unavailable))
+        if (inspecting || busy) LoadingIndicator()
+        readiness?.let { report ->
+            HomeFacts(stringResource(R.string.home_sheet_recovery_match), listOf(
+                stringResource(R.string.dashboard_restore_target) to report.image,
+                stringResource(R.string.dashboard_backup) to report.backup.substringAfterLast('/'),
+                stringResource(R.string.home_sheet_backup_size) to android.text.format.Formatter.formatFileSize(context, report.bytes),
+                stringResource(R.string.dashboard_slot) to report.slot.ifBlank { stringResource(R.string.dashboard_unknown) }))
+            HomeTechnicalDetails(report) { DashboardInfo("SHA-256", report.imageSha256); DashboardInfo("SHA-1", report.backupSha1) }
+        }
+        if (enabled) TextButton(enabled = !busy && !inspecting, onClick = { refreshToken++ }) { Text(stringResource(R.string.home_sheet_recheck)) }
+        inspectionError?.let { HomeTechnicalDetails(it) { Text(it) } }
+        if (files.isNullOrEmpty() && !inspecting) Text(stringResource(R.string.dashboard_no_readable_backup))
         files.orEmpty().forEach { path ->
-            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                DashboardInfo(stringResource(R.string.dashboard_backup), path.substringAfterLast('/'))
-                TextButton(enabled = !busy, onClick = { selected = path; export.launch(path.substringAfterLast('/') + ".img") }) { Text(stringResource(R.string.dashboard_export)) }
-            }
+            ListItem(content = { Text(path.substringAfterLast('/')) },
+                trailingContent = { TextButton(enabled = !busy, onClick = { selected = path; export.launch(path.substringAfterLast('/') + ".img") }) { Text(stringResource(R.string.dashboard_export)) } })
         }
         Text(stringResource(R.string.dashboard_backup_limit), style = MaterialTheme.typography.bodySmall)
-        DashboardInfo(stringResource(R.string.dashboard_restore_target), target.orEmpty())
-        Button(enabled = !busy && !files.isNullOrEmpty() && !target.isNullOrBlank(), onClick = { restore = true }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.dashboard_restore_current)) }
+        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
-    error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     if (restore) AlertDialog(onDismissRequest = { restore = false }, title = { Text(stringResource(R.string.dashboard_restore_current)) },
         text = { Text(stringResource(R.string.dashboard_backup_note) + "\n" + target.orEmpty() + "\n" + stringResource(R.string.dashboard_install_warning)) },
         dismissButton = { TextButton(onClick = { restore = false }) { Text(stringResource(android.R.string.cancel)) } },
         confirmButton = { TextButton(onClick = {
             restore = false
             scope.launch {
-                val authorized = withContext(Dispatchers.IO) { Natives.isManager && rootAvailable() && !Natives.isSafeMode }
-                if (authorized) navigator.push(Route.Flash(FlashIt.FlashRestore)) else error = context.getString(R.string.dashboard_unavailable)
+                val expected = readiness ?: return@launch
+                busy = true
+                try {
+                    val current = withContext(Dispatchers.IO) { inspectRecovery() }
+                    check(current == expected) { context.getString(R.string.home_sheet_recovery_changed) }
+                    navigator.push(Route.Flash(FlashIt.FlashRestoreReviewed(expected.imageSha256)))
+                } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+                catch (failure: Exception) { error = failure.message; readiness = null }
+                finally { busy = false }
             }
         }) { Text(stringResource(R.string.dashboard_confirm_write)) } })
 }

@@ -18,6 +18,9 @@ enum class HuskyUpdateStatus {
     Downloading,
 }
 
+enum class HomeBlockReason { Checking, Authorization, Interface, Root, SafeMode, Busy }
+enum class HomeActivation { Checking, Unknown, Attention, Active }
+
 @Immutable
 data class HomeUiState(
     val kernelVersion: KernelVersion,
@@ -44,6 +47,7 @@ data class HomeUiState(
     val moduleBatchBusy: Boolean = false,
     val loaded: Boolean = false,
     val observedAt: Long = 0,
+    val observedWallTime: Long = 0,
     val runtime: me.weishu.kernelsu.data.model.RuntimeRecord = me.weishu.kernelsu.data.model.RuntimeRecord(),
     val runtimeError: String? = null,
     val pageSize: Int? = null,
@@ -51,7 +55,27 @@ data class HomeUiState(
     val envReport: me.weishu.kernelsu.data.model.EnvCheckReport? = null,
     val envOverall: EnvCheckSeverity? = null,
     val envSummaryLine: String? = null,
+    val envChecking: Boolean = false,
+    val pendingReboot: Boolean = false,
+    val pendingRebootError: String? = null,
 ) {
+    val activation: HomeActivation
+        get() = when {
+            !loaded -> HomeActivation.Checking
+            !isManager || ksuVersion == null -> HomeActivation.Unknown
+            !isRootAvailable || requiresNewKernel || isSafeMode -> HomeActivation.Attention
+            else -> HomeActivation.Active
+        }
+
+    fun operationBlockReason(allowSafeMode: Boolean = false): HomeBlockReason? = when {
+        !loaded -> HomeBlockReason.Checking
+        !isManager -> HomeBlockReason.Authorization
+        requiresNewKernel || showVersionMismatchWarning -> HomeBlockReason.Interface
+        !isRootAvailable -> HomeBlockReason.Root
+        isSafeMode && !allowSafeMode -> HomeBlockReason.SafeMode
+        moduleBatchBusy -> HomeBlockReason.Busy
+        else -> null
+    }
     val isFullFeatured: Boolean
         get() = isManager && !requiresNewKernel && isRootAvailable
 
@@ -62,7 +86,7 @@ data class HomeUiState(
         get() = isManager && showRequireKernelWarning && uapiMismatch
 
     val showRootWarning: Boolean
-        get() = ksuVersion != null && !isRootAvailable
+        get() = loaded && ksuVersion != null && !isRootAvailable
 
     val showManagerPrBuildWarning: Boolean
         get() = isManager && isManagerPrBuild
@@ -108,6 +132,7 @@ data class HomeActions(
     val onRefresh: () -> Unit = {},
     val onExportReport: () -> Unit = {},
     val onReboot: () -> Unit = {},
+    val onApplyModuleBatch: (ModuleBatchReview) -> Unit = {},
     val onDisableModules: () -> Unit = {},
     val onRestoreModules: () -> Unit = {},
     val onAlignEnvironment: () -> Unit = {},

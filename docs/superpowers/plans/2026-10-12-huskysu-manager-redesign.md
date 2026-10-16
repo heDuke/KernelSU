@@ -1,5 +1,11 @@
 # HuskySU Manager redesign, repositories and LKM validation
 
+2026-10-16 design follow-up: see
+[Home dashboard and Expressive information sheets](2026-10-16-home-sheets-expressive.md)
+for the accepted home/sheet direction, dynamic/brand color policy, review
+corrections, implementation sequence and PC acceptance. This is planned work;
+the earlier implementation status below does not certify the new revision.
+
 Date: 2026-10-12
 Status updated 2026-10-13: Manager redesign, source adapters, shared module sheets
 and experimental settings implemented and locally built/tested. Earlier loader/
@@ -282,3 +288,8 @@ tests with an authorized Manager; UI tests cannot establish kernel compatibility
 Manager UI implementation and artifact distribution remain separate tasks. The
 initial loader/auditor implementation above is the only runtime change included;
 it does not alter the kernel or establish device-tested compatibility.
+
+## Superuser implementation update (2026-10-16)
+
+[Superuser authorization list, sheet and staged editor](2026-10-16-superuser-expressive.md) records the approved design and implementation.
+[PC acceptance](2026-10-16-superuser-acceptance.md) tracks device checks separately.

@@ -15,6 +15,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.Natives
+import me.weishu.kernelsu.data.model.AuthorizationTarget
+import me.weishu.kernelsu.data.model.SuperUserFilter
 import me.weishu.kernelsu.data.repository.SettingsRepository
 import me.weishu.kernelsu.data.repository.SettingsRepositoryImpl
 import me.weishu.kernelsu.data.repository.SuperUserRepository
@@ -124,7 +126,33 @@ class SuperUserViewModel(
                 showSystemApps = settingsRepo.superuserShowSystemApps,
                 showOnlyPrimaryUserApps = settingsRepo.superuserShowOnlyPrimaryUserApps,
                 sortConfig = AppSortConfig.fromInt(settingsRepo.superuserSortOption),
+                filter = SuperUserFilter.fromKey(settingsRepo.superuserFilter),
             )
+        }
+    }
+
+    fun updateFilter(filter: SuperUserFilter) {
+        settingsRepo.superuserFilter = filter.key
+        _uiState.update { it.copy(filter = filter) }
+    }
+
+    fun clearMutationMessage() {
+        _uiState.update { it.copy(mutationError = null, mutationMessage = null) }
+    }
+
+    fun setAuthorization(target: AuthorizationTarget, allowed: Boolean) {
+        if (_uiState.value.savingUid != null || _uiState.value.isRefreshing || _uiState.value.error != null) return
+        _uiState.update { it.copy(savingUid = target.uid, mutationError = null, mutationMessage = null) }
+        viewModelScope.launch {
+            try {
+                val result = refreshMutex.withLock { repo.setAuthorization(target, allowed) }
+                // Always re-read: a failed verification may follow a successful kernel write.
+                fetchAppList()
+                _uiState.update { it.copy(mutationError = result.exceptionOrNull(),
+                    mutationMessage = if (result.isSuccess) allowed else null) }
+            } finally {
+                _uiState.update { it.copy(savingUid = null) }
+            }
         }
     }
 
@@ -256,18 +284,15 @@ class SuperUserViewModel(
     private fun filterApps(list: List<AppInfo>): List<AppInfo> {
         val currentState = _uiState.value
 
-        return list.filter {
-            if (it.packageName == ksuApp.packageName) return@filter false
-            if (it.allowSu || it.hasCustomProfile) {
-                return@filter true
-            }
-            val userFilter = !currentState.showOnlyPrimaryUserApps || it.uid / 100000 == 0
-            val isSystemApp = it.packageInfo.applicationInfo!!.flags.and(ApplicationInfo.FLAG_SYSTEM) != 0
-            val typeFilter = it.uid == 2000
-                    || currentState.showSystemApps
-                    || !isSystemApp
-            userFilter && typeFilter
-        }
+        return list.filter { it.packageName != ksuApp.packageName }.groupBy { it.uid }
+            .filter { (uid, members) ->
+                val userFilter = !currentState.showOnlyPrimaryUserApps || uid / 100000 == 0
+                val typeFilter = uid == 2000 || currentState.showSystemApps || members.any {
+                    it.allowSu || it.hasCustomProfile ||
+                        it.packageInfo.applicationInfo!!.flags.and(ApplicationInfo.FLAG_SYSTEM) == 0
+                }
+                userFilter && typeFilter
+            }.values.flatten()
     }
 
     private fun buildCachedGroups(apps: List<AppInfo>): List<GroupedApps> {
@@ -364,6 +389,8 @@ class SuperUserViewModel(
             val currentApps = synchronized(appsLock) { cachedApps }
             if (currentApps.isEmpty()) return
 
+            _uiState.update { it.copy(isRefreshing = true, error = null) }
+
             repo.refreshProfiles(currentApps).onSuccess { updatedApps ->
                 // Update cache for static method
                 synchronized(appsLock) { cachedApps = updatedApps }
@@ -389,6 +416,8 @@ class SuperUserViewModel(
                 updateVisibleApps(grouped, resort = resort)
                 _uiState.update { it.copy(isRefreshing = false) }
                 isNeedRefresh = false
+            }.onFailure { e ->
+                _uiState.update { it.copy(isRefreshing = false, error = e) }
             }
         }
     }

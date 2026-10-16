@@ -11,6 +11,9 @@ data class AppProfileUiState(
     val profile: Natives.Profile,
     val appGroup: GroupedApps,
     val sharedUserId: String,
+    val hasChanges: Boolean = false,
+    val isSaving: Boolean = false,
+    val grantPending: Boolean = false,
 ) {
     val isUidGroup get() = appGroup.apps.size > 1
 }
@@ -18,6 +21,7 @@ data class AppProfileUiState(
 @Immutable
 data class AppProfileActions(
     val onBack: () -> Unit,
+    val onSave: () -> Unit = {},
     val onLaunchApp: (String, Int) -> Unit,
     val onForceStopApp: (String, Int) -> Unit,
     val onRestartApp: (String, Int) -> Unit,

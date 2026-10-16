@@ -75,16 +75,18 @@ static int ksuctl(unsigned long op, Args &&... args) {
     return ioctl(fd, op, std::forward<Args>(args)...);
 }
 
-static struct ksu_get_info_cmd g_version {};
-
 struct ksu_get_info_cmd get_info() {
-    if (!g_version.version) {
-        if (ksuctl(KSU_IOCTL_GET_INFO, &g_version) < 0) {
-            ksuctl(KSU_IOCTL_GET_INFO_LEGACY, &g_version);
-            g_version.uapi_version = 0;
+    // Flags include the current Manager authorization; a successful first probe
+    // must not cache that permission for the rest of the process lifetime.
+    struct ksu_get_info_cmd info {};
+    if (ksuctl(KSU_IOCTL_GET_INFO, &info) < 0) {
+        info = {};
+        if (ksuctl(KSU_IOCTL_GET_INFO_LEGACY, &info) < 0) {
+            return {};
         }
+        info.uapi_version = 0;
     }
-    return g_version;
+    return info;
 }
 
 uint32_t get_kernel_uapi_version() {

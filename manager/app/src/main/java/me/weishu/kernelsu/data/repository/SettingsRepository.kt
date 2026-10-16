@@ -19,6 +19,7 @@ interface SettingsRepository {
     var superuserShowSystemApps: Boolean
     var superuserShowOnlyPrimaryUserApps: Boolean
     var superuserSortOption: Int
+    var superuserFilter: String
     var suLogFilters: Set<String>?
     var autoJailbreak: Boolean
     var useSoftReboot: Boolean

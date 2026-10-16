@@ -18,14 +18,46 @@ import me.weishu.kernelsu.ui.util.rootAvailable
 import org.json.JSONArray
 import org.json.JSONObject
 
+data class ModuleBatchReview(val restore: Boolean, val targets: List<me.weishu.kernelsu.data.model.Module>,
+                             val skipped: List<String>, val record: String)
+
+internal fun selectBatchTargets(modules: List<me.weishu.kernelsu.data.model.Module>, recorded: Map<String, Int>, restore: Boolean) =
+    if (restore) modules.filter { !it.enabled && !it.remove && recorded[it.id] == it.versionCode }
+    else modules.filter { it.enabled && !it.remove }
+
 /** An explicit user-owned batch; never enables modules outside the recorded batch. */
 internal object HomeModuleBatch {
     private val mutex = Mutex()
-    suspend fun run(restore: Boolean): Result<Int> = withContext(Dispatchers.IO) {
+    suspend fun review(restore: Boolean): Result<ModuleBatchReview> = withContext(Dispatchers.IO) {
+        runCatching { inspect(restore) }
+    }
+
+    private suspend fun inspect(restore: Boolean): ModuleBatchReview {
+        check(Natives.isManager && rootAvailable() && !Natives.isSafeMode && !hasMagisk()) { "Root/module environment is unavailable" }
+        check(!ModuleInstallController.state.value.busy) { "An installation is running" }
+        val prefs = ksuApp.getSharedPreferences("home-module-batch", Context.MODE_PRIVATE)
+        check(!prefs.contains("pending")) { "Previous batch was interrupted; inspect its diagnostic record" }
+        val raw = prefs.getString("applied", "[]") ?: "[]"
+        require(raw.length <= 65_536)
+        val array = JSONArray(raw); require(array.length() <= 512)
+        val recorded = linkedMapOf<String, Int>()
+        for (i in 0 until array.length()) array.getJSONObject(i).let { recorded[it.getString("id")] = it.getInt("version") }
+        check(restore || recorded.isEmpty()) { "Restore or review the previous batch before replacing its record" }
+        val modules = ModuleRepositoryImpl().getModules().getOrThrow()
+        val targets = selectBatchTargets(modules, recorded, restore)
+        require(targets.size <= 512)
+        val skipped = if (restore) recorded.keys.filter { id -> targets.none { it.id == id } }
+            else modules.filter { !it.enabled || it.remove }.map { it.id }
+        return ModuleBatchReview(restore, targets, skipped, raw)
+    }
+
+    suspend fun run(review: ModuleBatchReview): Result<Int> = withContext(Dispatchers.IO) {
         if (!me.weishu.kernelsu.core.utils.ModuleMutationGate.tryAcquire())
             return@withContext Result.failure(IllegalStateException("Another module operation is running"))
         try { mutex.withLock {
             runCatching {
+                val restore = review.restore
+                check(inspect(restore) == review) { "Module state changed; review the batch again" }
                 check(Natives.isManager && rootAvailable() && !Natives.isSafeMode && !hasMagisk()) { "Root/module environment is unavailable" }
                 check(!ModuleInstallController.state.value.busy) { "An installation is running" }
                 val prefs = ksuApp.getSharedPreferences("home-module-batch", Context.MODE_PRIVATE)
@@ -35,9 +67,7 @@ internal object HomeModuleBatch {
                 val array = JSONArray(raw); require(array.length() <= 512)
                 val recorded = linkedMapOf<String, Int>()
                 for (i in 0 until array.length()) array.getJSONObject(i).let { recorded[it.getString("id")] = it.getInt("version") }
-                val modules = ModuleRepositoryImpl().getModules().getOrThrow()
-                val targets = if (restore) modules.filter { !it.enabled && !it.remove && recorded[it.id] == it.versionCode }
-                    else modules.filter { it.enabled && !it.remove }
+                val targets = review.targets
                 require(targets.size <= 512)
                 check(restore || recorded.isEmpty()) { "Restore or review the previous batch before replacing its record" }
                 fun save() {
@@ -50,6 +80,7 @@ internal object HomeModuleBatch {
                     check(!ModuleInstallController.state.value.busy && Natives.isManager && !Natives.isSafeMode) { "Module environment changed" }
                     check(prefs.edit().putString("pending", module.id).commit()) { "Cannot journal module change" }
                     check(PackageClient.setModuleEnabled(module.id, restore)) { "Module change failed: ${module.name}; $changed completed" }
+                    me.weishu.kernelsu.data.repository.ModuleRebootStore.markChanged()
                     if (restore) recorded.remove(module.id) else recorded[module.id] = module.versionCode
                     save()
                     check(prefs.edit().remove("pending").commit()) { "Cannot finalize module change record" }

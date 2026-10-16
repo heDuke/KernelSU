@@ -162,7 +162,9 @@ internal object ModuleInstallController {
                     for ((index, file) in prepared.withIndex()) {
                         appendLog(snapshot.targets[index].name)
                         val result = withContext(Dispatchers.IO) {
-                            flashModule(Uri.fromFile(file), ::appendLog, ::appendLog)
+                            flashModule(Uri.fromFile(file), ::appendLog, ::appendLog).also {
+                                if (it.showReboot || it.code == 0) me.weishu.kernelsu.data.repository.ModuleRebootStore.markChanged()
+                            }
                         }
                         restartRequired = restartRequired || result.showReboot || result.code == 0
                         check(result.code == 0) { result.err.ifBlank { "Installer exited with code ${result.code}" } }

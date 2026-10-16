@@ -73,7 +73,7 @@ class KsuService : RootService() {
             method.invoke(pm, flags, userId) as List<PackageInfo>
         } catch (e: Throwable) {
             Log.e(TAG, "err", e)
-            ArrayList()
+            throw IllegalStateException("Cannot enumerate installed packages for Android user $userId", e)
         }
     }
 

@@ -281,6 +281,7 @@ pub fn uninstall(package_name: &str) -> Result<()> {
     let _lock = crate::mutation::MutationLock::acquire()?;
     println!("- Restore boot image before removing recovery files..");
     boot_patch::restore_inner(BootRestoreArgs {
+        expected_image_sha256: None,
         boot: None,
         flash: true,
         out: None,

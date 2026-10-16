@@ -4,6 +4,44 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class HomeDashboardTest {
+    @Test fun pendingModuleChangesNeedAConfirmedReboot() {
+        val pending = PendingModuleChanges().changed("count:7")
+        assertTrue(pending.pending)
+        assertTrue(pending.observe("count:7").pending)
+        assertTrue(pending.observe("").pending)
+        assertTrue(pending.observe("id:same-boot").pending)
+        assertFalse(pending.observe("count:8").pending)
+        val unknown = PendingModuleChanges().changed("")
+        assertTrue(unknown.observe("count:7").pending)
+        assertFalse(unknown.observe("count:7").observe("count:8").pending)
+    }
+
+    @Test fun cardSelectionMigratesLegacySettingsAndPreservesNewOrder() {
+        val layout = DashboardLayout(cards = listOf(DashboardCard.Device, DashboardCard.Compatibility, DashboardCard.Status),
+            shortcuts = listOf(DashboardShortcut.Loader))
+        assertEquals(layout, DashboardLayout.parse(layout.serialize()))
+        val legacy = layout.serialize().lines().take(3).toMutableList().also { it[0] = "1" }.joinToString("\n")
+        val migrated = DashboardLayout.parse(legacy)
+        assertEquals(layout.sizes, migrated.sizes)
+        assertEquals(layout.shortcuts, migrated.shortcuts)
+        assertEquals(DashboardLayout().cards, migrated.cards)
+        for (cards in listOf("Status", "Compatibility,Compatibility", "Compatibility,Missing", "")) {
+            val malformed = layout.serialize().lines().take(3).joinToString("\n") + "\n" + cards
+            assertThrows(IllegalArgumentException::class.java) { DashboardLayout.parse(malformed) }
+        }
+    }
+
+    @Test fun mixedSizesKeepReadingOrderAndPairCompactCardsWithoutOmissions() {
+        val layout = DashboardLayout(sizes = DashboardCard.entries.associateWith { DashboardSize.Compact } + mapOf(
+            DashboardCard.Access to DashboardSize.Standard, DashboardCard.Versions to DashboardSize.Expanded,
+            DashboardCard.Modules to DashboardSize.Expanded), cards = DashboardCard.entries)
+        val rows = layout.rows()
+        assertEquals(DashboardCard.entries, rows.flatten())
+        assertEquals(listOf(1, 1, 2, 2, 1, 1, 2), rows.map { it.size })
+        assertEquals(listOf(listOf(DashboardCard.Compatibility)), layout.rows(listOf(DashboardCard.Compatibility)))
+        assertEquals(emptyList<List<DashboardCard>>(), layout.rows(emptyList()))
+    }
+
     @Test fun settingsPreserveEveryCardAndShortcutOrder() {
         val layout = DashboardLayout(sizes = DashboardLayout().sizes + (DashboardCard.Compatibility to DashboardSize.Expanded),
             shortcuts = listOf(DashboardShortcut.Loader, DashboardShortcut.InstallModule, DashboardShortcut.Diagnostics))

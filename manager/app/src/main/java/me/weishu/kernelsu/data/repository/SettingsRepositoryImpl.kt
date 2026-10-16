@@ -110,6 +110,10 @@ class SettingsRepositoryImpl : SettingsRepository {
         get() = prefs.getInt("superuser_sort_option", 0)
         set(value) = prefs.edit { putInt("superuser_sort_option", value) }
 
+    override var superuserFilter: String
+        get() = prefs.getString("superuser_filter", "granted") ?: "granted"
+        set(value) = prefs.edit { putString("superuser_filter", value) }
+
     override var suLogFilters: Set<String>?
         get() = prefs.getStringSet("sulog_filters", null)?.toSet()
         set(filters) = prefs.edit { putStringSet("sulog_filters", filters) }

@@ -1037,6 +1037,10 @@ pub fn patch(args: BootPatchArgs) -> Result<()> {
 
 #[derive(clap::Args, Debug)]
 pub struct BootRestoreArgs {
+    /// Bind a reviewed restore to the exact current image before any output/write.
+    #[cfg(target_os = "android")]
+    #[arg(long)]
+    pub expected_image_sha256: Option<String>,
     /// boot image path, if not specified, will try to find the boot image automatically
     #[arg(short, long)]
     pub boot: Option<PathBuf>,
@@ -1081,8 +1085,80 @@ pub fn restore(args: BootRestoreArgs) -> Result<()> {
 }
 
 // Internal callers must already hold MutationLock when args.flash is set.
+#[cfg(any(target_os = "android", test))]
+fn validate_reviewed_image(data: &[u8], expected: Option<&str>) -> Result<()> {
+    if let Some(expected) = expected {
+        ensure!(
+            expected.len() == 64 && expected.bytes().all(|v| v.is_ascii_hexdigit()),
+            "Invalid reviewed image hash"
+        );
+        ensure!(
+            sha256::digest(data) == expected,
+            "Current image changed; review recovery again"
+        );
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+#[test]
+fn recovery_review_rejects_a_changed_image() {
+    let original = b"reviewed boot bytes";
+    let expected = sha256::digest(original);
+    assert!(validate_reviewed_image(original, Some(&expected)).is_ok());
+    assert!(validate_reviewed_image(b"different boot bytes", Some(&expected)).is_err());
+    assert!(validate_reviewed_image(original, Some("bad")).is_err());
+    assert!(validate_reviewed_image(original, None).is_ok());
+}
+
+/// Inspect the exact backup path used by restore, without creating output or flashing.
+#[cfg(target_os = "android")]
+pub fn recovery_check() -> Result<()> {
+    let kmi = get_current_kmi().unwrap_or_default();
+    let image = auto_boot_partition_path(&kmi, false, false, &None);
+    let data = map_file(&image)?;
+    let boot = BootImage::parse(&data)?;
+    enforce_bootimage_version(&boot)?;
+    let ramdisk = boot
+        .get_blocks()
+        .get_ramdisk()
+        .context("No compatible ramdisk")?;
+    let (cpio, _) = extract_ramdisk(ramdisk)?;
+    ensure!(
+        cpio.exists("kernelsu.ko"),
+        "Current image is not KernelSU patched"
+    );
+    let marker = cpio
+        .entry_by_name(BACKUP_FILENAME)
+        .context("No stock backup marker")?;
+    let bytes = marker.data().unwrap_or_default();
+    let digest = std::str::from_utf8(bytes)?.trim();
+    ensure!(
+        digest.len() == 40 && digest.bytes().all(|v| v.is_ascii_hexdigit()),
+        "Invalid recovery marker"
+    );
+    let backup = PathBuf::from(KSU_BACKUP_DIR).join(format!("{KSU_BACKUP_FILE_PREFIX}{digest}"));
+    let metadata = std::fs::symlink_metadata(&backup).context("Matching backup is unavailable")?;
+    ensure!(
+        metadata.is_file() && metadata.len() > 0 && metadata.len() <= 512 * 1024 * 1024,
+        "Unreadable or oversized backup"
+    );
+    ensure!(calculate_sha1(&backup)? == digest, "Backup digest mismatch");
+    println!(
+        "{}",
+        serde_json::json!({
+            "image": image, "image_sha256": sha256::digest(&data[..]),
+            "backup": backup, "backup_sha1": digest, "bytes": metadata.len(),
+            "slot": get_slot_suffix(false)
+        })
+    );
+    Ok(())
+}
+
 pub fn restore_inner(args: BootRestoreArgs) -> Result<()> {
     let BootRestoreArgs {
+        #[cfg(target_os = "android")]
+        expected_image_sha256,
         boot: image,
         out_name,
         out,
@@ -1115,6 +1191,8 @@ pub fn restore_inner(args: BootRestoreArgs) -> Result<()> {
 
     println!("- Unpacking boot image");
     let bootimage_data = map_file(&boot_image_file)?;
+    #[cfg(target_os = "android")]
+    validate_reviewed_image(&bootimage_data, expected_image_sha256.as_deref())?;
     let boot_image = BootImage::parse(&bootimage_data)?;
     enforce_bootimage_version(&boot_image)?;
 

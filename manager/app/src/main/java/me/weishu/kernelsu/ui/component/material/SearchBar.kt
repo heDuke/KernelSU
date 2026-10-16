@@ -68,6 +68,7 @@ fun SearchAppBar(
     navigationIcon: @Composable (() -> Unit)? = null,
     actions: @Composable (() -> Unit)? = null,
     scrollBehavior: TopAppBarScrollBehavior? = null,
+    showSearch: Boolean = true,
     defaultContent: @Composable BoxScope.(bottomPadding: Dp, closeSearch: () -> Unit) -> Unit = { _, _ -> },
     searchContent: @Composable BoxScope.(bottomPadding: Dp, closeSearch: () -> Unit) -> Unit = { _, _ -> }
 ) {
@@ -94,6 +95,10 @@ fun SearchAppBar(
         scope.launch { searchBarState.animateToCollapsed() }
         focusManager.clearFocus()
         keyboardController?.hide()
+    }
+
+    LaunchedEffect(showSearch) {
+        if (!showSearch && isSearchExpanded) collapseAndClear()
     }
 
     DisposableEffect(Unit) {
@@ -194,7 +199,7 @@ fun SearchAppBar(
                 scrollBehavior = scrollBehavior
             )
 
-            SearchBar(
+            if (showSearch) SearchBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))

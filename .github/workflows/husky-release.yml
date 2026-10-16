@@ -282,11 +282,16 @@ jobs:
           - Package: \`me.weishu.kernelsu.husky.fork\`
           - KMI: \`android14-6.1\` + \`android16-6.12\` (OTA inactive slot)
           - Assets: \`HuskySU.apk\`, \`android14-6.1_kernelsu.ko\`, \`android16-6.12_kernelsu.ko\`
-          - Changes: native Material 3 Expressive controls, accessibility fixes and GKI-independent UI eligibility
-          - Fix: independent Manager/driver build numbers are distinct from interface incompatibility; LKM updates require verified exact kernel release, KMI and page-size metadata
+          - Manager: configurable home dashboard, native Material 3 Expressive information sheets and explicit install/restore review
+          - Superuser: remembered Granted/All/Custom filters, UID-aware application sheets, grant confirmation and explicitly saved profiles
+          - Fix: refresh Manager authorization flags and report driver, Manager authorization, UAPI, Root shell and service failures separately; diagnostics can be copied locally
+          - Recovery: read-only backup inspection, reviewed image identity checks and accurate pending-reboot state
+          - Compatibility: independent Manager/driver build numbers are distinct from interface incompatibility; LKM updates require verified exact kernel release, KMI and page-size metadata
           - Production package/certificate verified; manifest and SHA256SUMS included
           - Generic LKM builds require exact target validation. They are not the pinned ZP11.260918.007 / 6.1.172 Canary candidate.
           - Canary private-ABI/CFI, cold-boot/recovery and full visual acceptance remain incomplete. Independent experimental loading remains disabled.
+          - Device-side cause of the reported Superuser read block still requires fresh diagnostics or PC verification. Production signing does not replace interface or Manager-authorization checks.
+          - This APK uses the existing production signer. A test-signed APK with the same package name must be uninstalled before installation; uninstalling clears Manager-local settings.
 
           Based on [KernelSU](https://github.com/tiann/KernelSU). See docs/README Credits.
 

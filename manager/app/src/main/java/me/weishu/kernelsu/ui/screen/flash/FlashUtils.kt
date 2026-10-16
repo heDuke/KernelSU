@@ -99,6 +99,9 @@ sealed class FlashIt : Parcelable {
     data object FlashRestore : FlashIt()
 
     @Parcelize
+    data class FlashRestoreReviewed(val expectedImageSha256: String) : FlashIt()
+
+    @Parcelize
     data object FlashUninstall : FlashIt()
 }
 
@@ -153,6 +156,7 @@ fun flashIt(
         }
 
         FlashIt.FlashRestore -> restoreBoot(onStdout, onStderr)
+        is FlashIt.FlashRestoreReviewed -> restoreBoot(onStdout, onStderr, flashIt.expectedImageSha256)
         FlashIt.FlashUninstall -> uninstallPermanently(onStdout, onStderr)
     }
 }

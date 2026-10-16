@@ -1,5 +1,12 @@
 # Home dashboard implementation
 
+2026-10-16 follow-up: the accepted Inware-inspired in-place editor, grouped
+information sheets, paired color policy and review corrections are tracked in
+[Home dashboard and Expressive information sheets](2026-10-16-home-sheets-expressive.md).
+That revision supersedes the single-card sheet editor below. Its corrections
+and physical acceptance are pending; historical implementation records below
+do not mark the new work complete.
+
 Confirmed 2026-10-15. Baseline: main 7f68a85a (all remote branches consolidated). Inware is a grouping/readability
 reference, not an implementation or exact visual template. Keep native Material
 3 Expressive controls and theme. User delegates device testing to PC Codex.

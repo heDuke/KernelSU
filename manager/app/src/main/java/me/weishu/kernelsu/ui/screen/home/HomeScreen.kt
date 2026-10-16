@@ -50,6 +50,7 @@ fun HomePager(
 
     val moduleViewModel = viewModel<ModuleViewModel>()
     val moduleState by moduleViewModel.uiState.collectAsStateWithLifecycle()
+    val rebootRecord by me.weishu.kernelsu.data.repository.ModuleRebootStore.state.collectAsStateWithLifecycle()
     val completed by ModuleInstallController.completion.collectAsStateWithLifecycle()
     val lifecycle = LocalLifecycleOwner.current
     val pager = LocalMainPagerState.current
@@ -78,11 +79,11 @@ fun HomePager(
             Toast.makeText(context, result.exceptionOrNull()?.message ?: context.getString(R.string.dashboard_export), Toast.LENGTH_LONG).show()
         }
     }
-    fun batch(restore: Boolean) {
+    fun batch(review: ModuleBatchReview) {
         if (batchBusy) return
         scope.launch {
             try {
-                val result = HomeModuleBatch.run(restore)
+                val result = HomeModuleBatch.run(review)
                 Toast.makeText(context, result.fold({ if (it == 0) context.getString(R.string.dashboard_no_todos) else "$it · " + context.getString(R.string.reboot_to_apply) }, { it.message }), Toast.LENGTH_LONG).show()
                 moduleViewModel.fetchModuleList(checkUpdate = true)
             } finally { moduleViewModel.markNeedRefresh() }
@@ -152,8 +153,7 @@ fun HomePager(
         onReboot = { scope.launch(Dispatchers.IO) {
             if (me.weishu.kernelsu.Natives.isManager && me.weishu.kernelsu.ui.util.rootAvailable()) me.weishu.kernelsu.ui.util.reboot()
         } },
-        onDisableModules = { batch(false) },
-        onRestoreModules = { batch(true) },
+        onApplyModuleBatch = ::batch,
         onCheckHuskyUpdate = viewModel::checkHuskyUpdate,
         onUpdateLkm = viewModel::updateLkm,
         onDownloadLkmToDownloads = viewModel::downloadLkmToDownloads,
@@ -174,7 +174,7 @@ fun HomePager(
     )
 
     HomePagerMaterial(
-        state = uiState.copy(moduleBatchBusy = batchBusy),
+        state = uiState.copy(moduleBatchBusy = batchBusy, pendingReboot = rebootRecord.record.pending, pendingRebootError = rebootRecord.error),
         actions = actions,
         bottomInnerPadding = bottomInnerPadding,
         modules = moduleState,

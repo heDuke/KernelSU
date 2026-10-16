@@ -31,6 +31,9 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import me.weishu.kernelsu.ui.screen.home.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.FactCheck
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.ui.component.choosekmidialog.ChooseKmiDialog
 import me.weishu.kernelsu.ui.component.dialog.DownloadDialog
@@ -72,6 +75,7 @@ fun InstallScreen(preselectedLkm: Uri? = null, preferOta: Boolean = false, check
     var flashLocalImage by rememberSaveable { mutableStateOf(false) }
     var outputUri by rememberSaveable { mutableStateOf<Uri?>(null) }
     var review by rememberSaveable { mutableStateOf<InstallReviewSnapshot?>(null) }
+    var preflightJob by remember { mutableStateOf<Job?>(null) }
     var reviewing by remember { mutableStateOf(false) }
     var checking by remember { mutableStateOf(false) }
     var reviewError by rememberSaveable { mutableStateOf<String?>(null) }
@@ -97,7 +101,8 @@ fun InstallScreen(preselectedLkm: Uri? = null, preferOta: Boolean = false, check
     val selectFileSummary = selectFileTip
     // Eligibility is checked against the selected image/module by the patcher.
     val canDirectInstall = rootAvailable
-    LaunchedEffect(canDirectInstall, installMethod, isAbDevice) {
+    LaunchedEffect(canDirectInstall, installMethod, isAbDevice, reviewing, review != null) {
+        if (reviewing || review != null) return@LaunchedEffect
         if (preferOta && isAbDevice == null) return@LaunchedEffect
         when {
             installMethod is InstallMethod.DownloadFile -> {
@@ -135,7 +140,8 @@ fun InstallScreen(preselectedLkm: Uri? = null, preferOta: Boolean = false, check
         partitions.indexOf(defaultPartition).coerceAtLeast(0)
     }
 
-    LaunchedEffect(partitions, defaultIndex, hasCustomSelected) {
+    LaunchedEffect(partitions, defaultIndex, hasCustomSelected, reviewing, review != null) {
+        if (reviewing || review != null) return@LaunchedEffect
         if (partitions.isEmpty()) return@LaunchedEffect
         if (!hasCustomSelected) {
             partitionSelectionIndex = defaultIndex.coerceIn(0, partitions.lastIndex)
@@ -169,7 +175,7 @@ fun InstallScreen(preselectedLkm: Uri? = null, preferOta: Boolean = false, check
         val chosenShell = allowShell; val chosenAdb = enableAdb; val chosenBackup = forceBackup
         val chosenOta = method is InstallMethod.DirectInstallToInactiveSlot
         val chosenLocalFlash = flashLocalImage && method is InstallMethod.SelectFile
-        scope.launch {
+        preflightJob = scope.launch {
             val inputs = linkedMapOf<String, String>()
             try {
                 if (method is InstallMethod.SelectFile) requireNotNull(method.uri) { resources.getString(R.string.dashboard_select_input) }
@@ -228,8 +234,21 @@ fun InstallScreen(preselectedLkm: Uri? = null, preferOta: Boolean = false, check
                     if (conflict) appendLine(resources.getString(R.string.dashboard_check_failure))
                     appendLine("load_attempted=false; partitions_written=false")
                 }
+                val outputName = chosenOutput?.let { destination -> withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    runCatching { context.contentResolver.query(destination, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                        if (cursor.moveToFirst()) cursor.getString(0).filterNot(Char::isISOControl).take(160) else null
+                    } }.getOrNull() ?: unknown
+                } }
+                val summary = linkedMapOf(
+                    resources.getString(R.string.home_sheet_operation) to resources.getString(method.label),
+                    resources.getString(R.string.dashboard_device) to android.os.Build.MODEL,
+                    resources.getString(R.string.dashboard_restore_target) to "${partition ?: unknown} ${chosenSlot.ifBlank { unknown }}",
+                    resources.getString(R.string.dashboard_output) to resources.getString(if (readOnly) R.string.dashboard_check_only else if (chosenLocalFlash) R.string.dashboard_patch_flash_output else if (direct) R.string.dashboard_direct_output else R.string.dashboard_local_output),
+                    resources.getString(R.string.home_sheet_backup_policy) to resources.getString(if (chosenBackup) R.string.home_sheet_backup_required else R.string.home_sheet_backup_backend))
+                if (outputName != null) summary[resources.getString(R.string.dashboard_output)] = outputName
+                listOfNotNull(image, module).forEachIndexed { index, input -> summary[resources.getString(R.string.dashboard_file) + " ${index + 1}"] = input.name + " · " + android.text.format.Formatter.formatFileSize(context, input.bytes) }
                 review = InstallReviewSnapshot(operation, report, inputs, !conflict, readOnly,
-                    expectedSlot = chosenSlot, expectedRelease = release, expectedFingerprint = android.os.Build.FINGERPRINT)
+                    expectedSlot = chosenSlot, expectedRelease = release, expectedFingerprint = android.os.Build.FINGERPRINT, summary = summary)
             } catch (error: Exception) {
                 releaseReviewedInputs(context, inputs)
                 if (error is CancellationException) throw error
@@ -392,24 +411,26 @@ fun InstallScreen(preselectedLkm: Uri? = null, preferOta: Boolean = false, check
     )
 
     InstallScreenMaterial(state, actions, snackbarHost)
+    if (reviewing) AlertDialog(onDismissRequest = { preflightJob?.cancel() },
+        title = { Text(stringResource(R.string.home_sheet_preflight_working)) },
+        text = { Column(verticalArrangement = Arrangement.spacedBy(12.dp)) { LoadingIndicator(); Text(stringResource(R.string.home_sheet_preflight_note)) } },
+        confirmButton = {}, dismissButton = { TextButton(onClick = { preflightJob?.cancel() }) { Text(stringResource(android.R.string.cancel)) } })
     review?.let { snapshot ->
         fun dismissReview() {
             if (!checking) { review = null; scope.launch { releaseReviewedInputs(context, snapshot.inputs) } }
         }
-        ModalBottomSheet(sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden), onDismissRequest = ::dismissReview) {
-            Column(Modifier.fillMaxWidth().heightIn(max = 650.dp).verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(stringResource(if (snapshot.checkOnly) R.string.dashboard_check_only else R.string.dashboard_review), style = MaterialTheme.typography.headlineSmall)
-                androidx.compose.foundation.text.selection.SelectionContainer { Text(snapshot.report) }
-                Text(stringResource(R.string.dashboard_install_warning))
-                reviewError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-                TextButton(onClick = { reportExport.launch("HuskySU-preflight-${System.currentTimeMillis()}.txt") }) { Text(stringResource(R.string.dashboard_export)) }
-                if (!snapshot.checkOnly) Button(enabled = snapshot.allowed && !checking, shapes = ButtonDefaults.shapes(), onClick = {
+        HomeInformationSheet(snapshot.inputs, stringResource(if (snapshot.checkOnly) R.string.dashboard_check_only else R.string.dashboard_review),
+            onDismiss = ::dismissReview, dismissEnabled = !checking,
+            onReport = { reportExport.launch("HuskySU-preflight-${System.currentTimeMillis()}.txt") },
+            footer = if (snapshot.checkOnly) null else ({
+                if (checking) { LinearProgressIndicator(Modifier.fillMaxWidth()); Text(stringResource(R.string.home_sheet_preflight_verifying)) }
+                Button(enabled = snapshot.allowed && !checking, shapes = ButtonDefaults.shapes(), onClick = {
                     checking = true
                     scope.launch {
                         try {
                             verifyReviewedInputs(context, snapshot.inputs)
                             if ((snapshot.operation as? FlashIt.FlashBoot)?.let { it.boot == null || it.flashSourceImage } == true) {
-                                val op = snapshot.operation as FlashIt.FlashBoot
+                                val op = snapshot.operation
                                 check(android.os.Build.FINGERPRINT == snapshot.expectedFingerprint && android.system.Os.uname().release == snapshot.expectedRelease) { "Device/build changed; review again" }
                                 check(withContext(kotlinx.coroutines.Dispatchers.IO) { getSlotSuffix(op.ota) } == snapshot.expectedSlot) { "Target slot changed; review again" }
                                 check(withContext(kotlinx.coroutines.Dispatchers.IO) { me.weishu.kernelsu.Natives.isManager && !me.weishu.kernelsu.Natives.isSafeMode && !me.weishu.kernelsu.Natives.requireNewKernel() && rootAvailable() }) { resources.getString(R.string.dashboard_permission_missing) }
@@ -419,9 +440,16 @@ fun InstallScreen(preselectedLkm: Uri? = null, preferOta: Boolean = false, check
                         } catch (error: Exception) { if (error is CancellationException) throw error; reviewError = error.message }
                         finally { checking = false }
                     }
+
                 }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.dashboard_confirm_write)) }
-                TextButton(enabled = !checking, onClick = ::dismissReview) { Text(stringResource(android.R.string.cancel)) }
-            }
+            })) {
+            HomeStateCard(stringResource(if (!snapshot.allowed) R.string.dashboard_check_failure else if (snapshot.checkOnly) R.string.home_sheet_check_completed else R.string.home_sheet_ready_review),
+                stringResource(if (snapshot.checkOnly) R.string.home_sheet_check_only_note else R.string.dashboard_install_warning), Icons.AutoMirrored.Outlined.FactCheck,
+                if (!snapshot.allowed) HomeTone.Error else HomeTone.Primary)
+            HomeFacts(stringResource(R.string.home_sheet_execution_summary), snapshot.summary.toList())
+            Text(stringResource(R.string.dashboard_preflight_note))
+            reviewError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            HomeTechnicalDetails(snapshot.inputs) { androidx.compose.foundation.text.selection.SelectionContainer { Text(snapshot.report) } }
         }
     }
 }

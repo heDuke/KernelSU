@@ -16,6 +16,11 @@ data class AppInfo(
     val uid: Int
         get() = packageInfo.applicationInfo!!.uid
 
+    fun authorizationIdentity() = AuthorizationIdentity(
+        packageName, uid, packageInfo.longVersionCode,
+        packageInfo.firstInstallTime, packageInfo.lastUpdateTime,
+    )
+
     val allowSu: Boolean
         get() = profile != null && profile.allowSu
     val hasCustomProfile: Boolean

@@ -1,5 +1,12 @@
 # HuskySU Manager: official Material 3 Expressive design
 
+2026-10-16 home/sheet refinement: the accepted summary-first sheet hierarchy,
+paired color mapping, Inware-inspired in-place dashboard editing and review
+corrections are specified in
+[Home dashboard and Expressive information sheets](../plans/2026-10-16-home-sheets-expressive.md).
+Follow that refinement for these surfaces; the native component and privileged
+operation requirements in this spec still apply.
+
 Date: 2026-10-12. Updated 2026-10-13: implementation resumed by the user;
 Manager code and local build/tests completed, physical-device acceptance pending.
 Scope: Android phone/tablet Manager, including experimental-loader settings and

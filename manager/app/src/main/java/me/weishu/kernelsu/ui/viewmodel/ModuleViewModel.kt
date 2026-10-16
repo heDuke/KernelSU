@@ -425,7 +425,7 @@ class ModuleViewModel(
             try {
                 val res = ksuApp.resources
                 val success = withContext(Dispatchers.IO) {
-                    toggleModuleUtil(module.id, !module.enabled)
+                    toggleModuleUtil(module.id, !module.enabled).also { if (it) me.weishu.kernelsu.data.repository.ModuleRebootStore.markChanged() }
                 }
                 if (success) {
                     fetchModuleList(checkUpdate = true, resort = false)
@@ -447,7 +447,7 @@ class ModuleViewModel(
             try {
                 val res = ksuApp.resources
                 val success = withContext(Dispatchers.IO) {
-                    uninstallModuleUtil(module.id)
+                    uninstallModuleUtil(module.id).also { if (it) me.weishu.kernelsu.data.repository.ModuleRebootStore.markChanged() }
                 }
                 if (success) {
                     fetchModuleList(checkUpdate = true, resort = false)

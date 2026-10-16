@@ -40,6 +40,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberTopAppBarState
@@ -98,6 +100,9 @@ fun AppProfileScreenMaterial(
         topBar = {
             TopBar(
                 onBack = actions.onBack,
+                onSave = actions.onSave,
+                canSave = state.hasChanges && !state.isSaving,
+                isSaving = state.isSaving,
                 scrollBehavior = scrollBehavior,
                 isUidGroup = state.isUidGroup,
                 packageName = state.packageName,
@@ -136,6 +141,8 @@ fun AppProfileScreenMaterial(
             onViewTemplate = actions.onViewTemplate,
             onManageTemplate = actions.onManageTemplate,
             onProfileChange = actions.onProfileChange,
+            grantPending = state.grantPending,
+            enabled = !state.isSaving,
         )
     }
 }
@@ -156,6 +163,8 @@ private fun AppProfileInner(
     onViewTemplate: (id: String) -> Unit = {},
     onManageTemplate: () -> Unit = {},
     onProfileChange: (Natives.Profile) -> Unit,
+    grantPending: Boolean = false,
+    enabled: Boolean = true,
 ) {
     val isRootGranted = profile.allowSu
     val userId = appUid / 100000
@@ -191,7 +200,12 @@ private fun AppProfileInner(
         AppProfileGrantCard(
             isRootGranted = isRootGranted,
             mode = mode,
+            pending = grantPending,
         )
+        Text(stringResource(R.string.su_profile_draft),
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
         SegmentedColumn(
             modifier = Modifier
                 .fillMaxWidth()
@@ -202,6 +216,7 @@ private fun AppProfileInner(
                         icon = Icons.Filled.Security,
                         title = stringResource(id = R.string.superuser),
                         checked = isRootGranted,
+                        enabled = enabled,
                         onCheckedChange = { onProfileChange(profile.copy(allowSu = it)) },
                     )
                 },
@@ -217,7 +232,7 @@ private fun AppProfileInner(
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
                 if (current) {
-                    ProfileBox(mode, true) {
+                    ProfileBox(mode, true, enabled) {
                         // template mode shouldn't change profile here!
                         if (it == Mode.Default || it == Mode.Custom) {
                             onProfileChange(
@@ -248,13 +263,13 @@ private fun AppProfileInner(
                     ) {
                         RootProfileConfig(
                             fixedName = true,
-                            enabled = mode == Mode.Custom,
+                            enabled = enabled && mode == Mode.Custom,
                             profile = profile,
                             onProfileChange = onProfileChange
                         )
                     }
                 } else {
-                    ProfileBox(mode, false) {
+                    ProfileBox(mode, false, enabled) {
                         onProfileChange(profile.copy(nonRootUseDefault = (it == Mode.Default)))
                     }
                     AnimatedVisibility(
@@ -265,7 +280,7 @@ private fun AppProfileInner(
                         AppProfileConfig(
                             fixedName = true,
                             profile = profile,
-                            enabled = mode == Mode.Custom,
+                            enabled = enabled && mode == Mode.Custom,
                             onProfileChange = onProfileChange
                         )
                     }
@@ -370,17 +385,19 @@ private fun AppProfileHeroCard(
 private fun AppProfileGrantCard(
     isRootGranted: Boolean,
     mode: Mode,
+    pending: Boolean = false,
 ) {
     val containerColor = if (isRootGranted) {
         MaterialTheme.colorScheme.secondaryContainer
     } else {
-        MaterialTheme.colorScheme.tertiaryContainer
+        MaterialTheme.colorScheme.surfaceContainerHigh
     }
-    val title = if (isRootGranted) {
-        stringResource(R.string.app_profile_granted)
-    } else {
-        stringResource(R.string.app_profile_not_granted)
-    }
+    val title = stringResource(when {
+        pending && isRootGranted -> R.string.su_pending_grant
+        pending -> R.string.su_pending_revoke
+        isRootGranted -> R.string.app_profile_granted
+        else -> R.string.app_profile_not_granted
+    })
     TonalCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -417,6 +434,9 @@ private fun AppProfileGrantCard(
 @Composable
 private fun TopBar(
     onBack: () -> Unit,
+    onSave: () -> Unit,
+    canSave: Boolean,
+    isSaving: Boolean,
     scrollBehavior: TopAppBarScrollBehavior? = null,
     isUidGroup: Boolean = false,
     packageName: String = "",
@@ -432,7 +452,11 @@ private fun TopBar(
             TopBarBackButton(onClick = onBack)
         },
         actions = {
-            if (!isUidGroup) {
+            if (isSaving) CircularProgressIndicator(Modifier.padding(12.dp).size(24.dp))
+            else TextButton(onClick = onSave, enabled = canSave) {
+                Text(stringResource(R.string.dashboard_save))
+            }
+            if (!isUidGroup && !isSaving) {
                 var showDropdown by remember { mutableStateOf(false) }
 
                 IconButton(
@@ -479,6 +503,7 @@ private fun TopBar(
 private fun ProfileBox(
     mode: Mode,
     hasTemplate: Boolean,
+    enabled: Boolean = true,
     onModeChange: (Mode) -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
@@ -503,7 +528,7 @@ private fun ProfileBox(
                         onModeChange(m)
                     }
                 },
-                enabled = if (m == Mode.Template) hasTemplate else true,
+                enabled = enabled && (m != Mode.Template || hasTemplate),
                 modifier = Modifier
                     .weight(1f)
                     .semantics { role = Role.RadioButton },

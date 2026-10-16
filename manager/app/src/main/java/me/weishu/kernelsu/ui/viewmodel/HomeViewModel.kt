@@ -74,13 +74,14 @@ class HomeViewModel(
         if (refreshJob?.isActive == true) return
         refreshJob = viewModelScope.launch {
             val (baseState, abDevice) = withContext(Dispatchers.IO) {
+                me.weishu.kernelsu.data.repository.ModuleRebootStore.refreshBoot()
                 val state = buildState()
                 val faults = buildSet {
                     if (state.isSafeMode) add("safe_mode")
                     if (state.ksuVersion != null && !state.isRootAvailable) add("root_unavailable")
                     if (state.requiresNewKernel || state.showVersionMismatchWarning) add("interface_mismatch")
                 }
-                state.copy(loaded = true, observedAt = android.os.SystemClock.elapsedRealtime(),
+                state.copy(loaded = true, observedAt = android.os.SystemClock.elapsedRealtime(), observedWallTime = System.currentTimeMillis(),
                     runtime = runtimeRepo.observe(state.ksuVersion != null, faults), runtimeError = runtimeRepo.error,
                     pageSize = runCatching { me.weishu.kernelsu.ui.util.getKernelPageSize() }.getOrNull(),
                     slot = runCatching { me.weishu.kernelsu.ui.util.getSlotSuffix(false) }.getOrNull()) to isAbDevice()
@@ -96,6 +97,7 @@ class HomeViewModel(
                     envReport = it.envReport,
                     envOverall = it.envOverall,
                     envSummaryLine = it.envSummaryLine,
+                    envChecking = it.envChecking,
                 )
             }
             if (baseState.checkUpdateEnabled && _uiState.value.huskyUpdateStatus == HuskyUpdateStatus.Idle) {
@@ -104,10 +106,14 @@ class HomeViewModel(
         }
     }
 
+    private var envGeneration = 0
     private var envJob: kotlinx.coroutines.Job? = null
     private fun refreshEnvSummary() {
+        val generation = ++envGeneration
         envJob?.cancel()
+        _uiState.update { it.copy(envChecking = true) }
         envJob = viewModelScope.launch {
+          try {
             val result = envCheckRepo.runCheck()
             kotlinx.coroutines.currentCoroutineContext().ensureActive()
             result.fold(
@@ -131,10 +137,12 @@ class HomeViewModel(
                     }
                 },
             )
+          } finally { if (generation == envGeneration) _uiState.update { it.copy(envChecking = false) } }
         }
     }
 
     fun checkHuskyUpdate() {
+        if (_uiState.value.huskyBusy) return
         viewModelScope.launch { checkHuskyRelease() }
     }
 
