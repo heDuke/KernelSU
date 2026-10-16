@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.ContactPage
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeveloperMode
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material.icons.filled.ElectricalServices
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Extension
@@ -405,6 +406,17 @@ fun SettingPagerMaterial(
                         enabled = uiState.isLateLoadMode,
                         checked = uiState.autoJailbreak,
                         onCheckedChange = actions.onSetAutoJailbreak
+                    )
+                }
+                item(visible = advancedExpanded) {
+                    SegmentedListItem(
+                        onClick = { navigator.push(me.weishu.kernelsu.ui.navigation3.Route.Terminal) },
+                        enabled = ksuValid,
+                        headlineContent = { Text(stringResource(id = R.string.terminal_title)) },
+                        supportingContent = {
+                            Text(stringResource(id = if (ksuValid) R.string.terminal_settings_summary else R.string.terminal_settings_unavailable))
+                        },
+                        leadingContent = { Icon(Icons.Filled.Terminal, stringResource(id = R.string.terminal_title)) },
                     )
                 }
                 item(visible = advancedExpanded) {

@@ -871,4 +871,18 @@
     <string name="su_diagnostics">Show diagnostics</string>
     <string name="su_hide_diagnostics">Hide diagnostics</string>
     <string name="su_copy_diagnostics">Copy diagnostics</string>
+    <string name="terminal_title">Temporary root terminal</string>
+    <string name="terminal_settings_summary">Run commands in a temporary su session. Nothing is saved.</string>
+    <string name="terminal_settings_unavailable">Requires an active root (manager) state</string>
+    <string name="terminal_warning_title">Root terminal</string>
+    <string name="terminal_warning_message">Commands run as root with full access to the system. A wrong command can delete data or make the device unbootable. The session ends when you leave this screen or after 5 minutes in the background, and no history is kept.</string>
+    <string name="terminal_warning_accept">I understand</string>
+    <string name="terminal_status_active">Session active</string>
+    <string name="terminal_status_ended">Session ended</string>
+    <string name="terminal_interrupt">Interrupt (Ctrl-C)</string>
+    <string name="terminal_clear">Clear</string>
+    <string name="terminal_export">Export log</string>
+    <string name="terminal_input_hint">Command</string>
+    <string name="terminal_run">Run</string>
+    <string name="terminal_restart">New session</string>
 </resources>

@@ -174,6 +174,7 @@ class MainActivity : ComponentActivity() {
                                 entry<Route.About> { AboutScreen() }
                                 entry<Route.EnvCheck> { EnvCheckScreen() }
                                 entry<Route.Sulog> { SulogScreen() }
+                                entry<Route.Terminal> { me.weishu.kernelsu.ui.screen.terminal.TerminalScreen() }
                                 entry<Route.AppProfileTemplate> { AppProfileTemplateScreen() }
                                 entry<Route.TemplateEditor> { key -> TemplateEditorScreen(key.template, key.readOnly) }
                                 entry<Route.AppProfile> { key -> AppProfileScreen(key.uid) }

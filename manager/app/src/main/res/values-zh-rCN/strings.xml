@@ -866,4 +866,18 @@ KernelSU 完成后，请回到系统更新点击重新启动。
     <string name="su_diagnostics">诊断信息</string>
     <string name="su_hide_diagnostics">收起诊断信息</string>
     <string name="su_copy_diagnostics">复制诊断信息</string>
+    <string name="terminal_title">临时 Root 终端</string>
+    <string name="terminal_settings_summary">在临时 su 会话中执行命令，不保存任何内容。</string>
+    <string name="terminal_settings_unavailable">需要已激活的 Root（管理器）状态</string>
+    <string name="terminal_warning_title">Root 终端</string>
+    <string name="terminal_warning_message">命令将以 Root 身份执行，拥有系统的完全访问权限。错误的命令可能删除数据或导致设备无法启动。离开此页面或在后台超过 5 分钟后会话将结束，且不会保留历史记录。</string>
+    <string name="terminal_warning_accept">我已了解</string>
+    <string name="terminal_status_active">会话进行中</string>
+    <string name="terminal_status_ended">会话已结束</string>
+    <string name="terminal_interrupt">中断（Ctrl-C）</string>
+    <string name="terminal_clear">清屏</string>
+    <string name="terminal_export">导出日志</string>
+    <string name="terminal_input_hint">命令</string>
+    <string name="terminal_run">执行</string>
+    <string name="terminal_restart">新建会话</string>
 </resources>
