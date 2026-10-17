@@ -5,7 +5,7 @@ buildable commits, retaining the original remote branches for comparison.
 
 - [x] ZIP: ksud-supported compression, typed preflight failures, localized error
   categories, exportable failure logs, metadata and error-category regressions.
-- [ ] Terminal: squash both dependent source commits, serialize startup/exit,
+- [x] Terminal: squash both dependent source commits, serialize startup/exit,
   clean up owned processes, verify root readiness and interrupt results, bound
   output, retain line-oriented (non-PTY) scope, run lifecycle regressions.
 - [ ] Updates: distinguish request errors, manifest errors and missing exact
@@ -18,3 +18,9 @@ Canary runtime acceptance or publish a new production release. Module-page
 redesign remains a separate, confirmed-design implementation batch.
 
 ZIP validation: `compileReleaseKotlin testDebugUnitTest --tests *ModulePackageChecksTest` passed.
+
+Terminal validation: both reproduced lifecycle failures now pass, together with
+root-readiness, background-before-start, failed-interrupt, bounded-output and
+cleanup-after-owner-cancellation regressions. Release Kotlin compilation passed.
+The shell requires Android toybox setsid; deliberately detached processes and
+full PTY interactions remain outside the first version. Verify on the PC device.

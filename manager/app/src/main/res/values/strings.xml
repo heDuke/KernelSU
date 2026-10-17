@@ -902,4 +902,20 @@
     <string name="module_install_permission_failed">Access to the module file was denied. Select the file again.</string>
     <string name="module_install_download_failed">The module download did not complete. Check the connection and download source.</string>
     <string name="module_install_failed_detail">Module installation did not complete. View the log for the full reason.</string>
+    <string name="terminal_title">Temporary root terminal</string>
+    <string name="terminal_settings_summary">Run commands in a temporary su session. Nothing is saved.</string>
+    <string name="terminal_settings_unavailable">Requires an active root (manager) state</string>
+    <string name="terminal_warning_title">Root terminal</string>
+    <string name="terminal_warning_message">Commands run as root with full access to the system. A wrong command can delete data or make the device unbootable. The session ends when you leave this screen or after 5 minutes in the background, and no history is kept. This is a line-oriented command tool, not an interactive terminal. Progress that rewrites one line appears as separate lines.</string>
+    <string name="terminal_warning_accept">I understand</string>
+    <string name="terminal_status_active">Session active</string>
+    <string name="terminal_status_ended">Session ended</string>
+    <string name="terminal_interrupt">Interrupt (Ctrl-C)</string>
+    <string name="terminal_clear">Clear</string>
+    <string name="terminal_export">Export log</string>
+    <string name="terminal_input_hint">Command</string>
+    <string name="terminal_run">Run</string>
+    <string name="terminal_restart">New session</string>
+    <string name="terminal_status_starting">Verifying root session…</string>
+    <string name="terminal_start_failed">Cannot establish a verified, isolated root session. Check manager authorization and setsid support.</string>
 </resources>
