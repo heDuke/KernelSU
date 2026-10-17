@@ -24,7 +24,10 @@ import me.weishu.kernelsu.R
 import me.weishu.kernelsu.data.model.EnvCheckSeverity
 import me.weishu.kernelsu.data.model.HuskyRelease
 import me.weishu.kernelsu.data.model.LkmAsset
-import me.weishu.kernelsu.data.model.selectLkmAsset
+import me.weishu.kernelsu.data.model.assessLkmUpdate
+import me.weishu.kernelsu.data.model.LkmUpdateAvailability
+import me.weishu.kernelsu.data.model.LkmUpdateAssessment
+import me.weishu.kernelsu.data.repository.ReleaseHttpException
 import me.weishu.kernelsu.data.repository.EnvCheckRepository
 import me.weishu.kernelsu.data.repository.EnvCheckRepositoryImpl
 import me.weishu.kernelsu.data.repository.HuskyReleaseRepository
@@ -92,6 +95,7 @@ class HomeViewModel(
                     huskyRelease = it.huskyRelease,
                     huskyUpdateStatus = it.huskyUpdateStatus,
                     huskyError = it.huskyError,
+                    huskyDiagnostic = it.huskyDiagnostic,
                     latestVersionInfo = it.latestVersionInfo,
                     isAbDevice = abDevice,
                     envReport = it.envReport,
@@ -166,14 +170,16 @@ class HomeViewModel(
                             huskyRelease = release,
                             huskyUpdateStatus = HuskyUpdateStatus.Available,
                             huskyError = null,
+                            huskyDiagnostic = null,
                         )
                     }
                 },
                 onFailure = { error ->
                     _uiState.update {
                         it.copy(
-                            huskyUpdateStatus = HuskyUpdateStatus.Error,
-                            huskyError = error.message ?: error.toString(),
+                            huskyUpdateStatus = HuskyUpdateStatus.DownloadError,
+                            huskyError = ksuApp.getString(R.string.husky_lkm_download_failed),
+                            huskyDiagnostic = error.stackTraceToString().take(16384),
                         )
                     }
                 },
@@ -198,8 +204,9 @@ class HomeViewModel(
                 onFailure = { error ->
                     _uiState.update {
                         it.copy(
-                            huskyUpdateStatus = HuskyUpdateStatus.Error,
-                            huskyError = error.message ?: error.toString(),
+                            huskyUpdateStatus = HuskyUpdateStatus.DownloadError,
+                            huskyError = ksuApp.getString(R.string.husky_lkm_download_failed),
+                            huskyDiagnostic = error.stackTraceToString().take(16384),
                         )
                     }
                 },
@@ -217,18 +224,23 @@ class HomeViewModel(
         return checkHuskyRelease()
     }
 
-    private suspend fun selectCurrentAsset(release: HuskyRelease): LkmAsset? = try {
-        selectLkmAsset(release.lkmAssets, LoaderClient.currentKmi().trim(),
-            LoaderClient.currentPageSize(), Os.uname().release)
+    private suspend fun assessCurrentRelease(release: HuskyRelease): LkmUpdateAssessment = try {
+        assessLkmUpdate(release, _uiState.value.ksuVersion?.toLong() ?: 0L,
+            LoaderClient.currentKmi().trim(), LoaderClient.currentPageSize(), Os.uname().release)
+    } catch (cancelled: kotlinx.coroutines.CancellationException) {
+        throw cancelled
     } catch (error: Exception) {
-        if (error is kotlinx.coroutines.CancellationException) throw error
-        _uiState.update { it.copy(huskyUpdateStatus = HuskyUpdateStatus.NoMatchingLkm,
-            huskyError = release.lkmMetadataError ?: ksuApp.getString(R.string.husky_lkm_target_unavailable, Os.uname().release)) }
-        null
+        LkmUpdateAssessment(LkmUpdateAvailability.DeviceUnknown, diagnostic = error.stackTraceToString().take(16384))
+    }
+
+    private suspend fun selectCurrentAsset(release: HuskyRelease): LkmAsset? {
+        val assessment = assessCurrentRelease(release)
+        if (assessment.candidate == null) applyRelease(release)
+        return assessment.candidate
     }
 
     private suspend fun checkHuskyRelease(): HuskyRelease? {
-        _uiState.update { it.copy(huskyUpdateStatus = HuskyUpdateStatus.Checking, huskyError = null) }
+        _uiState.update { it.copy(huskyUpdateStatus = HuskyUpdateStatus.Checking, huskyError = null, huskyDiagnostic = null) }
         val result = huskyRepo.fetchLatest()
         return result.fold(
             onSuccess = { release ->
@@ -241,14 +253,14 @@ class HomeViewModel(
                         ksuApp.getString(R.string.husky_update_no_release)
                     error.message == "Network unavailable" ->
                         ksuApp.getString(R.string.network_offline)
-                    else ->
-                        ksuApp.getString(
-                            R.string.husky_update_check_failed,
-                            error.message ?: error.toString(),
-                        )
+                    error is ReleaseHttpException -> if (error.rateLimited)
+                        ksuApp.getString(R.string.husky_update_rate_limited)
+                        else ksuApp.getString(R.string.husky_update_http_failed, error.statusCode)
+                    else -> ksuApp.getString(R.string.husky_update_request_failed)
                 }
                 _uiState.update {
-                    it.copy(huskyUpdateStatus = HuskyUpdateStatus.Error, huskyError = message)
+                    it.copy(huskyUpdateStatus = HuskyUpdateStatus.Error, huskyError = message,
+                        huskyDiagnostic = error.stackTraceToString().take(16384))
                 }
                 null
             },
@@ -257,14 +269,7 @@ class HomeViewModel(
 
     private suspend fun applyRelease(release: HuskyRelease) {
         val current = _uiState.value
-        val installed = current.ksuVersion?.toLong() ?: 0L
-        val hasLkmUpdate = release.versionCode == 0L || release.versionCode > installed
-        val candidate = try {
-            selectLkmAsset(release.lkmAssets, LoaderClient.currentKmi().trim(),
-                LoaderClient.currentPageSize(), Os.uname().release)
-        } catch (cancelled: kotlinx.coroutines.CancellationException) {
-            throw cancelled
-        } catch (_: Exception) { null }
+        val assessment = assessCurrentRelease(release)
         val apkInfo = release.apkDownloadUrl?.let { apkUrl ->
             LatestVersionInfo(
                 versionCode = release.versionCode.toInt().coerceAtLeast(0),
@@ -276,15 +281,20 @@ class HomeViewModel(
         _uiState.update {
             it.copy(
                 huskyRelease = release,
-                huskyUpdateStatus = if (candidate == null) {
-                    HuskyUpdateStatus.NoMatchingLkm
-                } else if (hasLkmUpdate) {
-                    HuskyUpdateStatus.Available
-                } else {
-                    HuskyUpdateStatus.UpToDate
+                huskyUpdateStatus = when (assessment.availability) {
+                    LkmUpdateAvailability.Available -> HuskyUpdateStatus.Available
+                    LkmUpdateAvailability.UpToDate -> HuskyUpdateStatus.UpToDate
+                    LkmUpdateAvailability.NoMatchingTarget -> HuskyUpdateStatus.NoMatchingLkm
+                    LkmUpdateAvailability.MetadataRejected -> HuskyUpdateStatus.MetadataError
+                    LkmUpdateAvailability.DeviceUnknown -> HuskyUpdateStatus.Error
                 },
-                huskyError = if (candidate == null) release.lkmMetadataError ?:
-                    ksuApp.getString(R.string.husky_lkm_target_unavailable, Os.uname().release) else null,
+                huskyError = when (assessment.availability) {
+                    LkmUpdateAvailability.NoMatchingTarget -> ksuApp.getString(R.string.husky_lkm_no_published_target)
+                    LkmUpdateAvailability.MetadataRejected -> release.lkmMetadataError ?: ksuApp.getString(R.string.husky_lkm_metadata_unavailable)
+                    LkmUpdateAvailability.DeviceUnknown -> ksuApp.getString(R.string.husky_update_device_unknown)
+                    else -> null
+                },
+                huskyDiagnostic = assessment.diagnostic,
                 latestVersionInfo = apkInfo,
             )
         }

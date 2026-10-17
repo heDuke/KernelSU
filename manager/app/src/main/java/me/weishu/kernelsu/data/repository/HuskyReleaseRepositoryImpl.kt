@@ -32,7 +32,7 @@ class HuskyReleaseRepositoryImpl : HuskyReleaseRepository {
     }
 
     override suspend fun fetchLatest(): Result<HuskyRelease> = withContext(Dispatchers.IO) {
-        runCatching {
+        try {
             if (!isNetworkAvailable(ksuApp)) {
                 throw IOException("Network unavailable")
             }
@@ -44,18 +44,27 @@ class HuskyReleaseRepositoryImpl : HuskyReleaseRepository {
 
             val release = ksuApp.okhttpClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
-                    throw IOException("Fetch failed: ${response.code}")
+                    throw ReleaseHttpException(response.code,
+                        response.code == 429 || (response.code == 403 &&
+                            (response.header("X-RateLimit-Remaining") == "0" || response.header("Retry-After") != null)),
+                        response.header("Retry-After")?.toLongOrNull())
                 }
                 val releases = parseReleases(JSONArray(response.body.string()))
                 releases.maxWithOrNull(
                     compareBy<HuskyRelease> { it.versionCode }.thenBy { it.publishedAt }
                 ) ?: throw IOException("No husky release")
             }
-            loadTargetMetadata(release)
+            Result.success(loadTargetMetadata(release))
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            android.util.Log.w("HuskyRelease", "Release request failed", error)
+            Result.failure(error)
         }
     }
 
     private suspend fun loadTargetMetadata(release: HuskyRelease): HuskyRelease {
+        if (release.lkmAssets.isEmpty()) return release
         return try {
             val asset = requireNotNull(release.manifestAsset) { "Release has no target manifest" }
             require(asset.sizeBytes in 1L..262144L && asset.sha256?.matches(Regex("[0-9a-fA-F]{64}")) == true) {
@@ -77,7 +86,8 @@ class HuskyReleaseRepositoryImpl : HuskyReleaseRepository {
         } catch (error: Exception) {
             android.util.Log.w("HuskyRelease", "LKM target manifest rejected", error)
             // Keep the independent APK update even when the LKM target is unknown.
-            release.copy(lkmAssets = emptyList(), lkmMetadataError = ksuApp.getString(R.string.husky_lkm_metadata_unavailable))
+            release.copy(lkmAssets = emptyList(), lkmMetadataError = ksuApp.getString(R.string.husky_lkm_metadata_unavailable),
+                lkmMetadataDiagnostic = "Release ${release.tag}\n" + error.stackTraceToString().take(16384))
         }
     }
 

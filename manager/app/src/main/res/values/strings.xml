@@ -918,4 +918,11 @@
     <string name="terminal_restart">New session</string>
     <string name="terminal_status_starting">Verifying root session…</string>
     <string name="terminal_start_failed">Cannot establish a verified, isolated root session. Check manager authorization and setsid support.</string>
+    <string name="home_sheet_update_metadata_failed">LKM publication information could not be verified</string>
+    <string name="husky_lkm_download_failed">LKM download failed</string>
+    <string name="husky_update_rate_limited">GitHub has temporarily limited update requests. Try again later.</string>
+    <string name="husky_update_http_failed">The update service returned HTTP %1$d. View diagnostics for details.</string>
+    <string name="husky_update_request_failed">Could not complete the update check. Check the connection or view diagnostics.</string>
+    <string name="husky_lkm_no_published_target">This release has no LKM for the exact kernel and page size of this device. Keep the current driver; Manager updates remain independent.</string>
+    <string name="husky_update_device_unknown">Could not read the device kernel target. View diagnostics and retry.</string>
 </resources>
