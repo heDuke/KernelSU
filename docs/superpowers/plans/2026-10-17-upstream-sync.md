@@ -37,7 +37,7 @@ The verified husky-v32650 production release remains the rollback baseline.
   private symbols and keep existing no-force/no-blind-retry safeguards.
 - The independent experimental loader stays a separate self-authored codebase.
   Do not copy upstream resolver/loader implementations into experiments/husky-loader.
-  Its runtime enablement remains gated by target proof and device acceptance.
+  Preserve its existing target-proof checks and runtime enablement gates.
 - Upstream synchronization does not establish ZP11.260918.007 Canary compatibility.
   Generic KMI builds are not substitutes for the pinned target's ABI/CFI checks.
 
@@ -117,7 +117,12 @@ The verified husky-v32650 production release remains the rollback baseline.
 - [ ] Bring useful upstream tests/translations/docs along without resurrecting
   removed UI dependencies. Keep scripts/tests and experimental-loader checks intact.
 
-## Acceptance and rollout
+## Verification and rollout
+
+Per user request, PC Codex handoff and physical-device acceptance are removed
+from this synchronization plan and are not prerequisites for merging or publishing.
+Record unverified device behavior accurately; automated checks alone do not prove
+cold-boot, recovery or Canary private-ABI/CFI compatibility.
 
 - [ ] Kernel: build supported production KMI/architectures and run module identity
   audits; exercise package/signature rejection and exact-target failures.
@@ -127,11 +132,8 @@ The verified husky-v32650 production release remains the rollback baseline.
   cover old/new UAPI, missing root, authorization failures, ZIP errors, repository
   parsing/integrity, script confirmation and hot-install fallback.
 - [ ] Review light/dark, large font, keyboard, navigation and Bottom Sheet flows.
-  Distinguish automated verification from visual/device acceptance in the report.
-- [ ] Hand exact candidate artifacts, hashes, source IDs and recovery instructions
-  to PC Codex for install/upgrade, cold boot, repeated boot, module disable/recovery,
-  preinit and Canary private-ABI/CFI validation on the target device.
-- [ ] Merge into main only after required checks and applicable device acceptance;
+  Report which checks used code review, previews or automated tests.
+- [ ] Merge into main after the required automated checks and code review pass;
   retain ancestry and a reviewed record of intentional deviations.
 - [ ] Publish a new production release only after the candidate passes. Independently
   verify its downloaded APK/certificate/provenance/checksums as for husky-v32650.
