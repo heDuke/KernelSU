@@ -117,6 +117,40 @@ The verified husky-v32650 production release remains the rollback baseline.
 - [ ] Bring useful upstream tests/translations/docs along without resurrecting
   removed UI dependencies. Keep scripts/tests and experimental-loader checks intact.
 
+### 4a. Module card presentation (confirmed design)
+
+This specification replaces the earlier connected action-bar proposal. Apply it
+to both enabled and disabled installed-module cards during Manager reconciliation.
+
+- [ ] Use native Material 3 cards, switches, buttons, icon buttons and status
+  components with consistent spacing and corner treatment. Prefer theme surface
+  roles and restrained emphasis over random per-module colors.
+- [ ] Give enabled modules a soft theme-colored container and a clear hierarchy:
+  real icon or consistent fallback, module name, version/author, short description,
+  then the primary action. Keep descriptions expandable rather than crowding the
+  controls or duplicating full detail-page content.
+- [ ] Give disabled modules a compact neutral container with a visible disabled
+  label and readable text; do not dim the entire card with reduced opacity.
+  Keep the description expandable and show only currently supported actions.
+- [ ] Keep the enable switch independent. Place the three-dot more-actions button
+  at the right of the card header, with distinct accessible labels and at least
+  48dp touch targets; neither control may overlap the name or the other control.
+- [ ] Retain at most one primary action at the bottom: Open WebUI when available,
+  otherwise Execute when available; omit the action area when neither applies.
+  Do not add connected toolbars, multiple button rows or duplicate overflow buttons.
+- [ ] Open a Bottom Sheet from the card's three-dot button. Put all other available
+  actions there, including Update, secondary execution entries, WebUI/action
+  shortcut creation and Uninstall. Keep an update-available status on the card,
+  but keep its update action inside More. Place Uninstall last with error-color
+  text and retain its confirmation flow.
+- [ ] Show pending reboot, pending uninstall and abnormal states using concise
+  icon/text status regions. An enabled switch alone must not imply successful
+  runtime loading. Avoid generic unknown metadata or unsupported action placeholders.
+- [ ] Preserve natural height growth for long names and large fonts; keep action
+  placement predictable. Check light/dark themes, both module states, no WebUI/action,
+  both WebUI/action, update available and pending-state combinations through code
+  review, previews or automated checks, without adding a PC acceptance prerequisite.
+
 ## Verification and rollout
 
 Per user request, PC Codex handoff and physical-device acceptance are removed
