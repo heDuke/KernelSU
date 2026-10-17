@@ -35,7 +35,7 @@ import androidx.compose.material.icons.filled.Update
 import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material.icons.rounded.UploadFile
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LargeFlexibleTopAppBar
+import me.weishu.kernelsu.ui.component.material.ExpressivePageHeader
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -443,10 +443,10 @@ fun SettingPagerMaterial(
 private fun TopBar(
     scrollBehavior: TopAppBarScrollBehavior? = null
 ) {
-    LargeFlexibleTopAppBar(
+    ExpressivePageHeader(
         title = { Text(stringResource(R.string.settings)) },
-        colors = expressiveTopAppBarColors(),
+
         windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
-        scrollBehavior = scrollBehavior
+
     )
 }

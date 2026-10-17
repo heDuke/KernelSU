@@ -99,6 +99,8 @@ class MainActivity : ComponentActivity() {
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Prevent system/window chrome from showing android:label (HuskySU)
+        title = ""
 
         if (Natives.isManager && !Natives.requireNewKernel()) install()
 
@@ -206,6 +208,7 @@ class MainActivity : ComponentActivity() {
 
                     Scaffold(
                         containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        contentWindowInsets = WindowInsets(0, 0, 0, 0),
                         snackbarHost = { me.weishu.kernelsu.ui.component.module.ModuleTaskStatus() },
                     ) { navDisplay() }
                     me.weishu.kernelsu.ui.component.module.ModuleSheetHost(

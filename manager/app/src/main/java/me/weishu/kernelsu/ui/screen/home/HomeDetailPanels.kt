@@ -88,7 +88,8 @@ internal fun HomeDetailContent(panel: HomePanel, state: HomeUiState, actions: Ho
                                editShortcuts: () -> Unit) {
     val unknown = stringResource(R.string.dashboard_unknown)
     val mode = when (state.lkmMode) { true -> "LKM"; false -> stringResource(R.string.home_sheet_builtin); null -> unknown }
-    val knownModules = modules.hasLoaded && modules.loadError == null && state.isFullFeatured
+    val knownModules = modules.hasLoaded && modules.loadError == null && state.canReadModules
+    val uapiText = stringResource(R.string.dashboard_uapi_versions, state.kernelUAPIVersion?.toString() ?: unknown, state.managerUAPIVersion.toString())
     @Composable fun facts(title: Int, vararg values: Pair<Int, String>) {
         HomeFacts(stringResource(title), values.map { stringResource(it.first) to it.second })
     }
@@ -98,6 +99,10 @@ internal fun HomeDetailContent(panel: HomePanel, state: HomeUiState, actions: Ho
                 stringResource(state.activationExplanationId()), when (state.activation) { HomeActivation.Active -> Icons.Outlined.CheckCircle; HomeActivation.Attention -> Icons.Outlined.Warning; HomeActivation.Unknown -> Icons.AutoMirrored.Outlined.HelpOutline; HomeActivation.Checking -> Icons.Outlined.Sync },
                 when (state.activation) { HomeActivation.Active -> HomeTone.Primary; HomeActivation.Attention -> HomeTone.Error; else -> HomeTone.Neutral })
             if (!state.loaded) LoadingIndicator()
+            if (panel == HomePanel.Status && state.canUpgradeKernelModule) {
+                Text(stringResource(R.string.home_upgrade_kernel_module_note), style = MaterialTheme.typography.bodySmall)
+                Button(onClick = actions.onUpgradeKernelModule, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.home_upgrade_kernel_module)) }
+            }
             facts(R.string.home_sheet_key_checks,
                 R.string.dashboard_access to if (!state.loaded) unknown else stringResource(if (state.isManager) R.string.dashboard_permission_ok else R.string.dashboard_permission_missing),
                 R.string.dashboard_driver to (state.ksuVersion?.toString() ?: unknown),
@@ -136,13 +141,17 @@ internal fun HomeDetailContent(panel: HomePanel, state: HomeUiState, actions: Ho
             HomeUpdateNotice(state, actions)
             if (driverVersionStatus(state.currentManagerVersionCode, state.ksuVersion, state.managerUAPIVersion, state.kernelUAPIVersion, state.requiresNewKernel) == DriverVersionStatus.BuildDifferent) Text(stringResource(R.string.dashboard_build_difference))
             if (state.hasUpdate) FilledTonalButton(onClick = { actions.onOpenUrl(state.latestVersionInfo.downloadUrl) }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.dashboard_update_manager)) }
-            if (state.huskyUpdateStatus == HuskyUpdateStatus.Available && state.lkmMode == true) FilledTonalButton(enabled = state.operationBlockReason() == null, onClick = actions.onUpdateLkm, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.husky_update_lkm)) }
+            if (state.huskyUpdateStatus == HuskyUpdateStatus.Available && state.lkmMode == true) FilledTonalButton(enabled = state.operationBlockReason(repair = true) == null, onClick = actions.onUpdateLkm, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.husky_update_lkm)) }
+            if (state.canUpgradeKernelModule) {
+                Text(uapiText, style = MaterialTheme.typography.bodySmall)
+                Button(onClick = actions.onUpgradeKernelModule, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.home_upgrade_kernel_module)) }
+            }
             if (state.lkmMode == false) Text(stringResource(R.string.dashboard_gki_source_note))
             if (state.huskyRelease != null) {
                 TextButton(onClick = actions.onOpenHuskyRelease) { Text(stringResource(R.string.husky_open_release)) }
                 if (state.huskyUpdateStatus in listOf(HuskyUpdateStatus.Available, HuskyUpdateStatus.UpToDate)) TextButton(enabled = !state.huskyBusy, onClick = actions.onDownloadLkmToDownloads) { Text(stringResource(R.string.husky_download_lkm)) }
             }
-            if (state.showOtaSlotCard) FilledTonalButton(enabled = state.operationBlockReason() == null, onClick = actions.onInstallInactiveSlot) { Text(stringResource(R.string.home_sheet_ota)) }
+            if (state.showOtaSlotCard) FilledTonalButton(enabled = state.operationBlockReason(repair = true) == null, onClick = actions.onInstallInactiveSlot) { Text(stringResource(R.string.home_sheet_ota)) }
             HomeTechnicalDetails(panel) { facts(R.string.home_sheet_interface, R.string.home_sheet_manager_uapi to state.managerUAPIVersion.toString(), R.string.home_sheet_driver_uapi to (state.kernelUAPIVersion?.toString() ?: unknown)) }
         }
         HomePanel.Modules -> {
@@ -162,7 +171,7 @@ internal fun HomeDetailContent(panel: HomePanel, state: HomeUiState, actions: Ho
             facts(R.string.dashboard_device, R.string.dashboard_android to "${Build.VERSION.RELEASE} · API ${Build.VERSION.SDK_INT}",
                 R.string.dashboard_build to Build.ID, R.string.dashboard_kernel to state.systemInfo.kernelVersion,
                 R.string.dashboard_architecture to Build.SUPPORTED_ABIS.joinToString(),
-                R.string.dashboard_page_size to (state.pageSize?.let { "$it B" } ?: unknown), R.string.dashboard_slot to (state.slot?.ifBlank { unknown } ?: unknown))
+                R.string.dashboard_page_size to (state.pageSize?.let { "$it B" } ?: state.pageSizeError?.let { stringResource(R.string.dashboard_page_size_failed, it) } ?: unknown), R.string.dashboard_slot to (state.slot?.ifBlank { unknown } ?: unknown))
             facts(R.string.home_sheet_security, R.string.dashboard_selinux to state.systemInfo.selinuxStatus,
                 R.string.dashboard_seccomp to state.systemInfo.seccompStatus.takeIf { it >= 0 }?.toString().orEmpty())
             HomeTechnicalDetails(panel) { facts(R.string.home_sheet_technical_details, R.string.dashboard_fingerprint to state.systemInfo.fingerprint) }
@@ -170,6 +179,8 @@ internal fun HomeDetailContent(panel: HomePanel, state: HomeUiState, actions: Ho
         HomePanel.Compatibility -> {
             HomeStateCard(stringResource(state.compatibilityTitleId()), stringResource(R.string.home_sheet_compatibility_scope), Icons.Outlined.VerifiedUser,
                 if (state.requiresNewKernel || state.showVersionMismatchWarning) HomeTone.Error else HomeTone.Neutral)
+            HomeFacts(stringResource(R.string.dashboard_interface), listOf(stringResource(R.string.dashboard_interface) to uapiText))
+            if (state.canUpgradeKernelModule) FilledTonalButton(onClick = actions.onUpgradeKernelModule, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.home_upgrade_kernel_module)) }
             if (state.envChecking) LoadingIndicator()
             state.envReport?.let { report ->
                 Text(stringResource(R.string.dashboard_checked_at) + " · " + formatTime(report.generatedAtEpochMs), style = MaterialTheme.typography.bodySmall)

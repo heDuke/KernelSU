@@ -1063,4 +1063,18 @@
     <string name="terminal_limits_total_log">Total logs (MiB)</string>
     <string name="terminal_notifications_off">Notifications are disabled. Manage running tasks here.</string>
     <string name="terminal_task_signal">Terminated by signal %1$d</string>
+  <string name="root_gate_not_manager">Manager authorization is missing: HuskySU is not recognized as the root manager.</string>
+  <string name="root_gate_safe_mode">Safe mode is active; boot changes are disabled until you reboot normally.</string>
+  <string name="root_gate_root_unavailable">Root shell is unavailable; grant root to the Manager and try again.</string>
+  <string name="root_gate_kernel_outdated">Kernel interface %1$d is older than Manager interface %2$d. Upgrade the kernel module first.</string>
+  <string name="root_gate_manager_outdated">Kernel interface %1$d is newer than Manager interface %2$d. Update the Manager first.</string>
+  <string name="home_upgrade_kernel_module">Upgrade kernel module</string>
+  <string name="home_upgrade_kernel_module_note">Flash the LKM bundled with this Manager. /data/adb/ksud is updated in the same step; reboot afterwards.</string>
+  <string name="dashboard_read_only">read-only</string>
+  <string name="dashboard_interface">Interface</string>
+  <string name="dashboard_blocked_reason">Blocked</string>
+  <string name="dashboard_uapi_versions">Kernel interface %1$s · Manager interface %2$s</string>
+  <string name="dashboard_runtime_paused">Anomalies present, timer paused</string>
+  <string name="dashboard_page_size_failed">Page size unavailable: %s</string>
+  <string name="module_interface_blocked_title">Module changes are disabled</string>
 </resources>

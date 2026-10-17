@@ -103,8 +103,8 @@ fun HomePager(
             } finally { viewModel.pauseObservation() }
         }
     }
-    LaunchedEffect(isCurrentPage, uiState.isFullFeatured, completed) {
-        if (isCurrentPage && uiState.isFullFeatured) {
+    LaunchedEffect(isCurrentPage, uiState.canReadModules, completed) {
+        if (isCurrentPage && uiState.canReadModules) {
             moduleViewModel.initializePreferences()
             moduleViewModel.fetchModuleList(checkUpdate = true)
         }
@@ -144,7 +144,7 @@ fun HomePager(
     val actions = HomeActions(
         onInstallClick = { navigator.push(Route.Install) },
         onOpenUrl = uriHandler::openUri,
-        onRefresh = { viewModel.refresh(); if (uiState.isFullFeatured) moduleViewModel.fetchModuleList(checkUpdate = true) },
+        onRefresh = { viewModel.refresh(); if (uiState.canReadModules) moduleViewModel.fetchModuleList(checkUpdate = true) },
         onCheckInputs = { navigator.push(Route.InstallCheck) },
         onInstallModule = { modulePicker.launch("application/zip") },
         onOpenModules = { pager.animateToPage(2) },
@@ -156,6 +156,10 @@ fun HomePager(
         onApplyModuleBatch = ::batch,
         onCheckHuskyUpdate = viewModel::checkHuskyUpdate,
         onUpdateLkm = viewModel::updateLkm,
+        onUpgradeKernelModule = {
+            if (uiState.huskyUpdateStatus == HuskyUpdateStatus.Available && uiState.lkmMode == true) viewModel.updateLkm()
+            else navigator.push(Route.Install)
+        },
         onDownloadLkmToDownloads = viewModel::downloadLkmToDownloads,
         onOpenHuskyRelease = { uriHandler.openUri(viewModel.openHuskyReleaseUrl()) },
         onOpenEnvCheck = { navigator.push(Route.EnvCheck) },

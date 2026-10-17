@@ -35,7 +35,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenuPopup
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeFlexibleTopAppBar
+import me.weishu.kernelsu.ui.component.material.ExpressivePageHeader
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.SnackbarHostState
@@ -103,7 +103,7 @@ fun AppProfileScreenMaterial(
                 onSave = actions.onSave,
                 canSave = state.hasChanges && !state.isSaving,
                 isSaving = state.isSaving,
-                scrollBehavior = scrollBehavior,
+
                 isUidGroup = state.isUidGroup,
                 packageName = state.packageName,
                 userId = state.uid / 100000,
@@ -446,7 +446,7 @@ private fun TopBar(
     onRestartApp: (String, Int) -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
-    LargeFlexibleTopAppBar(
+    ExpressivePageHeader(
         title = { Text(stringResource(R.string.profile)) },
         navigationIcon = {
             TopBarBackButton(onClick = onBack)
@@ -492,9 +492,9 @@ private fun TopBar(
                 }
             }
         },
-        colors = expressiveTopAppBarColors(),
+
         windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
-        scrollBehavior = scrollBehavior
+
     )
 }
 

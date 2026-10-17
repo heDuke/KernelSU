@@ -23,7 +23,7 @@ import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeFlexibleTopAppBar
+import me.weishu.kernelsu.ui.component.material.ExpressivePageHeader
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -71,7 +71,7 @@ fun TemplateEditorScreenMaterial(
                 onBack = actions.onBack,
                 onDelete = actions.onDelete,
                 onSave = actions.onSave,
-                scrollBehavior = scrollBehavior
+
             )
         },
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
@@ -254,7 +254,7 @@ private fun TopBar(
     onSave: () -> Unit = {},
     scrollBehavior: TopAppBarScrollBehavior? = null
 ) {
-    LargeFlexibleTopAppBar(
+    ExpressivePageHeader(
         title = {
             Column {
                 Text(title)
@@ -270,22 +270,23 @@ private fun TopBar(
             TopBarBackButton(onClick = onBack)
         },
         actions = {
-            if (readOnly) return@LargeFlexibleTopAppBar
-            IconButton(onClick = onDelete) {
-                Icon(
-                    Icons.Filled.DeleteForever,
-                    contentDescription = stringResource(id = R.string.app_profile_template_delete)
-                )
-            }
-            IconButton(onClick = onSave, enabled = canSave) {
-                Icon(
-                    imageVector = Icons.Filled.Save,
-                    contentDescription = stringResource(id = R.string.app_profile_template_save)
-                )
+            if (!readOnly) {
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Filled.DeleteForever,
+                        contentDescription = stringResource(id = R.string.app_profile_template_delete)
+                    )
+                }
+                IconButton(onClick = onSave, enabled = canSave) {
+                    Icon(
+                        imageVector = Icons.Filled.Save,
+                        contentDescription = stringResource(id = R.string.app_profile_template_save)
+                    )
+                }
             }
         },
-        colors = expressiveTopAppBarColors(),
+
         windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
-        scrollBehavior = scrollBehavior
+
     )
 }

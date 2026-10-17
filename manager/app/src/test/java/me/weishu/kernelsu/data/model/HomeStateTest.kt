@@ -31,4 +31,31 @@ class HomeStateTest {
         assertFalse(healthy().showVersionMismatchWarning)
         assertEquals(HomeActivation.Active, healthy().activation)
     }
+
+    @Test fun outdatedKernelAllowsRepairButBlocksModules() {
+        val outdated = healthy().copy(kernelUAPIVersion = 2, managerUAPIVersion = 6, requiresNewKernel = true, uapiMismatch = true)
+        assertEquals(HomeBlockReason.Interface, outdated.operationBlockReason())
+        assertEquals(null, outdated.operationBlockReason(repair = true))
+        assertTrue(outdated.canDirectInstallLkm)
+        assertTrue(outdated.canUpgradeKernelModule)
+        assertTrue(outdated.canReadModules)
+        assertTrue(outdated.modulesReadOnly)
+        assertFalse(outdated.isFullFeatured)
+    }
+
+    @Test fun newerKernelBlocksRepairToo() {
+        val newer = healthy().copy(kernelUAPIVersion = 7, managerUAPIVersion = 6, requiresNewManager = true, uapiMismatch = true)
+        assertEquals(HomeBlockReason.Interface, newer.operationBlockReason(repair = true))
+        assertFalse(newer.canDirectInstallLkm)
+        assertFalse(newer.canUpgradeKernelModule)
+    }
+
+    @Test fun safeModeAndMissingRootBlockDirectInstall() {
+        val outdated = healthy().copy(kernelUAPIVersion = 2, managerUAPIVersion = 6, requiresNewKernel = true)
+        assertFalse(outdated.copy(isSafeMode = true).canDirectInstallLkm)
+        assertFalse(outdated.copy(isRootAvailable = false).canUpgradeKernelModule)
+        assertFalse(outdated.copy(isManager = false).canDirectInstallLkm)
+        assertFalse(healthy().canUpgradeKernelModule)
+        assertFalse(healthy().modulesReadOnly)
+    }
 }

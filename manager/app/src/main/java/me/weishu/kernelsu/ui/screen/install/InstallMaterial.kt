@@ -30,7 +30,7 @@ import androidx.compose.material.icons.outlined.InstallMobile
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeFlexibleTopAppBar
+import me.weishu.kernelsu.ui.component.material.ExpressivePageHeader
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TextButton
@@ -79,7 +79,7 @@ internal fun InstallScreenMaterial(
         topBar = {
             TopBar(
                 onBack = actions.onBack,
-                scrollBehavior = scrollBehavior,
+
             )
         },
         snackbarHost = { SnackBarHost(hostState = snackBarHost, modifier = Modifier.safeDrawingPadding()) },
@@ -358,13 +358,13 @@ private fun TopBar(
     onBack: () -> Unit = {},
     scrollBehavior: TopAppBarScrollBehavior? = null
 ) {
-    LargeFlexibleTopAppBar(
+    ExpressivePageHeader(
         title = { Text(stringResource(R.string.install)) },
         navigationIcon = {
             TopBarBackButton(onClick = onBack)
         },
-        colors = expressiveTopAppBarColors(),
+
         windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
-        scrollBehavior = scrollBehavior
+
     )
 }
