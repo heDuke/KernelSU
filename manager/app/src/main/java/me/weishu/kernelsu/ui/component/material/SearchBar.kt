@@ -26,7 +26,6 @@ import androidx.compose.material3.ExpandedFullScreenContainedSearchBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
@@ -190,13 +189,13 @@ fun SearchAppBar(
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
-            LargeFlexibleTopAppBar(
+            // Single-row page header — avoids LargeFlexibleTopAppBar's empty collapsed strip.
+            ExpressivePageHeader(
                 title = title,
-                colors = expressiveTopAppBarColors(),
-                navigationIcon = { if (navigationIcon != null) navigationIcon() },
-                actions = { if (actions != null) actions() },
+                navigationIcon = navigationIcon,
+                actions = actions,
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
-                scrollBehavior = scrollBehavior
             )
 
             if (showSearch) SearchBar(
