@@ -88,7 +88,7 @@ private fun HuskyUpdateCard(
             lkmTitle = stringResource(R.string.husky_not_installed_title)
             lkmSummary = stringResource(R.string.husky_not_installed_guidance)
         }
-        state.huskyUpdateStatus == HuskyUpdateStatus.Error || state.huskyUpdateStatus == HuskyUpdateStatus.NoMatchingLkm -> {
+        state.huskyUpdateStatus in listOf(HuskyUpdateStatus.Error, HuskyUpdateStatus.MetadataError, HuskyUpdateStatus.DownloadError, HuskyUpdateStatus.NoMatchingLkm) -> {
             lkmTitle = stringResource(R.string.husky_update_card_title)
             lkmSummary = state.huskyError ?: stringResource(R.string.husky_update_card_summary)
         }

@@ -14,6 +14,8 @@ enum class HuskyUpdateStatus {
     Available,
     UpToDate,
     Error,
+    MetadataError,
+    DownloadError,
     NoMatchingLkm,
     Downloading,
 }
@@ -43,6 +45,7 @@ data class HomeUiState(
     val huskyRelease: HuskyRelease? = null,
     val huskyUpdateStatus: HuskyUpdateStatus = HuskyUpdateStatus.Idle,
     val huskyError: String? = null,
+    val huskyDiagnostic: String? = null,
     val isAbDevice: Boolean = false,
     val moduleBatchBusy: Boolean = false,
     val loaded: Boolean = false,

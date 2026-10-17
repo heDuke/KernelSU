@@ -59,6 +59,8 @@ internal fun HomeUpdateNotice(state: HomeUiState, actions: HomeActions, showChec
         HuskyUpdateStatus.UpToDate -> R.string.home_sheet_update_latest
         HuskyUpdateStatus.NoMatchingLkm -> R.string.home_sheet_update_no_target
         HuskyUpdateStatus.Error -> R.string.home_sheet_update_failed
+        HuskyUpdateStatus.MetadataError -> R.string.home_sheet_update_metadata_failed
+        HuskyUpdateStatus.DownloadError -> R.string.husky_lkm_download_failed
     })
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -66,11 +68,15 @@ internal fun HomeUpdateNotice(state: HomeUiState, actions: HomeActions, showChec
             if (state.huskyBusy) LinearProgressIndicator(Modifier.fillMaxWidth())
             Text(stringResource(R.string.home_sheet_update_scope), style = MaterialTheme.typography.bodySmall)
             state.huskyRelease?.let { Text(it.tag, style = MaterialTheme.typography.bodyMedium) }
-            if (enabled && showCheckAction && !state.huskyBusy && state.huskyUpdateStatus !in listOf(HuskyUpdateStatus.Error, HuskyUpdateStatus.NoMatchingLkm)) TextButton(onClick = actions.onCheckHuskyUpdate) { Text(stringResource(R.string.dashboard_check_updates)) }
-            if (state.huskyUpdateStatus == HuskyUpdateStatus.Error || state.huskyUpdateStatus == HuskyUpdateStatus.NoMatchingLkm) {
-                TextButton(onClick = actions.onCheckHuskyUpdate, enabled = enabled && !state.huskyBusy) { Text(stringResource(R.string.home_sheet_retry)) }
-                if (enabled) state.huskyError?.let { error -> HomeTechnicalDetails(error) { Text(error) } }
+            state.huskyError?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+            if (enabled && showCheckAction && !state.huskyBusy) TextButton(onClick = actions.onCheckHuskyUpdate) {
+                Text(stringResource(if (state.huskyUpdateStatus in listOf(HuskyUpdateStatus.Error, HuskyUpdateStatus.MetadataError, HuskyUpdateStatus.DownloadError))
+                    R.string.home_sheet_retry else R.string.dashboard_check_updates))
             }
+            if (enabled) state.huskyDiagnostic?.let { diagnostic -> HomeTechnicalDetails(diagnostic) {
+                androidx.compose.foundation.text.selection.SelectionContainer { Text(diagnostic, style = MaterialTheme.typography.bodySmall) }
+            } }
+
         }
     }
 }

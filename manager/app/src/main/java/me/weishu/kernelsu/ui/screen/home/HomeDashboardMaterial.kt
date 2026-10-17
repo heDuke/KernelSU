@@ -210,7 +210,12 @@ fun HomePagerMaterial(state: HomeUiState, actions: HomeActions, bottomInnerPaddi
         if (state.loaded && !state.isManager) add(HomeTodo(stringResource(R.string.dashboard_permission_missing), stringResource(R.string.home_sheet_no_access_note)) { open(HomePanel.Access) })
         if (state.pendingReboot) add(HomeTodo(stringResource(R.string.reboot_to_apply), open = { open(HomePanel.Modules) }))
         state.pendingRebootError?.let { add(HomeTodo(stringResource(R.string.home_sheet_reboot_record_error), it) { open(HomePanel.Modules) }) }
-        if (state.huskyUpdateStatus in listOf(HuskyUpdateStatus.Error, HuskyUpdateStatus.NoMatchingLkm)) add(HomeTodo(stringResource(R.string.home_sheet_update_failed), open = { open(HomePanel.Versions) }))
+        when (state.huskyUpdateStatus) {
+            HuskyUpdateStatus.Error -> add(HomeTodo(stringResource(R.string.home_sheet_update_failed), state.huskyError.orEmpty()) { open(HomePanel.Versions) })
+            HuskyUpdateStatus.MetadataError -> add(HomeTodo(stringResource(R.string.home_sheet_update_metadata_failed), state.huskyError.orEmpty()) { open(HomePanel.Versions) })
+            HuskyUpdateStatus.DownloadError -> add(HomeTodo(stringResource(R.string.husky_lkm_download_failed), open = { open(HomePanel.Versions) }))
+            else -> Unit
+        }
         if (state.isSafeMode) add(HomeTodo(stringResource(R.string.dashboard_safe_mode), stringResource(R.string.dashboard_safe_mode_note)) { open(HomePanel.Status) })
         if (state.showRootWarning) add(HomeTodo(stringResource(R.string.dashboard_root_missing)) { open(HomePanel.Access) })
         if (state.showVersionMismatchWarning) add(HomeTodo(stringResource(R.string.dashboard_interface_mismatch)) { open(HomePanel.Versions) })

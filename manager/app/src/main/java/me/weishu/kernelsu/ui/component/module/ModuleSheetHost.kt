@@ -66,7 +66,7 @@ fun ModuleSheetHost(onViewDetails: (RepoModuleArg) -> Unit) {
             Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(title, Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
                 IconButton(shapes = IconButtonDefaults.shapes(), onClick = {
-                    val text = buildList {
+                    val text = if (state.log.isNotBlank() && state.stage !in setOf(ModuleSheetStage.PREVIEW, ModuleSheetStage.REVIEW)) state.log else buildList {
                         module?.let {
                             add(it.moduleName)
                             if (it.latestRelease.isNotBlank()) add(it.latestRelease)
