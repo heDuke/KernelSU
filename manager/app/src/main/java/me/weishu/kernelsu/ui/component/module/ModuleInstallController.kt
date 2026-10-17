@@ -20,6 +20,9 @@ import me.weishu.kernelsu.ui.util.download
 import me.weishu.kernelsu.ui.util.flashModule
 import me.weishu.kernelsu.ui.util.hasMagisk
 import java.io.File
+import kotlinx.coroutines.CancellationException
+import me.weishu.kernelsu.core.utils.*
+import me.weishu.kernelsu.R
 
 internal enum class ModuleSheetStage { PREVIEW, REVIEW, DOWNLOADING, VALIDATING, INSTALLING, SUCCESS, FAILED }
 
@@ -134,7 +137,7 @@ internal object ModuleInstallController {
                         val uri = target.uri ?: run {
                             mutableState.update { it.copy(stage = ModuleSheetStage.DOWNLOADING) }
                             download(target.downloadUrl, target.name)
-                                ?: error("Download failed: ${target.name}")
+                                ?: throw ModuleDownloadException()
                         }
                         mutableState.update { it.copy(stage = ModuleSheetStage.VALIDATING) }
                         val file = withContext(Dispatchers.IO) {
@@ -178,8 +181,30 @@ internal object ModuleInstallController {
                     mutableState.update { it.copy(stage = ModuleSheetStage.SUCCESS, restartRequired = restartRequired) }
                 } finally { prepared.forEach(File::delete) }
             } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                android.util.Log.e("KernelSU", "Module installation failed", error)
+                val message = when (classifyModuleInstallFailure(error)) {
+                    ModuleInstallFailure.UnsupportedCompression -> {
+                        val unsupported = error as UnsupportedZipMethodException
+                        ksuApp.getString(R.string.module_zip_unsupported_method,
+                            zipMethodName(unsupported.method), unsupported.method,
+                            KSUD_SUPPORTED_ZIP_METHODS.values.joinToString(", "))
+                    }
+                    ModuleInstallFailure.InvalidPackage -> ksuApp.getString(when ((error as ModulePackageException).reason) {
+                        ModulePackageFailure.SizeMismatch -> R.string.module_zip_size_mismatch
+                        ModulePackageFailure.IdentityMismatch, ModulePackageFailure.IdentityMissing -> R.string.module_zip_identity_mismatch
+                        ModulePackageFailure.MetadataTooLarge -> R.string.module_zip_metadata_large
+                        ModulePackageFailure.CrcMismatch -> R.string.module_zip_crc_mismatch
+                        ModulePackageFailure.InvalidArchive -> R.string.module_zip_invalid
+                    })
+                    ModuleInstallFailure.ReadWrite -> ksuApp.getString(R.string.module_install_io_failed)
+                    ModuleInstallFailure.Permission -> ksuApp.getString(R.string.module_install_permission_failed)
+                    ModuleInstallFailure.Download -> ksuApp.getString(R.string.module_install_download_failed)
+                    ModuleInstallFailure.Other -> ksuApp.getString(R.string.module_install_failed_detail)
+                }
+                appendLog(message + "\n" + error.stackTraceToString())
                 mutableState.update { it.copy(stage = ModuleSheetStage.FAILED,
-                    error = error.message ?: error.javaClass.simpleName, restartRequired = restartRequired) }
+                    error = message, restartRequired = restartRequired) }
             } finally {
                 me.weishu.kernelsu.core.utils.ModuleMutationGate.release()
                 completion.value += 1

@@ -249,6 +249,8 @@
     <string name="flash_running_summary">Keep this screen open. Volume keys are ignored until flashing finishes.</string>
     <string name="flash_success_summary">Reboot to apply the new image.</string>
     <string name="flash_failed_summary">Save the log and review the output before retrying.</string>
+    <string name="module_zip_unsupported_method">This module package uses %1$s compression (method %2$d), which the installer does not support. Supported: %3$s. Repack the ZIP with Deflate (e.g. zip -r) and try again.</string>
+    <string name="module_zip_invalid">This file is not a valid or readable module ZIP. Download it again or repack it with Deflate.</string>
     <string name="selected_lkm">Selected LKM: %s</string>
     <string name="save_log">Save logs</string>
     <string name="log_saved">Logs saved</string>
@@ -892,4 +894,12 @@
     <string name="su_affected_count">Affected apps (%1$d)</string>
     <string name="su_collapse_members">Show fewer apps</string>
     <string name="su_show_all_members">Show all %1$d apps</string>
+    <string name="module_zip_size_mismatch">The downloaded package size differs from its release information. Download it again.</string>
+    <string name="module_zip_identity_mismatch">The package identity does not match the selected module. Check its source.</string>
+    <string name="module_zip_metadata_large">The module metadata exceeds the supported size.</string>
+    <string name="module_zip_crc_mismatch">The module metadata failed its integrity check. Download the package again.</string>
+    <string name="module_install_io_failed">Cannot read or save the module package. Check file access and available storage.</string>
+    <string name="module_install_permission_failed">Access to the module file was denied. Select the file again.</string>
+    <string name="module_install_download_failed">The module download did not complete. Check the connection and download source.</string>
+    <string name="module_install_failed_detail">Module installation did not complete. View the log for the full reason.</string>
 </resources>
