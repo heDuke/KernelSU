@@ -151,6 +151,44 @@ to both enabled and disabled installed-module cards during Manager reconciliatio
   both WebUI/action, update available and pending-state combinations through code
   review, previews or automated checks, without adding a PC acceptance prerequisite.
 
+### 4b. Expressive temporary Root terminal
+
+The user requested a stronger Material 3 Expressive direction for the terminal
+screenshot. Update the presentation and reading/input interactions while retaining
+the bounded temporary-session lifecycle and process cleanup behavior.
+
+- [ ] Use a native Material app bar with a clear title and a compact, prominent
+  rounded status capsule. Display only observed session states (connecting, ready,
+  ended, failed); an active shell is not evidence that a command is still running.
+  Use icon/text as well as color. Keep extra actions behind one More button.
+- [ ] Give the output a spacious, softly rounded surfaceContainer panel, with
+  consistent inner padding, readable monospace typography and theme-aware contrast.
+  Distinguish submitted commands using a restrained primaryContainer treatment;
+  keep output continuous, without a separate card for every line or JSON object.
+  Preserve original content, whitespace and existing ANSI handling.
+- [ ] Make the bottom composer a single expressive rounded tonal surface combining
+  the command field and a clearly emphasized filled execute control. Replace the
+  detached outlined rectangle/small pill combination. Keep the input legible,
+  preserve drafts and correctly follow IME/navigation insets and large text.
+- [ ] Replace raw long quick-command chips with concise labels such as Modules,
+  Kernel logs and Device info using the actual existing command mappings. Show a
+  compact subset; expose the full presets and exact commands in a Bottom Sheet.
+  Selecting a preset fills the composer; execution requires pressing Execute.
+- [ ] Put Clear output, Share log, font size and soft-wrap options in the More
+  Bottom Sheet. Keep Interrupt distinct from End session and do not label signal
+  delivery as proof that a command stopped. Do not imply full PTY or job-control
+  support absent from the underlying session implementation.
+- [ ] Follow new output only while the user is at the bottom. When reading older
+  output, retain scroll position and offer a compact Jump to latest control.
+  Keep the existing buffer bounds, batched updates and selectable output.
+- [ ] Use dynamic primary/secondary and surface color roles, generous outer shapes
+  and restrained state transitions; support light/dark and reduced-motion settings.
+  Prefer native components; keep text contrast, 48dp touch targets and accessible
+  control labels. Avoid decorative loading animations or color-heavy log content.
+- [ ] Review empty/connecting/ready/ended/error states, long JSON/URLs, text selection,
+  keyboard-open layout, preset insertion without execution and preserved scroll
+  position through code review, previews or automated checks. No PC acceptance step.
+
 ## Verification and rollout
 
 Per user request, PC Codex handoff and physical-device acceptance are removed
