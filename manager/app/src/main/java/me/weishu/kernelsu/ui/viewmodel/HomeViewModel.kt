@@ -84,9 +84,12 @@ class HomeViewModel(
                     if (state.ksuVersion != null && !state.isRootAvailable) add("root_unavailable")
                     if (state.requiresNewKernel || state.showVersionMismatchWarning) add("interface_mismatch")
                 }
+                val pageSize = runCatching { me.weishu.kernelsu.ui.util.getKernelPageSize() }
+                pageSize.exceptionOrNull()?.let { android.util.Log.w("HomeViewModel", "Kernel page size unavailable", it) }
                 state.copy(loaded = true, observedAt = android.os.SystemClock.elapsedRealtime(), observedWallTime = System.currentTimeMillis(),
                     runtime = runtimeRepo.observe(state.ksuVersion != null, faults), runtimeError = runtimeRepo.error,
-                    pageSize = runCatching { me.weishu.kernelsu.ui.util.getKernelPageSize() }.getOrNull(),
+                    pageSize = pageSize.getOrNull(),
+                    pageSizeError = pageSize.exceptionOrNull()?.let { it.message ?: it.javaClass.simpleName },
                     slot = runCatching { me.weishu.kernelsu.ui.util.getSlotSuffix(false) }.getOrNull()) to isAbDevice()
             }
             _uiState.update {

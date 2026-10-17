@@ -56,6 +56,7 @@ data class HomeUiState(
     val runtime: me.weishu.kernelsu.data.model.RuntimeRecord = me.weishu.kernelsu.data.model.RuntimeRecord(),
     val runtimeError: String? = null,
     val pageSize: Int? = null,
+    val pageSizeError: String? = null,
     val slot: String? = null,
     val envReport: me.weishu.kernelsu.data.model.EnvCheckReport? = null,
     val envOverall: EnvCheckSeverity? = null,
@@ -72,10 +73,15 @@ data class HomeUiState(
             else -> HomeActivation.Active
         }
 
-    fun operationBlockReason(allowSafeMode: Boolean = false): HomeBlockReason? = when {
+    /**
+     * [repair] marks operations that fix an outdated kernel module (boot patch, LKM flash, reboot).
+     * They stay available when the kernel interface is older than the Manager, but never when it is newer.
+     */
+    fun operationBlockReason(allowSafeMode: Boolean = false, repair: Boolean = false): HomeBlockReason? = when {
         !loaded -> HomeBlockReason.Checking
         !isManager -> HomeBlockReason.Authorization
-        requiresNewKernel || showVersionMismatchWarning -> HomeBlockReason.Interface
+        requiresNewManager -> HomeBlockReason.Interface
+        !repair && (requiresNewKernel || showVersionMismatchWarning) -> HomeBlockReason.Interface
         !isRootAvailable -> HomeBlockReason.Root
         isSafeMode && !allowSafeMode -> HomeBlockReason.SafeMode
         moduleBatchBusy -> HomeBlockReason.Busy
@@ -107,7 +113,23 @@ data class HomeUiState(
         get() = latestVersionInfo.versionCode > currentManagerVersionCode
 
     val canDirectInstallLkm: Boolean
-        get() = isRootAvailable && ksuVersion != null
+        get() = isManager && isRootAvailable && !isSafeMode && ksuVersion != null && !requiresNewManager
+
+    /** Modules can be listed (read-only) whenever the manager has root, even with an outdated kernel interface. */
+    val canReadModules: Boolean
+        get() = isManager && isRootAvailable
+
+    /** Module mutations are rejected by ksud while the kernel interface is outdated. */
+    val modulesReadOnly: Boolean
+        get() = canReadModules && (requiresNewKernel || showVersionMismatchWarning)
+
+    /** Kernel interface older than the Manager and the LKM can be replaced right away. */
+    val canUpgradeKernelModule: Boolean
+        get() = loaded && lkmMode != false && requiresNewKernel && canDirectInstallLkm
+
+    /** The runtime timer only counts healthy time; faults pause it. */
+    val runtimePaused: Boolean
+        get() = loaded && runtime.activeFaults.isNotEmpty()
 
     val huskyBusy: Boolean
         get() = huskyUpdateStatus == HuskyUpdateStatus.Checking ||
@@ -141,4 +163,5 @@ data class HomeActions(
     val onDisableModules: () -> Unit = {},
     val onRestoreModules: () -> Unit = {},
     val onAlignEnvironment: () -> Unit = {},
+    val onUpgradeKernelModule: () -> Unit = {},
 )
