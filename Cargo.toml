@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "userspace/ksu-contracts",
+    "userspace/ksu-task-runner",
     "userspace/ksud",
     "userspace/ksuinit",
 ]
@@ -16,6 +17,9 @@ edition = "2024"
 [workspace.dependencies]
 anyhow = "1"
 log = "0.4"
+
+[patch.crates-io]
+libc = { git = "https://github.com/rust-lang/libc", rev = "1a661633f11a261ff9c00b40875ef72f1cbec818" }
 
 [profile.release]
 strip = true

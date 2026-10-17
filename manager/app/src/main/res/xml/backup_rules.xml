@@ -10,4 +10,6 @@
    <include domain="sharedpref" path="."/>
    <exclude domain="sharedpref" path="device.xml"/>
 -->
+    <exclude domain="file" path="terminal-tasks/" />
+    <exclude domain="database" path="terminal-tasks.db" />
 </full-backup-content>

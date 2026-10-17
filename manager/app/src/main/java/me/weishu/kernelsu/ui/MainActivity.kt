@@ -182,8 +182,17 @@ class MainActivity : ComponentActivity() {
                                 entry<Route.InstallLkm> { key -> InstallScreen(preselectedLkm = android.net.Uri.parse(key.uri)) }
                                 entry<Route.InstallOta> { InstallScreen(preferOta = true) }
                                 entry<Route.InstallCheck> { InstallScreen(checkOnlyMode = true) }
-                                entry<Route.Flash> { key -> FlashScreen(key.flashIt) }
+                                entry<Route.Flash> { key ->
+                                    var allowBack by remember { mutableStateOf(true) }
+                                    FlashScreen(key.flashIt, onBackEnabledChange = { allowBack = it })
+                                    androidx.activity.compose.BackHandler(enabled = !allowBack) {}
+                                }
                                 entry<Route.ExecuteModuleAction> { key -> ExecuteModuleActionScreen(key.moduleId, key.fromShortcut) }
+                                entry<Route.ScriptRun> { key ->
+                                    var allowBack by remember { mutableStateOf(true) }
+                                    me.weishu.kernelsu.ui.screen.scriptrun.ScriptRunScreen(key.arg, onBackEnabledChange = { allowBack = it })
+                                    androidx.activity.compose.BackHandler(enabled = !allowBack) {}
+                                }
                                 entry<Route.ModuleRepo> { ModuleRepoScreen() }
                                 entry<Route.ExperimentalLoaderSettings> { me.weishu.kernelsu.ui.screen.experimentalloader.ExperimentalLoaderSettingsScreen() }
                                 entry<Route.ModuleRepoDetail> { key -> ModuleRepoDetailScreen(key.module) }

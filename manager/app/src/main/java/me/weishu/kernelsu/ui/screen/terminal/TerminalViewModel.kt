@@ -103,7 +103,7 @@ class TerminalViewModel : ViewModel() {
     }
 
     fun run(command: String) {
-        val cmd = command.trim()
+        val cmd = command
         if (cmd.isEmpty() || cmd.length > TempShellSession.MAX_COMMAND_CHARS || !state.value.active) return
         append(TerminalLineKind.INPUT, listOf(AnsiSpan("# $cmd")))
         val current = session

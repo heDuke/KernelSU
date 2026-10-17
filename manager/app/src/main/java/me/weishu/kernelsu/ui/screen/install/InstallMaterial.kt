@@ -2,6 +2,7 @@ package me.weishu.kernelsu.ui.screen.install
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -201,6 +202,19 @@ internal fun InstallScreenMaterial(
                         selected = uiState.installMethod is InstallMethod.SelectFile,
                         onClick = actions.onSelectBootImage,
                     )
+                }
+                item(visible = uiState.advancedOptionsShown) {
+                    SegmentedCheckboxItem(title = stringResource(R.string.install_block_modules),
+                        summary = stringResource(R.string.install_block_modules_summary), checked = uiState.blockModulesEnabled,
+                        onCheckedChange = actions.onSelectBlockModules)
+                }
+                item(visible = uiState.advancedOptionsShown && uiState.blockModulesEnabled) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text(stringResource(R.string.install_block_modules_warning), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                        androidx.compose.material3.OutlinedTextField(value = uiState.blockModules, onValueChange = actions.onBlockModulesChanged,
+                            label = { Text(stringResource(R.string.install_block_modules_list)) }, modifier = Modifier.fillMaxWidth(),
+                            isError = runCatching { me.weishu.kernelsu.core.utils.parseBootModuleBlocklist(uiState.blockModules) }.isFailure)
+                    }
                 }
                 item(visible = uiState.advancedOptionsShown) {
                     SegmentedCheckboxItem(

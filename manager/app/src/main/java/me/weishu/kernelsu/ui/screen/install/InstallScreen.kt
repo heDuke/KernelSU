@@ -69,6 +69,8 @@ fun InstallScreen(preselectedLkm: Uri? = null, preferOta: Boolean = false, check
     var hasCustomSelected by rememberSaveable { mutableStateOf(false) }
     val showChooseKmiDialog = rememberSaveable { mutableStateOf(false) }
     var advancedOptionsShown by rememberSaveable { mutableStateOf(false) }
+    var blockModulesEnabled by rememberSaveable { mutableStateOf(false) }
+    var blockModules by rememberSaveable { mutableStateOf("") }
     var allowShell by rememberSaveable { mutableStateOf(false) }
     var enableAdb by rememberSaveable { mutableStateOf(false) }
     var forceBackup by rememberSaveable { mutableStateOf(false) }
@@ -167,11 +169,16 @@ fun InstallScreen(preselectedLkm: Uri? = null, preferOta: Boolean = false, check
         val readOnly = checkOnly || checkOnlyMode
         val method = installMethod ?: return
         if (reviewing) return
+        if (blockModulesEnabled && runCatching { me.weishu.kernelsu.core.utils.parseBootModuleBlocklist(blockModules) }.isFailure) {
+            reviewError = resources.getString(R.string.install_block_modules_invalid)
+            return
+        }
         reviewing = true; reviewError = null
         // Snapshot selections before doing IO; subsequent UI edits cannot change this operation.
         val selection = lkmSelection
         val partition = if (method is InstallMethod.DownloadFile) method.partition else partitions.getOrNull(partitionSelectionIndex)
         val chosenOutput = outputUri
+        val chosenBlockModules = if (blockModulesEnabled) me.weishu.kernelsu.core.utils.parseBootModuleBlocklist(blockModules).joinToString(",") else ""
         val chosenShell = allowShell; val chosenAdb = enableAdb; val chosenBackup = forceBackup
         val chosenOta = method is InstallMethod.DirectInstallToInactiveSlot
         val chosenLocalFlash = flashLocalImage && method is InstallMethod.SelectFile
@@ -200,15 +207,16 @@ fun InstallScreen(preselectedLkm: Uri? = null, preferOta: Boolean = false, check
                     (metadata.kmi != null && !targetKmi.isNullOrBlank() && metadata.kmi != targetKmi)))
                 val operation = if (method is InstallMethod.DownloadFile) FlashIt.DownloadBoot(
                     url = requireNotNull(method.url), partition = requireNotNull(method.partition), lkm = frozenSelection,
-                    allowShell = chosenShell, enableAdb = chosenAdb, backup = chosenBackup)
+                    allowShell = chosenShell, enableAdb = chosenAdb, backup = chosenBackup, blockModules = chosenBlockModules)
                 else FlashIt.FlashBoot(boot = image?.uri, lkm = frozenSelection,
                     ota = method is InstallMethod.DirectInstallToInactiveSlot, partition = partition,
                     allowShell = chosenShell, enableAdb = chosenAdb, backup = method is InstallMethod.SelectFile && chosenBackup,
-                    outputUri = if (image != null) chosenOutput else null, flashSourceImage = chosenLocalFlash)
+                    outputUri = if (image != null) chosenOutput else null, flashSourceImage = chosenLocalFlash, blockModules = chosenBlockModules)
                 val unknown = resources.getString(R.string.dashboard_unknown)
                 val report = buildString {
                     appendLine(resources.getString(R.string.dashboard_review))
                     appendLine(resources.getString(method.label))
+                    if (chosenBlockModules.isNotBlank()) appendLine("${resources.getString(R.string.install_block_modules_list)}: $chosenBlockModules")
                     appendLine("${resources.getString(R.string.dashboard_device)}: ${android.os.Build.MODEL}")
                     appendLine("${resources.getString(R.string.dashboard_build)}: ${android.os.Build.ID}")
                     appendLine("${resources.getString(R.string.dashboard_kernel)}: $release")
@@ -344,6 +352,7 @@ fun InstallScreen(preselectedLkm: Uri? = null, preferOta: Boolean = false, check
             installMethod is InstallMethod.DownloadFile || (installMethod is InstallMethod.SelectFile && flashLocalImage),
         advancedOptionsShown = advancedOptionsShown,
         allowShell = allowShell,
+        blockModulesEnabled = blockModulesEnabled, blockModules = blockModules,
         enableAdb = enableAdb,
         forceBackup = forceBackup,
         canForceBackup = installMethod is InstallMethod.SelectFile,
@@ -399,6 +408,8 @@ fun InstallScreen(preselectedLkm: Uri? = null, preferOta: Boolean = false, check
         onAdvancedOptionsClicked = {
             advancedOptionsShown = !advancedOptionsShown
         },
+        onSelectBlockModules = { blockModulesEnabled = it },
+        onBlockModulesChanged = { if (it.length <= 4096) blockModules = it },
         onSelectAllowShell = {
             allowShell = it
         },

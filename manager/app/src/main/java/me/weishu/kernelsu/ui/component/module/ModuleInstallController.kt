@@ -31,9 +31,11 @@ internal data class ModuleInstallTarget(
     val uri: Uri? = null,
     val downloadUrl: String = "",
     val version: String = "",
+    val versionCode: Int = 0,
     val source: String = "",
     val moduleId: String = "",
     val size: Long = 0,
+    val sha256: String = "",
     val minApi: Int? = null,
     val maxApi: Int? = null,
     val kernelSuUnsupported: Boolean = false,
@@ -64,6 +66,7 @@ internal object ModuleInstallController {
     private val mutablePreview = MutableStateFlow<RepoModuleArg?>(null)
     val previewOverlay = mutablePreview.asStateFlow()
     val completion = MutableStateFlow(0)
+    val scriptNavigation = MutableStateFlow<me.weishu.kernelsu.ui.screen.scriptrun.ScriptRunArg?>(null)
 
     fun preview(module: RepoModuleArg) {
         mutableState.update { it.copy(visible = false) }
@@ -78,20 +81,40 @@ internal object ModuleInstallController {
             preview = module, targets = targets.toList(), fromPreview = false)
     }
 
-    fun reviewLocal(uris: List<Uri>) = review(uris.map {
-        ModuleInstallTarget(name = getDisplayName(it), uri = it)
-    })
+    fun reviewLocal(uris: List<Uri>) {
+        if (state.value.busy) { reopen(); return }
+        scope.launch {
+            if (uris.size == 1) {
+                val script = me.weishu.kernelsu.data.script.ScriptRepository.peekOneshot(uris.single())
+                if (script != null) {
+                    scriptNavigation.value = me.weishu.kernelsu.ui.screen.scriptrun.ScriptRunArg(uris.single(), offerInstall = true, displayName = script.name)
+                    return@launch
+                }
+            }
+            review(uris.map { ModuleInstallTarget(name = getDisplayName(it), uri = it) })
+        }
+    }
 
-    fun reviewPreview() {
+    suspend fun prepareScript(module: RepoModuleArg, selected: me.weishu.kernelsu.ui.screen.modulerepo.ReleaseAssetArg? = null) {
+        check(module.isScript && module.sourceId == "kernelsu")
+        val asset = selected ?: module.releases.first().assets.single()
+        check(asset.sha256.isNotBlank()) { "Script verification metadata missing" }
+        val uri = download(asset.downloadUrl, asset.name, expected = me.weishu.kernelsu.data.registry.ExpectedFile(asset.size, asset.sha256))
+            ?: throw ModuleDownloadException()
+        scriptNavigation.value = me.weishu.kernelsu.ui.screen.scriptrun.ScriptRunArg(uri, registryId = module.moduleId, displayName = module.moduleName)
+    }
+
+    fun reviewPreview(selected: me.weishu.kernelsu.ui.screen.modulerepo.ReleaseAssetArg? = null) {
         val snapshot = state.value
         if (snapshot.busy) return
         val module = mutablePreview.value ?: snapshot.preview ?: return
-        val asset = module.releases.firstOrNull()?.assets?.firstOrNull() ?: return
+        val assets = module.releases.firstOrNull()?.assets.orEmpty()
+        val asset = selected?.takeIf { it in assets } ?: assets.singleOrNull() ?: return
         mutablePreview.value = null
         mutableState.value = ModuleSheetState(visible = true, preview = module, stage = ModuleSheetStage.REVIEW, fromPreview = true,
             targets = listOf(ModuleInstallTarget(asset.name, downloadUrl = asset.downloadUrl,
                 version = module.latestRelease, source = module.sourceName.ifBlank { module.sourceUrl },
-                moduleId = module.moduleId, size = asset.size, minApi = module.minApi, maxApi = module.maxApi,
+                moduleId = module.moduleId, size = asset.size, sha256 = asset.sha256, minApi = module.minApi, maxApi = module.maxApi,
                 kernelSuUnsupported = module.kernelSuUnsupported, dependencies = module.dependencies)))
     }
 
@@ -120,9 +143,22 @@ internal object ModuleInstallController {
         scope.launch {
             var restartRequired = false
             try {
-                check(Natives.isManager && !Natives.isSafeMode) { "Module installation is unavailable in this root state." }
+                check(Natives.isManager && !Natives.isSafeMode && !Natives.checkUAPIMismatch()) { "Module installation is unavailable in this root state." }
                 check(!withContext(Dispatchers.IO) { hasMagisk() }) { "Remove the conflicting root provider before installing modules." }
-                val knownDependencies = snapshot.targets.flatMap { it.dependencies }
+                val installed = me.weishu.kernelsu.data.repository.ModuleRepositoryImpl().getModules().getOrThrow().associateBy { it.id }
+                val registry = me.weishu.kernelsu.data.repository.OfficialRegistryRepository()
+                val provenance = ksuApp.getSharedPreferences("module-provenance", android.content.Context.MODE_PRIVATE)
+                val targets = snapshot.targets.map { target ->
+                    val previous = installed[target.moduleId]
+                    val fromRegistry = previous != null && (registry.isRegistryUrl(previous.updateJson) || provenance.getString(target.moduleId + ".source_id", "") == "kernelsu")
+                    if (target.uri == null && target.sha256.isBlank() && fromRegistry) {
+                        val verified = registry.resolveUpdate(target.moduleId, previous!!.updateJson, target.downloadUrl, target.versionCode)
+                        check(verified is me.weishu.kernelsu.data.registry.UpdateVerification.Registry) { "Registry update could not be verified" }
+                        target.copy(downloadUrl = verified.zipUrl, size = verified.expected.size, sha256 = verified.expected.sha256)
+                    } else target
+                }
+                mutableState.update { it.copy(targets = targets) }
+                val knownDependencies = targets.flatMap { it.dependencies }
                 if (knownDependencies.isNotEmpty()) {
                     val existing = me.weishu.kernelsu.data.repository.ModuleRepositoryImpl().getModules().getOrThrow()
                         .filter { it.enabled && !it.remove }.map { it.id }.toSet()
@@ -133,10 +169,10 @@ internal object ModuleInstallController {
                 val prepared = ArrayList<File>()
                 val metamodules = ArrayList<String>()
                 try {
-                    for (target in snapshot.targets) {
+                    for (target in targets) {
                         val uri = target.uri ?: run {
                             mutableState.update { it.copy(stage = ModuleSheetStage.DOWNLOADING) }
-                            download(target.downloadUrl, target.name)
+                            download(target.downloadUrl, target.name, expected = target.sha256.takeIf { it.isNotBlank() }?.let { me.weishu.kernelsu.data.registry.ExpectedFile(target.size, it) })
                                 ?: throw ModuleDownloadException()
                         }
                         mutableState.update { it.copy(stage = ModuleSheetStage.VALIDATING) }
@@ -144,7 +180,7 @@ internal object ModuleInstallController {
                             File.createTempFile("module-review-", ".zip", ksuApp.cacheDir).also { file ->
                                 try {
                                     ksuApp.contentResolver.openInputStream(uri)?.use { input ->
-                                        file.outputStream().use { output -> input.copyTo(output) }
+                                        me.weishu.kernelsu.data.registry.copyForInstall(input, file, target.sha256.takeIf { it.isNotBlank() }?.let { me.weishu.kernelsu.data.registry.ExpectedFile(target.size, it) })
                                     } ?: error("Cannot read ${target.name}")
                                     val metadata = me.weishu.kernelsu.core.utils.validateModulePackage(file, target.size, target.moduleId)
                                     if (metadata.metamodule) { check(metadata.id.isNotBlank()) { "Metamodule has no identity" }; metamodules += metadata.id }
@@ -163,15 +199,15 @@ internal object ModuleInstallController {
                     check(Natives.isManager && !Natives.isSafeMode) { "Root state changed before installation." }
                     mutableState.update { it.copy(stage = ModuleSheetStage.INSTALLING) }
                     for ((index, file) in prepared.withIndex()) {
-                        appendLog(snapshot.targets[index].name)
+                        appendLog(targets[index].name)
                         val result = withContext(Dispatchers.IO) {
-                            flashModule(Uri.fromFile(file), ::appendLog, ::appendLog).also {
-                                if (it.showReboot || it.code == 0) me.weishu.kernelsu.data.repository.ModuleRebootStore.markChanged()
+                            flashModule(Uri.fromFile(file), ::appendLog, ::appendLog, targets[index].sha256.takeIf { it.isNotBlank() }?.let { me.weishu.kernelsu.data.registry.ExpectedFile(targets[index].size, it) }).also {
+                                if (it.showReboot) me.weishu.kernelsu.data.repository.ModuleRebootStore.markChanged()
                             }
                         }
-                        restartRequired = restartRequired || result.showReboot || result.code == 0
+                        restartRequired = restartRequired || result.showReboot
                         check(result.code == 0) { result.err.ifBlank { "Installer exited with code ${result.code}" } }
-                        val target = snapshot.targets[index]
+                        val target = targets[index]
                         if (target.moduleId.isNotBlank() && snapshot.preview?.sourceId != null && snapshot.preview.sourceId != "legacy") {
                             ksuApp.getSharedPreferences("module-provenance", android.content.Context.MODE_PRIVATE).edit()
                                 .putString(target.moduleId + ".source", snapshot.preview.sourceName)

@@ -101,7 +101,7 @@ fun ModulePager(
         onRequestUpdateConfirmation = { module, updateInfo ->
             ModuleInstallController.review(listOf(ModuleInstallTarget(
                 name = "${module.name}-${updateInfo.version}.zip", downloadUrl = updateInfo.downloadUrl,
-                version = updateInfo.version, source = module.updateJson, moduleId = module.id,
+                version = updateInfo.version, versionCode = updateInfo.versionCode, source = module.updateJson, moduleId = module.id,
             )))
         },
         onRequestUninstallConfirmation = { module ->
@@ -129,9 +129,9 @@ fun ModulePager(
                     listOf(ReleaseArg(update.version, update.version, "",
                         listOf(ReleaseAssetArg("${module.name}-${update.version}.zip", update.downloadUrl, 0, 0)), update.changelog))
                 } else emptyList(), summary = module.description,
-                installedVersion = module.version,
+                installedVersion = module.version, latestVersionCode = update?.versionCode ?: 0,
                 sourceName = context.getSharedPreferences("module-provenance", android.content.Context.MODE_PRIVATE)
-                    .getString(module.id + ".source", null) ?: context.getString(R.string.module_sheet_source_unknown))))
+                    .getString(module.id + ".source", null) ?: "")))
         },
         onOpenWebUi = { module ->
             webUILauncher.launch(
@@ -179,7 +179,7 @@ fun ModulePager(
             val snapshot = viewModel.uiState.value
             if (snapshot.installButtonVisible) {
                 ModuleInstallController.review(snapshot.selectedPendingItems.map {
-                    ModuleInstallTarget(it.fileName, downloadUrl = it.downloadUrl, moduleId = it.id)
+                    ModuleInstallTarget(it.fileName, downloadUrl = it.downloadUrl, moduleId = it.id, versionCode = snapshot.updateInfo[it.id]?.versionCode ?: 0)
                 })
             }
         },

@@ -98,3 +98,5 @@ val LocalColorMode = staticCompositionLocalOf { 0 }
 val LocalEnableBlur = staticCompositionLocalOf { false }
 
 val LocalEnableNavigationBadge = staticCompositionLocalOf { true }
+
+val LocalModuleDescriptionMaxLines = staticCompositionLocalOf { 4 }

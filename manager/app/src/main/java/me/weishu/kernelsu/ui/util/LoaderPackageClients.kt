@@ -24,6 +24,7 @@ object LoaderClient {
         onStderr: (String) -> Unit,
         outputUri: Uri? = null,
         flashSourceImage: Boolean = false,
+        blockModules: String = "",
     ): FlashResult = installBoot(
         boot,
         lkm,
@@ -36,6 +37,7 @@ object LoaderClient {
         onStderr,
         outputUri,
         flashSourceImage,
+        blockModules,
     )
 
     fun flashRestore(

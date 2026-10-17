@@ -1,0 +1,888 @@
+{
+  "fork_base": "e677d6291ccb3071c4f8fcab78fd5456b9df16b7",
+  "upstream": "0faec0cc7b5f655170d89bf9c4d28bb5ca271fa2",
+  "commits": [
+    {
+      "commit": "af62466b70c0ebf8f9340e3a9bf0a487d804ca66",
+      "subject": "manager: update Indonesian translations (#3645)",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "4a92049e44cb4ad3ec50c889e3259bfa5d685b01",
+      "subject": "fix(kernel): adapt to backport of 6.6 kernel, fix #3629 (#3632)",
+      "areas": [
+        "kernel"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "a70c8085e7c833a9b043cc284e5b46a2c514e209",
+      "subject": "manager: update Vietnamese translations (#3649)",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "dab9430fa1b3ce2aca34709df2d2fb6baf50018b",
+      "subject": "feat(ksud): support set selinux context in su (#3653)",
+      "areas": [
+        "userspace"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "abc3fdcf5b6ec9e0add131e600d55853a0fffbf2",
+      "subject": "build(deps): bump the crates group across 1 directory with 18 updates (#3648)",
+      "areas": [
+        "Cargo.lock",
+        "userspace"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "0909ad8b04103581230800997d2bcbc6d30e223e",
+      "subject": "selinux hide: spoof status page and avd seqno (#3647)",
+      "areas": [
+        "kernel"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "4521784328352c54334beb29e05c74360b60d7cb",
+      "subject": "refactor(kernel): Perform umount for webview zygote (#3630)",
+      "areas": [
+        "kernel",
+        "manager",
+        "uapi",
+        "userspace"
+      ],
+      "disposition": "integrate native behavior; defer synthetic UID UI entry (reviewed_exceptions.zygote_ui)"
+    },
+    {
+      "commit": "befbcd388bb6c10befd3645311ad08e556d362ac",
+      "subject": "ksud: Fix su identity argument handling (#3659)",
+      "areas": [
+        "userspace"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "fe4128d610f1c18e18ad6f36b0799848133e692d",
+      "subject": "build(deps): bump the maven group in /manager with 4 updates (#3660)",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "4867d6c3c6d80a2b91937d26cc6586ffc8ba8124",
+      "subject": "build(deps): bump the npm group in /website with 4 updates (#3662)",
+      "areas": [
+        "website"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "a2e00a47deed207aee51adddacf2fdd59def4baa",
+      "subject": "build(deps): bump the crates group with 6 updates (#3661)",
+      "areas": [
+        "Cargo.lock"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "34a82ab7f88801fbbe3424c768bb9437074a00e2",
+      "subject": "fix changes in 6.18+ (#3480)",
+      "areas": [
+        "kernel"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "932014ab5b2c9b74a3d11e2ec4d17dd10fc9442e",
+      "subject": "build: bump ddk to 20260828, support android17-6.18 (#3663)",
+      "areas": [
+        ".github",
+        "kernel",
+        "scripts"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "435ab65e8ff9b592666a48456a74b486a47b0857",
+      "subject": "docs: update version references to 3.3.0 (#3667)",
+      "areas": [
+        "website"
+      ],
+      "disposition": "integrate documentation/translations; retain Husky identity"
+    },
+    {
+      "commit": "3497a56261564ee7fca494e3bfa0fac80118a34d",
+      "subject": "refactor(kernel, ksud, manager): Switch webview zygote umount to allowlist (#3666)",
+      "areas": [
+        "kernel",
+        "manager",
+        "uapi",
+        "userspace"
+      ],
+      "disposition": "integrate native behavior; defer synthetic UID UI entry (reviewed_exceptions.zygote_ui)"
+    },
+    {
+      "commit": "3e9a86547245ff7535899b96850b47dc34703de7",
+      "subject": "fix(actions): upload release artifacts correctly (#3671)",
+      "areas": [
+        ".github"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "e38512f1255ea454d34cc2008d2ef7932547fad6",
+      "subject": "docs, manager: update Indonesian translations (#3656)",
+      "areas": [
+        "docs",
+        "manager"
+      ],
+      "disposition": "integrate documentation/translations; retain Husky identity"
+    },
+    {
+      "commit": "e4ba138cd3bb1e07a0e95723c58b3c9c5d866e10",
+      "subject": "manager: sync floating bottom bar style from miuix example",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "adapt functional changes; retain native Husky UI and deleted custom UI"
+    },
+    {
+      "commit": "376b3ffa6e4c0a5b6fe72adf1337645b433daaec",
+      "subject": "manager: fix floating bottom bar rapid tab switching",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "adapt functional changes; retain native Husky UI and deleted custom UI"
+    },
+    {
+      "commit": "2bb627be8feef014541b7aad7b92e7367d95d032",
+      "subject": "manager: persist NavRail expansion state",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "97f3b6b7c19964727ccb0ec765cf607e0036ba28",
+      "subject": "manager: add animated splash screen",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "adapt functional changes; retain native Husky UI and deleted custom UI"
+    },
+    {
+      "commit": "8bb369f283cae15f4faf06bfad36bc405d0f907c",
+      "subject": "manager: fix splash colors in dark theme",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "adapt functional changes; retain native Husky UI and deleted custom UI"
+    },
+    {
+      "commit": "98a8a5f9b88bd8d86eec0f074ad6e18be1f7fc80",
+      "subject": "manager: guard floating bottom bar edge taps",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "adapt functional changes; retain native Husky UI and deleted custom UI"
+    },
+    {
+      "commit": "32ce89ffcc91935e86b8579e843228b033b21382",
+      "subject": "fix(kernel): Preserve a ebitmap's size for each policy type (#3680)",
+      "areas": [
+        "kernel"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "a1437bc6b008731a802cdd77c467e5f99083b8e4",
+      "subject": "manager: redesign home page layout",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "adapt functional changes; retain native Husky UI and deleted custom UI"
+    },
+    {
+      "commit": "fd584fbd0db68ddb656d687b5525ea1247027ebf",
+      "subject": "manaer: remove module page reboot popup",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "3c1240625655978f319a98398031100b80e9da7c",
+      "subject": "manager: update Chinese (Traditional Han script, Hong Kong) translations (#3685)",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "e9bf8bcdf1bba25937e28b571dd47b3db6ec397b",
+      "subject": "manager: remove all mipmap rec",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "f5908a8ab89183480f7a54518a9b0f719dc1d31e",
+      "subject": "manager: optimize splash screen",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "adapt functional changes; retain native Husky UI and deleted custom UI"
+    },
+    {
+      "commit": "b3bb394273b31701c54ce041149acd8c9d4092d4",
+      "subject": "manager: optimize splash screen again",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "adapt functional changes; retain native Husky UI and deleted custom UI"
+    },
+    {
+      "commit": "35feb58872b6f88ac1b488ce46a68892a017d62d",
+      "subject": "feat(ksud): Implement SIGSYS handler (#3677)",
+      "areas": [
+        "userspace"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "c72f294e09536222d450237e4c1f0271bfe145ff",
+      "subject": "fix(kernel, uapi, ksud): make fd wrapper work with app profile (#3679)",
+      "areas": [
+        "kernel",
+        "uapi",
+        "userspace"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "e5c73fdd7f447f57914432cd8f6f1235ec5f18af",
+      "subject": "manager: preload pager data and fix resume refresh",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "9190b01af7c888150b27d814d47b28309813a0e7",
+      "subject": "build(deps): bump the npm group in /website with 14 updates (#3676)",
+      "areas": [
+        "website"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "5640a4f096a474234f3c57c901b6293946691028",
+      "subject": "build(deps): bump the crates group with 7 updates (#3675)",
+      "areas": [
+        "Cargo.lock"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "58aecc40a6eebc677ec82cf8d6ca5bf5d18f2a4d",
+      "subject": "build(deps): bump actions/setup-java from 5 to 6 in the actions group (#3673)",
+      "areas": [
+        ".github"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "e727186054b6a6b39b9f4262037086202eed8365",
+      "subject": "feat: new version matching detection mechanism (#3516)",
+      "areas": [
+        "kernel",
+        "manager",
+        "uapi",
+        "userspace"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "dfadc083342d3d4871cbbb0f010af5da2c3e5630",
+      "subject": "fix(actions): update ksubot",
+      "areas": [
+        ".github",
+        "scripts"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "fccd77fe9f202b9c28b5f0942fe588b8c2bdae26",
+      "subject": "feat(resetprop): support update long value for ro props (#3696)",
+      "areas": [
+        "Cargo.lock",
+        "userspace"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "aa08b390cdcad1c354c0ba130a6a44378cb0f9af",
+      "subject": "fix(kernel): Reject all signature block id except v2 (#3700)",
+      "areas": [
+        "kernel"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "33d0c9205df47b6b1b61c25c13afa164b88871d1",
+      "subject": "manager: Block background taps without consuming drag events",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "665fd96bc848615fb775cc24ff47f76ec3438def",
+      "subject": "kernel: retain capabilities across execve for non-root profiles (#3710)",
+      "areas": [
+        "kernel"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "e23e035ad168ef13da86970f689dcab062e520de",
+      "subject": "fix(manager): Use MediaStore to download modules (#3707)",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "3262be6c8a79cccb62e66b49c499adf1b64d68b9",
+      "subject": "manager: Fix SearchBar focus issues",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "bb4f4e86f8d2165db957601507c0e9a35b605e01",
+      "subject": "fix(actions): Remove setup-android",
+      "areas": [
+        ".github"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "3a7ac9dc0dc8c0b573fd4eb4836fd0860ef4242e",
+      "subject": "fix(actions): Remove all setup-android",
+      "areas": [
+        ".github"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "5c808db1f27632abfff691bb515d388e54da09fe",
+      "subject": "manager: Fix page jumps when focusing search",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "26a0991486fc686d7b952829820f1e1f3082ae99",
+      "subject": "build(deps): bump the maven group in /manager with 5 updates (#3727)",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "093ebdfd5c51212ad8688ea4faea52ef9c7c7fa5",
+      "subject": "manager: use LazyColumn in ColorPaletteScreenMaterial (#3730)",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "adapt functional changes; retain native Husky UI and deleted custom UI"
+    },
+    {
+      "commit": "05b13d6fb6dbe141386b9cd3188a165095ae535d",
+      "subject": "manager: Block horizontal drag in search overlay",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "9b25a0f2c409f237d1495f3be1a3926bbd6a284c",
+      "subject": "manager: Support customizing module description collapse line count (#3703)",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "85cab5f841b55bed180c10dfdbe33f876aba7820",
+      "subject": "build(deps): migrate dependencies to new repos (#3723)",
+      "areas": [
+        "Cargo.lock",
+        "userspace"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "2179b9e4b110ee02ef18b9683d74229c5d3fcc13",
+      "subject": "manager: update miuix to 0.9.4",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "adapt functional changes; retain native Husky UI and deleted custom UI"
+    },
+    {
+      "commit": "6ebd714ca46885a84ffb7f5cc41ef1fb16b51a1e",
+      "subject": "fix(kernel): open file without touching fsnotify and atime while scanning manager apks (#3733)",
+      "areas": [
+        "kernel"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "95b87145ccb7f36ac806524194ec0179774780f6",
+      "subject": "fix(kernel): Miscellaneous build errors in syscall_hook_manager and arm64 patch_memory (#3738)",
+      "areas": [
+        "kernel"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "c25187e30bba6f635407c1390a4849d92d7e9acb",
+      "subject": "manager: fix a crash issue",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "11f415116d5764243a8f5c401b015766368894bc",
+      "subject": "kernel: util: wire up ksyscall (#3742)",
+      "areas": [
+        "kernel"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "87db8315db2c9f5286e47b963ea02b46a88a7e56",
+      "subject": "kernel: fix avtab iteration macro (#3701)",
+      "areas": [
+        "kernel"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "7759d8781f18904431a80ae80a2efbde8d2a0b1e",
+      "subject": "fix(manager): Prevent exception if no root access (#3741)",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "5c25b2355b9504ed2516552874111b54305afa7c",
+      "subject": "fix(ksud): wait for service death before post-fs-data when soft reboot (#3744)",
+      "areas": [
+        "userspace"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "bd82a853b55d2660fead11009165dfdde8fcbf64",
+      "subject": "kernel: fix RCU-protected SELinux policy access (#3746)",
+      "areas": [
+        "kernel"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "449436dd56e4abb075f7b53fb5b2b33ff3830dd2",
+      "subject": "fix(manager): Unexport magica receiver (#3747)",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "623eba3e092b911a3a7389b7d87622a5835d2f3a",
+      "subject": "kernel: Add Android riscv64 support with LKM (#3750)",
+      "areas": [
+        ".github",
+        "Cargo.lock",
+        "Cargo.toml",
+        "kernel",
+        "manager",
+        "repack_apk.py",
+        "userspace"
+      ],
+      "disposition": "integrate native support; retain production matrix (reviewed_exceptions.architecture_matrix)"
+    },
+    {
+      "commit": "a8d3bf0a7557228983fde1e212af9f4112f2ac03",
+      "subject": "fix(ksud): use waitsys to wait when soft reboot (#3754)",
+      "areas": [
+        "userspace"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "08a3b087e49227c8a6731c5f1114998b5e25255b",
+      "subject": "refactor(ksud): update waitsys and refactor logic (#3755)",
+      "areas": [
+        "userspace"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "ba668b0092165118d1ca06ab58fad008ef9f85ef",
+      "subject": "chore(ksud): make clippy happy",
+      "areas": [
+        "userspace"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "bfb49eecd6526569615185cb95ce664d85a74d61",
+      "subject": "feat(ksud): add timeout for boot stage scripts (#3797)",
+      "areas": [
+        "userspace"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "0ff54fab4e741d958daf3048d7711644c40eca79",
+      "subject": "fix(kernel): Fix avtab removal length calculation and xperms update",
+      "areas": [
+        "kernel"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "cd4af89c43005f33df91ba7cb66e00e67a4d0c1b",
+      "subject": "fix(kernel): Avoid repeatedly triggering service stage (#3800)",
+      "areas": [
+        "kernel",
+        "uapi",
+        "userspace"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "9bcee88aa750169fb332357c33f6d996afe082f8",
+      "subject": "fix(manager): Use NavigationBackHandler for Material SearchBar",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "0b5a75e2b8e48d59a1a1916fe19ee8e2ff557128",
+      "subject": "ksud: Scan APK comments up to the ZIP length limit (#3802)",
+      "areas": [
+        "userspace"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "9afddcda4803732871a98f37b7bd65673152bbbc",
+      "subject": "ksud: Skip KMI detection for config-only patches (#3803)",
+      "areas": [
+        "userspace"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "08b2e9e451325ebe506c273cfb0fde17d18f592f",
+      "subject": "manager: don't offer kernel install in jailbreak mode (#3801)",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "e4d932232a00e97b17c8c4ec0f15d2bdc30cd568",
+      "subject": "build(deps): bump the npm group across 1 directory with 19 updates (#3867)",
+      "areas": [
+        "website"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "26c45e2791e2df81267e69e7bec7835498e983ba",
+      "subject": "fix(kernel): throne_tracker: avoid deadlocks on iterate_dir (#3865)",
+      "areas": [
+        "kernel"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "6b5f55bd95e9c412bafd1dbe1431032cd32baa20",
+      "subject": "refactor(kernel): pin manager package name (#3868)",
+      "areas": [
+        ".github",
+        "kernel"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "e7b071100754b55e28be6930f9967d99adb4a385",
+      "subject": "Revert \"fix(manager): Use NavigationBackHandler for Material SearchBar\"",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "24d9bc37c23f6f82aeae8b99347497081597fd02",
+      "subject": "fix(manager): Correct remote factory image probing and KMI detection",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "a810677b847ba564c5f9d3fa0fbabe54794b8eef",
+      "subject": "fix(kernel): fix sidtab detection (#3873)",
+      "areas": [
+        "kernel"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "a05b1d7f0b641a7b485c5c41add8b45de9febc15",
+      "subject": "apk_sign: get_pkg_from_apk_dir_path: move to strrchr (#3874)",
+      "areas": [
+        "kernel"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "ab23091edfeddc774e1e880b0919b211808a193e",
+      "subject": "fix(kernel): pkg_observer: defer track_throne to task_work (#3871)",
+      "areas": [
+        "kernel"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "df03912f70d92ff2aa9762ef82d607033d37e1da",
+      "subject": "fix(kernel): Keep original permission check sequence",
+      "areas": [
+        "kernel"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "6a2f63240397ea647ede981e0669231c8bf17fee",
+      "subject": "fix(manager): Block back navigation while flashing",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "a85dcbcfc3b09ae410f31aae124d04f3777fdf1c",
+      "subject": "fix(kernel): fix time side-channel detection in selinux hide (#3877)",
+      "areas": [
+        "kernel"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "6e3860443f8fea7c5fc226277e53888033796488",
+      "subject": "feat: support forcing feature values via ksu_config (incl. boot-patch-v2) (#3878)",
+      "areas": [
+        "kernel",
+        "manager",
+        "uapi",
+        "userspace"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "f7bfa28d6a5296875e74fedd06a1f107e946e76f",
+      "subject": "feat(manager): switch module repository to the KernelSU Modules API (#3880)",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "f895b80a3aad79948ba8074f53cf8f65a314d576",
+      "subject": "feat: block kernel modules at boot via native module_blacklist (#3881)",
+      "areas": [
+        "kernel",
+        "manager",
+        "userspace"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "0a1f3ff71719fa2d6ec15f5568dac27fdb957fcc",
+      "subject": "feat: add shell_su_adb_only feature to restrict shell root to adb sessions (#3882)",
+      "areas": [
+        "kernel",
+        "manager",
+        "uapi",
+        "userspace"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "aaa14a34c0252a896279098b8e77a082cb362b26",
+      "subject": "fix(manager): require explicit opt-in to block kernel modules (#3883)",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "c8232e044fc6268195c6ad62143132011c3e5ba6",
+      "subject": "manager: support different callback when description cannot be expanded",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "ac5f748c7d7756b4c4ab71f738ad5a5cfb12055e",
+      "subject": "build(deps): bump the crates group across 1 directory with 36 updates (#3870)",
+      "areas": [
+        "Cargo.lock",
+        "userspace"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "0c0fdb960178fa12d80d6cbcfdcb6ad8be6a865d",
+      "subject": "manager: Update Indonesian translations (#3748)",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "013b044886bb14a30687d58b9a42ad0b643aabbe",
+      "subject": "manager: run one-shot script entries from the module store (#3892)",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "b94e0916bf6394cb75b03f50b0e8f5a90de3471c",
+      "subject": "website: document one-shot scripts (#3898)",
+      "areas": [
+        "website"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "200818cabf8ff8ba857dee068c5fae5ae63ae6aa",
+      "subject": "Support hot installing modules (#3901)",
+      "areas": [
+        "manager",
+        "userspace",
+        "website"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "5d88021118457e05c847c98bb9f4a611761f88f7",
+      "subject": "Fix typo in module documentation regarding boot-completed (#3692)",
+      "areas": [
+        "website"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "d3025e2f796d7b32c71164cf6e105c5222897b85",
+      "subject": "fix: a missing verb in the disclaimer (#3658)",
+      "areas": [
+        "website"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "88cfd4ce64cecaf8bc812f972b501c259e4b8005",
+      "subject": "manager: guard parseKernelVersion against non-Int version fields (#3593)",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "f866d78287757d38d73fa573675fc84c9cafb008",
+      "subject": "ksud: validate lengths when loading module config (#3598)",
+      "areas": [
+        "userspace"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "60662ac4dbbdccbbeb008b61dad2c5b6b5a732fa",
+      "subject": "ksud: don't panic on a broken zip in get_zip_uncompressed_size (#3591)",
+      "areas": [
+        "userspace"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "3186a2fe2107f7170e06dab7aa157eb10ae7759f",
+      "subject": "Update README_TR.md (#3409)",
+      "areas": [
+        "docs"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "d9b0763be536e488b165188552599e84b4b2abcc",
+      "subject": "manager: Update Indonesian translations (#3885)",
+      "areas": [
+        "manager"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "9f5966b4d534869fd72a79b3c6ea602e5eae3022",
+      "subject": "ksud: Accept empty and long kallsyms tokens (#3804)",
+      "areas": [
+        "userspace"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    },
+    {
+      "commit": "0faec0cc7b5f655170d89bf9c4d28bb5ca271fa2",
+      "subject": "Add module preinit: run actions before SELinux policy loads (#3907)",
+      "areas": [
+        "kernel",
+        "manager",
+        "uapi",
+        "userspace",
+        "website"
+      ],
+      "disposition": "integrate; reconcile Husky contracts"
+    }
+  ],
+  "reviewed_exceptions": {
+    "manager_ui": "Retain AndroidX Navigation3 and native Material 3 Expressive; do not resurrect deleted Miuix/liquid or replace the agreed dashboard. Port script/registry capabilities through native routes and Bottom Sheets.",
+    "zygote_ui": "Native webview-zygote allowlist behavior integrated; defer synthetic reserved-UID UI entry to preserve the reviewed real-application grouping and grant semantics.",
+    "architecture_matrix": "Native upstream RISC-V support retained, but no RISC-V job or extra production KMI target added. Production remains ARM64/X86_64 userspace, ARM64 android14-6.1 and android16-6.12 LKMs.",
+    "loader": "Retain Husky exact-target checks and signed byte preservation; adapt upstream resolver API through local bounded preflight. No generic vermagic rewriting or imported code in experiments/husky-loader.",
+    "registry": "New upstream provider is optional and defaults off because live index returned HTTP403 in this environment; existing MMRL/custom sources remain. Schema/integrity are covered by upstream fixtures.",
+    "workflow": "Retain production trusted certificate, explicit fork package, source identity/repack verification, manual publication and both ABI payloads. Include new native runner host regressions."
+  }
+}

@@ -349,9 +349,61 @@ fn replace_module_vermagic(buffer: &mut Vec<u8>, required_vermagic: &str) -> Res
     Ok(())
 }
 
+/// Resolve requested built-in symbols without accepting ambiguous or hidden addresses.
+pub fn resolve_kallsyms(names: &[&str]) -> Result<Vec<Option<u64>>> {
+    let mut found = std::collections::BTreeMap::new();
+    for entry in checked_kernel_symbols_iter()? {
+        let (name, address) = entry?;
+        if names.contains(&name.as_str()) {
+            anyhow::ensure!(address != 0, "Hidden symbol {name}");
+            if let Some(previous) = found.insert(name.clone(), address) {
+                anyhow::ensure!(previous == address, "Ambiguous symbol {name}");
+            }
+        }
+    }
+    Ok(names.iter().map(|name| found.get(*name).copied()).collect())
+}
+
+pub fn load_module(data: &[u8], params: &CStr) -> Result<()> {
+    load_preflighted(data, params, checked_kernel_symbols_iter)
+}
+
+/// Preserve Husky target/signature preflight for the upstream resolver entry point.
+pub fn load_module_with_resolver<F>(data: &[u8], params: &CStr, resolver: F) -> Result<()>
+where
+    F: FnOnce(&[&str]) -> Result<Vec<Option<u64>>>,
+{
+    load_preflighted(data, params, || {
+        let elf = Elf::parse(data)?;
+        let names: std::collections::BTreeSet<_> = elf
+            .syms
+            .iter()
+            .filter(|sym| sym.st_shndx == goblin::elf::section_header::SHN_UNDEF as usize)
+            .filter_map(|sym| elf.strtab.get_at(sym.st_name))
+            .filter(|name| !name.is_empty())
+            .collect();
+        let names: Vec<_> = names.into_iter().collect();
+        let addresses = resolver(&names)?;
+        anyhow::ensure!(
+            addresses.len() == names.len(),
+            "Resolver result count mismatch"
+        );
+        Ok(names
+            .into_iter()
+            .zip(addresses)
+            .filter_map(|(name, address)| address.map(|address| Ok((name.to_owned(), address))))
+            .collect::<Vec<_>>()
+            .into_iter())
+    })
+}
+
 /// Relocate undefined symbols in an ELF kernel module buffer using /proc/kallsyms,
 /// then load it via init_module syscall.
-pub fn load_module(data: &[u8], params: &CStr) -> Result<()> {
+fn load_preflighted<I: Iterator<Item = Result<(String, u64)>>>(
+    data: &[u8],
+    params: &CStr,
+    symbols: impl FnOnce() -> Result<I>,
+) -> Result<()> {
     let machine = if cfg!(target_arch = "aarch64") {
         183
     } else {
@@ -368,8 +420,7 @@ pub fn load_module(data: &[u8], params: &CStr) -> Result<()> {
         log::info!("Signed module: preserving bytes for kernel signature and symbol checks");
         data.to_vec()
     } else {
-        loader::prepare(data, checked_kernel_symbols_iter)
-            .context("Module symbol preflight failed")?
+        loader::prepare(data, symbols).context("Module symbol preflight failed")?
     };
 
     let mut kmsg = match open_kmsg_at_end() {

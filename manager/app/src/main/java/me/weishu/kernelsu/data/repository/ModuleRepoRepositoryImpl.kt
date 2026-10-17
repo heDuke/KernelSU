@@ -15,12 +15,13 @@ import java.time.Instant
 class ModuleRepoRepositoryImpl : ModuleRepoRepository {
     private val preferences = ksuApp.getSharedPreferences("module-repositories", android.content.Context.MODE_PRIVATE)
     private val definitions = listOf(
+        me.weishu.kernelsu.data.model.RepoSource("kernelsu", "KernelSU Modules", "https://modules.kernelsu.org/api/v1/index.json"),
         me.weishu.kernelsu.data.model.RepoSource("googlers", "Googlers Magisk Repo", "https://gr.dergoogler.com/gmr/json/modules.json"),
         me.weishu.kernelsu.data.model.RepoSource("alt", "Magisk Modules Alt Repo", "https://magisk-modules-alt-repo.github.io/json-v2/json/modules.json"),
         me.weishu.kernelsu.data.model.RepoSource("izzy", "IzzyOnDroid Magisk Repository", "https://apt.izzysoft.de/magisk/json/modules.json"),
     )
     private val mutableSources = kotlinx.coroutines.flow.MutableStateFlow(definitions.map {
-        me.weishu.kernelsu.data.model.RepoSourceStatus(it, preferences.getBoolean(it.id, true))
+        me.weishu.kernelsu.data.model.RepoSourceStatus(it, preferences.getBoolean(it.id, it.id != "kernelsu"))
     })
     override val sources = mutableSources.asStateFlow()
     override fun setSourceEnabled(id: String, enabled: Boolean) {
@@ -32,8 +33,16 @@ class ModuleRepoRepositoryImpl : ModuleRepoRepository {
         val statuses = ArrayList<me.weishu.kernelsu.data.model.RepoSourceStatus>()
         val combined = ArrayList<RepoModule>()
         for (source in definitions) {
-            val enabled = preferences.getBoolean(source.id, true)
+            val enabled = preferences.getBoolean(source.id, source.id != "kernelsu")
             if (!enabled) { statuses += me.weishu.kernelsu.data.model.RepoSourceStatus(source, false); continue }
+            if (source.id == "kernelsu") {
+                val result = OfficialRegistryRepository().fetchModules()
+                val catalog = result.getOrNull()
+                combined += catalog?.modules.orEmpty()
+                statuses += me.weishu.kernelsu.data.model.RepoSourceStatus(source, count = catalog?.modules?.size ?: 0,
+                    cached = catalog?.stale == true, error = (result.exceptionOrNull() ?: catalog?.error)?.message)
+                continue
+            }
             val cacheDir = java.io.File(ksuApp.filesDir, "module-repositories").apply { mkdirs() }
             val cache = java.io.File(cacheDir, "${source.id}.json")
             val result = runCatching {
@@ -95,6 +104,8 @@ class ModuleRepoRepositoryImpl : ModuleRepoRepository {
                         createdAt = date(item.optLong("added")),
                         latestRelease = latest?.optString("version") ?: item.optString("version", ""),
                         latestReleaseTime = date(timestamp),
+                        latestReleaseEpoch = timestamp * 1000,
+                        stars = (item.opt("stars") as? Number)?.toInt(),
                         latestVersionCode = latest?.optInt("versionCode") ?: item.optInt("versionCode"),
                         latestAsset = downloadUrl.takeIf { it.isNotEmpty() }?.let {
                             ReleaseAsset(
@@ -144,19 +155,10 @@ class ModuleRepoRepositoryImpl : ModuleRepoRepository {
 
 
     private fun managerDescription(managers: JSONObject?): String {
-        if (managers == null) return ""
-        return managers.keys().asSequence().map { provider ->
-            val rule = managers.optJSONObject(provider) ?: return@map provider
-            val parts = ArrayList<String>()
-            val minimum = (rule.opt("min") as? Number)?.toInt()
-            val maximum = (rule.opt("max") as? Number)?.toInt()
-            if (minimum == -1) parts += ksuApp.getString(me.weishu.kernelsu.R.string.module_sheet_provider_unsupported)
-            else minimum?.let { parts += ksuApp.getString(me.weishu.kernelsu.R.string.module_sheet_minimum_version, it) }
-            maximum?.let { parts += ksuApp.getString(me.weishu.kernelsu.R.string.module_sheet_maximum_version, it) }
-            val required = strings(rule.optJSONArray("require"))
-            if (required.isNotEmpty()) parts += ksuApp.getString(me.weishu.kernelsu.R.string.module_sheet_dependencies) + ": " + required.joinToString(", ")
-            provider + ": " + parts.joinToString("; ")
-        }.joinToString("\n")
+        val rule = managers?.optJSONObject("kernelsu") ?: return ""
+        val min = (rule.opt("min") as? Number)?.toInt()?.takeIf { it > 0 }
+        val max = (rule.opt("max") as? Number)?.toInt()?.takeIf { it > 0 }
+        return listOfNotNull(min?.let { "KernelSU ≥ $it" }, max?.let { "KernelSU ≤ $it" }).joinToString(" · ")
     }
 
     private fun strings(array: org.json.JSONArray?): List<String> =

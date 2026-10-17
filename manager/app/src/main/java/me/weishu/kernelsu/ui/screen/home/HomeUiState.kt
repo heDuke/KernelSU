@@ -42,6 +42,8 @@ data class HomeUiState(
     val latestVersionInfo: LatestVersionInfo,
     val currentManagerVersionCode: Long,
     val systemInfo: SystemInfo,
+    val isLkmBundled: Boolean = false,
+    val requiresNewManager: Boolean = false,
     val huskyRelease: HuskyRelease? = null,
     val huskyUpdateStatus: HuskyUpdateStatus = HuskyUpdateStatus.Idle,
     val huskyError: String? = null,

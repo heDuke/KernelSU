@@ -34,6 +34,7 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenuGroup
+import androidx.compose.material3.CheckableDropdownMenuItem
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenuPopup
 import androidx.compose.material3.Icon
@@ -148,7 +149,7 @@ fun SulogScreenMaterial(
                         val filters = SulogEventFilter.entries
                         DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
                             filters.forEachIndexed { index, filter ->
-                                DropdownMenuItem(
+                                CheckableDropdownMenuItem(
                                     text = { Text(sulogFilterLabel(filter)) },
                                     checked = filter in state.selectedFilters,
                                     checkedLeadingIcon = {

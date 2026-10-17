@@ -28,9 +28,9 @@ class ModuleRepositoryImpl : ModuleRepository {
                 .map { obj ->
                     Module(
                         id = obj.getString("id"),
-                        name = obj.optString("name"),
-                        author = obj.optString("author", "Unknown"),
-                        version = obj.optString("version", "Unknown"),
+                        name = obj.optString("name").ifBlank { obj.getString("id") },
+                        author = obj.optString("author", ""),
+                        version = obj.optString("version", ""),
                         versionCode = obj.optInt("versionCode", 0),
                         description = obj.optString("description"),
                         enabled = obj.getBoolean("enabled"),
@@ -41,7 +41,8 @@ class ModuleRepositoryImpl : ModuleRepository {
                         hasActionScript = obj.optBoolean("action"),
                         metamodule = (obj.optInt("metamodule") != 0) || obj.optBoolean("metamodule"),
                         actionIconPath = obj.optString("actionIcon").takeIf { it.isNotBlank() },
-                        webUiIconPath = obj.optString("webuiIcon").takeIf { it.isNotBlank() }
+                        webUiIconPath = obj.optString("webuiIcon").takeIf { it.isNotBlank() },
+                        preinit = obj.optString("preinit")
                     )
                 }.toList()
         }
@@ -81,7 +82,7 @@ class ModuleRepositoryImpl : ModuleRepository {
             if (versionCode <= module.versionCode || zipUrl.isEmpty()) {
                 ModuleUpdateInfo.Empty
             } else {
-                ModuleUpdateInfo(zipUrl, version, changelog)
+                ModuleUpdateInfo(zipUrl, version, changelog, versionCode)
             }
         }
     }

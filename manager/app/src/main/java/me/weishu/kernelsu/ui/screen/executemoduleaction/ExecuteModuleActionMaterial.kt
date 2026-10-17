@@ -103,7 +103,7 @@ fun ExecuteModuleActionScreenMaterial(
         },
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.action)) },
+                title = { Text(state.title ?: stringResource(R.string.action)) },
                 colors = expressiveTopAppBarColors(),
                 navigationIcon = {
                     TopBarBackButton(onClick = actions.onBack)

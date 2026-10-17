@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
@@ -111,10 +113,11 @@ fun SuperUserPagerMaterial(uiState: SuperUserUiState, actions: SuperUserActions,
             LazyColumn(state = list,
                 modifier = Modifier.fillMaxSize().nestedScroll(scroll.nestedScrollConnection),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = bottomInnerPadding + 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                verticalArrangement = Arrangement.spacedBy(0.dp)) {
                 if (hasDataOrCanQuery) {
-                    item(key = "summary") { SuperUserOverview(uiState, actions.onFilterChange) }
+                    item(key = "summary") { Box(Modifier.padding(bottom = 8.dp)) { SuperUserOverview(uiState, actions.onFilterChange) } }
                     item(key = "filters") {
+                        Column(Modifier.padding(bottom = 8.dp)) {
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             SuperUserFilter.entries.forEach { filter ->
                                 FilterChip(selected = uiState.filter == filter,
@@ -129,6 +132,7 @@ fun SuperUserPagerMaterial(uiState: SuperUserUiState, actions: SuperUserActions,
                                 stringResource(R.string.show_only_primary_user_apps).takeIf { uiState.showOnlyPrimaryUserApps },
                             ).joinToString(" · "), style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                         }
                     }
                 }
@@ -160,11 +164,12 @@ fun SuperUserPagerMaterial(uiState: SuperUserUiState, actions: SuperUserActions,
                         }
                     }
                 }
-                items(uiState.visibleGroups, key = { it.uid }) { group ->
+                itemsIndexed(uiState.visibleGroups, key = { _, group -> group.uid }) { index, group ->
                     SuperUserAppRow(group, uiState.savingUid == group.uid, enabled,
                         onOpen = { selectedUid = group.uid },
                         onGrantChange = { setAuthorization(group, it) },
-                        confirmed = uiState.error == null && !uiState.isRefreshing)
+                        confirmed = uiState.error == null && !uiState.isRefreshing,
+                        first = index == 0, last = index == uiState.visibleGroups.lastIndex)
                 }
             }
         }
@@ -254,7 +259,7 @@ private fun SuperUserMetric(groups: Int, applications: Int, label: String, confi
 @Composable
 internal fun SuperUserAppRow(group: GroupedApps, saving: Boolean, enabled: Boolean,
                              onOpen: () -> Unit, onGrantChange: ((Boolean) -> Unit)? = null,
-                             confirmed: Boolean = true) {
+                             confirmed: Boolean = true, first: Boolean = true, last: Boolean = true) {
     val description = if (group.apps.size > 1) stringResource(R.string.su_toggle_shared_description, group.uid, group.apps.size)
         else stringResource(R.string.su_toggle_description, group.primary.label)
     val grantLabel = stringResource(if (group.anyAllowSu) R.string.app_profile_granted else R.string.app_profile_not_granted)
@@ -265,7 +270,9 @@ internal fun SuperUserAppRow(group: GroupedApps, saving: Boolean, enabled: Boole
     }
     val largeText = LocalDensity.current.fontScale >= 1.5f
     val openLabel = stringResource(R.string.su_open_details)
-    Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainer) {
+    Surface(shape = RoundedCornerShape(topStart = if (first) 24.dp else 0.dp, topEnd = if (first) 24.dp else 0.dp,
+        bottomStart = if (last) 24.dp else 0.dp, bottomEnd = if (last) 24.dp else 0.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val separateControl = onGrantChange != null && (largeText || maxWidth < 340.dp)
             val control: @Composable () -> Unit = {
@@ -278,14 +285,14 @@ internal fun SuperUserAppRow(group: GroupedApps, saving: Boolean, enabled: Boole
             }
             Column {
                 ListItem(modifier = Modifier.clickable(role = Role.Button, onClickLabel = openLabel, onClick = onOpen),
-                    colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                    colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                     leadingContent = { AppIconImage(packageInfo = group.primary.packageInfo, label = group.primary.label, modifier = Modifier.size(44.dp)) },
-                    overlineContent = {
+                    overlineContent = if (saving || !confirmed) ({
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(if (group.anyAllowSu) Icons.Outlined.Shield else Icons.Outlined.Block, null, Modifier.size(16.dp))
                             Text(status, style = MaterialTheme.typography.labelMedium)
                         }
-                    },
+                    }) else null,
                     content = {
                         Text(if (group.apps.size > 1) stringResource(R.string.su_shared_headline, group.primary.label, group.apps.size)
                             else group.primary.label, maxLines = 2, overflow = TextOverflow.Ellipsis)

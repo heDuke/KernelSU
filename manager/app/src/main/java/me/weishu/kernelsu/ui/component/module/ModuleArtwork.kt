@@ -65,3 +65,25 @@ internal fun ModuleArtwork(url: String, description: String?, modifier: Modifier
         }
     }
 }
+
+@Composable
+internal fun InstalledModuleArtwork(moduleId: String, version: Int, path: String?, modifier: Modifier = Modifier) {
+    val bitmap by produceState<ImageBitmap?>(null, moduleId, version, path) {
+        value = withContext(Dispatchers.IO) { runCatching {
+            require(moduleId.matches(Regex("[A-Za-z0-9_.-]+")))
+            val uri = android.net.Uri.parse(path ?: "")
+            val raw = uri.path ?: error("No icon path")
+            require(java.nio.file.Path.of(raw).normalize().toString().startsWith("/data/adb/modules/$moduleId/"))
+            val file = com.topjohnwu.superuser.io.SuFile(raw).apply { shell = me.weishu.kernelsu.ui.util.getRootShell(true) }
+            val bytes = com.topjohnwu.superuser.io.SuFileInputStream.open(file).use { it.readNBytes(1024 * 1024 + 1) }
+            require(bytes.size <= 1024 * 1024)
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+            require(bounds.outWidth > 0 && bounds.outHeight > 0)
+            val options = BitmapFactory.Options().apply { while (bounds.outWidth / inSampleSize > 192 || bounds.outHeight / inSampleSize > 192) inSampleSize *= 2 }
+            checkNotNull(BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)).asImageBitmap()
+        }.getOrNull() }
+    }
+    if (bitmap != null) Image(bitmap!!, null, modifier, contentScale = ContentScale.Fit)
+    else Icon(Icons.Outlined.Extension, null, modifier)
+}

@@ -4,15 +4,19 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.ContentValues
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.os.IBinder
+import android.provider.MediaStore
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -20,12 +24,17 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.data.registry.DownloadVerificationException
+import me.weishu.kernelsu.data.registry.ExpectedFile
+import me.weishu.kernelsu.data.registry.RegistryDownloadStore
+import me.weishu.kernelsu.data.registry.RegistryUrls
 import me.weishu.kernelsu.data.repository.SettingsRepositoryImpl
 import me.weishu.kernelsu.ksuApp
 import me.weishu.kernelsu.ui.MainActivity
+import okhttp3.Call
+import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
-import java.io.FileOutputStream
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 
@@ -42,12 +51,15 @@ class DownloadService : Service() {
         const val EXTRA_FILE_NAME = "fileName"
         const val EXTRA_DOWNLOAD_ID = "downloadId"
         const val EXTRA_MODULE_URI = "moduleUri"
-        const val EXTRA_FILE_PATH = "filePath"
+        const val EXTRA_EXPECTED_SIZE = "expectedSize"
+        const val EXTRA_EXPECTED_SHA256 = "expectedSha256"
 
         private const val COMPLETION_NOTIFICATION_ID_BASE = 100000
+        private const val REGISTRY_DOWNLOAD_MAX_AGE_MS = 24L * 60 * 60 * 1000
     }
 
     private val activeJobs = ConcurrentHashMap<Int, Job>()
+    private val activeCalls = ConcurrentHashMap<Int, Call>()
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var notificationManager: NotificationManager
 
@@ -77,124 +89,220 @@ class DownloadService : Service() {
                     startForeground(downloadId, notification)
                 }
 
-                startDownload(downloadId, url, fileName)
+                val expectedSha256 = intent.getStringExtra(EXTRA_EXPECTED_SHA256)
+                val expectedSize = intent.getLongExtra(EXTRA_EXPECTED_SIZE, -1L)
+                val expected = expectedSha256?.let { ExpectedFile(expectedSize, it) }
+                startDownload(downloadId, url, fileName, expected)
             }
 
             ACTION_CANCEL -> {
                 val downloadId = intent.getIntExtra(EXTRA_DOWNLOAD_ID, -1)
                 if (downloadId != -1) {
                     activeJobs[downloadId]?.cancel()
-                    activeJobs.remove(downloadId)
-                    notificationManager.cancel(downloadId)
-                    DownloadManager.markFailed(downloadId, "Cancelled")
-                    stopForegroundIfIdle()
+                    activeCalls[downloadId]?.cancel()
                 }
             }
 
             ACTION_DISMISS_DOWNLOAD -> {
                 val downloadId = intent.getIntExtra(EXTRA_DOWNLOAD_ID, -1)
-                val filePath = intent.getStringExtra(EXTRA_FILE_PATH)
+                val uri = intent.getStringExtra(EXTRA_MODULE_URI)?.let(Uri::parse)
                 if (downloadId != -1) {
                     notificationManager.cancel(COMPLETION_NOTIFICATION_ID_BASE + downloadId)
                 }
-                if (!filePath.isNullOrEmpty()) {
-                    File(filePath).delete()
+                serviceScope.launch {
+                    if (uri != null) deleteDownload(uri)
+                    stopForegroundIfIdle()
                 }
             }
         }
         return START_NOT_STICKY
     }
 
-    private fun startDownload(id: Int, url: String, fileName: String) {
-        if (activeJobs[id]?.isActive == true) return
-        val job = serviceScope.launch(start = kotlinx.coroutines.CoroutineStart.LAZY) {
-            var reserved: File? = null
+    /**
+     * Registry downloads ([expected] != null) may only come from GitHub Release download URLs
+     * and their CDN redirect targets; every hop is checked.
+     */
+    private fun registryClient(): OkHttpClient = ksuApp.okhttpClient.newBuilder()
+        .followSslRedirects(false)
+        .addNetworkInterceptor { chain ->
+            val requestUrl = chain.request().url
+            if (!RegistryUrls.isAllowedDownloadHop(requestUrl.toString())) {
+                throw DownloadVerificationException(
+                    DownloadVerificationException.Reason.URL_NOT_ALLOWED,
+                    "Download host not allowed: ${requestUrl.host}"
+                )
+            }
+            chain.proceed(chain.request())
+        }
+        .build()
+
+    private fun startDownload(id: Int, url: String, fileName: String, expected: ExpectedFile?) {
+        val job = serviceScope.launch(start = CoroutineStart.LAZY) {
+            var pendingUri: Uri? = null
+            var displayName = fileName
             try {
-                val target = me.weishu.kernelsu.core.utils.reserveDownloadTarget(
-                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName)
-                reserved = target
-                ksuApp.okhttpClient.newCall(Request.Builder().url(url).build()).execute()
-                    .use { resp ->
+                val uri = if (expected != null) {
+                    // Already stored under its final name: delete it if cancelled before completion.
+                    downloadVerified(id, url, fileName, expected).also { pendingUri = it }
+                } else {
+                    val call = ksuApp.okhttpClient.newCall(Request.Builder().url(url).build())
+                    activeCalls[id] = call
+                    ensureActive()
+                    val published = call.execute().use { resp ->
                         if (!resp.isSuccessful) throw IOException("HTTP ${resp.code}")
                         val body = resp.body
                         val total = body.contentLength()
 
-                        FileOutputStream(target).use { fos ->
+                        ensureActive()
+                        val values = ContentValues().apply {
+                            put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+                            put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                            put(MediaStore.Downloads.IS_PENDING, 1)
+                        }
+                        val downloadUri = contentResolver.insert(
+                            MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
+                            values
+                        ) ?: throw IOException("Failed to create download")
+                        pendingUri = downloadUri
+                        displayName = downloadUri.getFileName(this@DownloadService) ?: fileName
+
+                        val output = contentResolver.openOutputStream(downloadUri)
+                            ?: throw IOException("Failed to open download")
+                        output.use { fos ->
                             val buf = ByteArray(8 * 1024)
                             var soFar = 0L
-                            val startedAt = android.os.SystemClock.elapsedRealtime()
-                            var lastPublishedAt = startedAt
-                            var lastNotifiedProgress = -1
+                            val progress = ProgressReporter(id, displayName, total)
                             val source = body.byteStream()
 
                             while (true) {
-                                kotlinx.coroutines.currentCoroutineContext().ensureActive()
+                                ensureActive()
                                 val read = source.read(buf)
                                 if (read == -1) break
                                 fos.write(buf, 0, read)
                                 soFar += read
-
-                                if (total > 0) {
-                                    val percent =
-                                        ((soFar * 100L) / total).toInt().coerceIn(0, 100)
-                                    val now = android.os.SystemClock.elapsedRealtime()
-                                    if (now - lastPublishedAt >= 200 || soFar == total) {
-                                        DownloadManager.updateProgress(id, percent, soFar, total,
-                                            soFar * 1000 / (now - startedAt).coerceAtLeast(1))
-                                        lastPublishedAt = now
-                                    }
-
-                                    if (percent - lastNotifiedProgress >= 2 || percent == 100) {
-                                        notificationManager.notify(
-                                            id,
-                                            buildProgressNotification(id, target.name, percent)
-                                        )
-                                        lastNotifiedProgress = percent
-                                    }
-                                } else {
-                                    val now = android.os.SystemClock.elapsedRealtime()
-                                    if (now - lastPublishedAt >= 200) {
-                                        DownloadManager.updateProgress(id, 0, soFar, total,
-                                            soFar * 1000 / (now - startedAt).coerceAtLeast(1))
-                                        lastPublishedAt = now
-                                    }
-                                }
+                                progress.report(soFar)
                             }
                             fos.flush()
-                            val duration = (android.os.SystemClock.elapsedRealtime() - startedAt).coerceAtLeast(1)
-                            DownloadManager.updateProgress(id, if (total > 0) 100 else 0, soFar, total, soFar * 1000 / duration)
                         }
+                        downloadUri
                     }
 
-                kotlinx.coroutines.currentCoroutineContext().ensureActive()
-                val uri = Uri.fromFile(target)
-                runCatching {
-                    notificationManager.cancel(id)
-                    notificationManager.notify(COMPLETION_NOTIFICATION_ID_BASE + id,
-                        buildCompletionNotification(id, target.name, uri))
+                    ensureActive()
+                    val values = ContentValues().apply {
+                        put(MediaStore.Downloads.IS_PENDING, 0)
+                    }
+                    if (contentResolver.update(published, values, null, null) != 1) {
+                        throw IOException("Failed to publish download")
+                    }
+                    displayName = published.getFileName(this@DownloadService) ?: displayName
+                    published
                 }
+                ensureActive()
+                pendingUri = null
                 DownloadManager.markCompleted(id, uri)
-            } catch (e: CancellationException) {
-                reserved?.delete()
-                DownloadManager.markCanceled(id)
-                notificationManager.cancel(id)
-                throw e
-            } catch (e: Exception) {
-                reserved?.delete()
-                DownloadManager.markFailed(id, e.message ?: "Unknown error")
 
                 notificationManager.cancel(id)
                 notificationManager.notify(
                     COMPLETION_NOTIFICATION_ID_BASE + id,
-                    buildFailureNotification(reserved?.name ?: fileName)
+                    buildCompletionNotification(id, displayName, uri)
+                )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                ensureActive()
+                val verificationFailure = (e as? DownloadVerificationException)?.reason
+                if (verificationFailure != null) {
+                    Log.w("DownloadService", "Rejected download $url: ${e.message}")
+                }
+                DownloadManager.markFailed(id, e.message ?: "Unknown error", verificationFailure)
+
+                notificationManager.cancel(id)
+                notificationManager.notify(
+                    COMPLETION_NOTIFICATION_ID_BASE + id,
+                    buildFailureNotification(displayName, verificationFailure)
                 )
             } finally {
-                activeJobs.remove(id)
-                stopForegroundIfIdle()
+                pendingUri?.let { deleteDownload(it) }
             }
         }
         activeJobs[id] = job
+        job.invokeOnCompletion { cause ->
+            if (cause is CancellationException &&
+                DownloadManager.downloads.value[id]?.status != DownloadManager.Status.COMPLETED
+            ) {
+                DownloadManager.markCanceled(id)
+                notificationManager.cancel(id)
+            }
+            activeCalls.remove(id)?.cancel()
+            activeJobs.remove(id)
+            stopForegroundIfIdle()
+        }
         job.start()
+    }
+
+    private inner class ProgressReporter(private val id: Int, private val displayName: String, private val total: Long) {
+        private var lastNotifiedProgress = -1
+        private val started = android.os.SystemClock.elapsedRealtime()
+        private var lastPublished = 0L
+
+        fun report(soFar: Long) {
+            val percent = if (total > 0) ((soFar * 100L) / total).toInt().coerceIn(0, 100) else 0
+            val now = android.os.SystemClock.elapsedRealtime()
+            if (now - lastPublished >= 200 || (total > 0 && soFar == total)) {
+                DownloadManager.updateProgress(id, percent, soFar, total, soFar * 1000 / (now - started).coerceAtLeast(1))
+                lastPublished = now
+            }
+            if (percent - lastNotifiedProgress >= 2 || percent == 100) {
+                notificationManager.notify(id, buildProgressNotification(id, displayName, percent))
+                lastNotifiedProgress = percent
+            }
+        }
+    }
+
+    private fun registryStoreRoot(): File = File(filesDir, RegistryDownloadStore.DIR_NAME)
+
+    /**
+     * Registry release ZIP: only GitHub Release URLs (and their CDN redirect targets), streamed
+     * into app-private storage while size + SHA-256 are checked. A mismatching file is deleted
+     * and never published; the flash step re-verifies the stored bytes before installing.
+     */
+    private fun CoroutineScope.downloadVerified(id: Int, url: String, fileName: String, expected: ExpectedFile): Uri {
+        if (!RegistryUrls.isAllowedReleaseDownloadUrl(url)) {
+            throw DownloadVerificationException(
+                DownloadVerificationException.Reason.URL_NOT_ALLOWED,
+                "Download URL not allowed"
+            )
+        }
+        val root = registryStoreRoot()
+        runCatching { RegistryDownloadStore.cleanup(root, REGISTRY_DOWNLOAD_MAX_AGE_MS) }
+        val call = registryClient().newCall(Request.Builder().url(url).build())
+        activeCalls[id] = call
+        ensureActive()
+        val file = call.execute().use { resp ->
+            if (!resp.isSuccessful) throw IOException("HTTP ${resp.code}")
+            val progress = ProgressReporter(id, fileName, expected.size)
+            RegistryDownloadStore.download(
+                input = resp.body.byteStream(),
+                root = root,
+                expected = expected,
+                fileName = fileName,
+                onProgress = progress::report,
+                checkActive = { ensureActive() },
+            )
+        }
+        return Uri.fromFile(file)
+    }
+
+    private fun deleteDownload(uri: Uri) {
+        runCatching {
+            if (uri.scheme == "file") {
+                uri.path?.let { RegistryDownloadStore.delete(registryStoreRoot(), File(it)) }
+                return@runCatching
+            }
+            contentResolver.delete(uri, null, null)
+        }.onFailure {
+            Log.w("DownloadService", "Failed to delete download: $uri", it)
+        }
     }
 
     private fun buildProgressNotification(
@@ -251,7 +359,7 @@ class DownloadService : Service() {
         val dismissIntent = Intent(this, DownloadService::class.java).apply {
             action = ACTION_DISMISS_DOWNLOAD
             putExtra(EXTRA_DOWNLOAD_ID, id)
-            putExtra(EXTRA_FILE_PATH, uri.path)
+            putExtra(EXTRA_MODULE_URI, uri.toString())
         }
         val dismissPendingIntent = PendingIntent.getService(
             this,
@@ -268,9 +376,20 @@ class DownloadService : Service() {
         return builder.build()
     }
 
-    private fun buildFailureNotification(fileName: String) = NotificationCompat.Builder(this, CHANNEL_ID)
+    private fun buildFailureNotification(
+        fileName: String,
+        verificationFailure: DownloadVerificationException.Reason? = null,
+    ) = NotificationCompat.Builder(this, CHANNEL_ID)
         .setContentTitle(getString(R.string.download_failed_title))
-        .setContentText(getString(R.string.download_failed_content, fileName))
+        .setContentText(
+            when (verificationFailure) {
+                null -> getString(R.string.download_failed_content, fileName)
+                DownloadVerificationException.Reason.URL_NOT_ALLOWED -> getString(R.string.module_repo_download_url_blocked)
+                DownloadVerificationException.Reason.SIZE_MISMATCH,
+                DownloadVerificationException.Reason.SHA256_MISMATCH ->
+                    getString(R.string.module_repo_download_verify_failed, fileName)
+            }
+        )
         .setSmallIcon(android.R.drawable.stat_notify_error)
         .setAutoCancel(true)
         .build()
@@ -298,7 +417,7 @@ class DownloadService : Service() {
     }
 
     private fun stopForegroundIfIdle() {
-        if (activeJobs.isEmpty() || activeJobs.values.none { it.isActive }) {
+        if (activeJobs.isEmpty()) {
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
         }
@@ -306,6 +425,7 @@ class DownloadService : Service() {
 
     override fun onDestroy() {
         serviceScope.cancel()
+        activeCalls.values.forEach { it.cancel() }
         super.onDestroy()
     }
 }

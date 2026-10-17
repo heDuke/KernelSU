@@ -54,6 +54,10 @@ sealed interface Route : NavKey, Parcelable {
 
     @Parcelize
     @Serializable
+    data class ScriptRun(@Serializable(with = me.weishu.kernelsu.ui.util.ScriptRunArgSerializer::class) val arg: me.weishu.kernelsu.ui.screen.scriptrun.ScriptRunArg) : Route
+
+    @Parcelize
+    @Serializable
     data object AppProfileTemplate : Route
 
     @Parcelize

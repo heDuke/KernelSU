@@ -201,24 +201,22 @@ private fun flashWithIO(
 }
 
 fun flashModule(
-    uri: Uri,
-    onStdout: (String) -> Unit,
-    onStderr: (String) -> Unit
+    uri: Uri, onStdout: (String) -> Unit, onStderr: (String) -> Unit,
+    expected: me.weishu.kernelsu.data.registry.ExpectedFile? = null,
 ): FlashResult {
-    val resolver = ksuApp.contentResolver
-    with(resolver.openInputStream(uri)) {
-        val file = File(ksuApp.cacheDir, "module.zip")
-        file.outputStream().use { output ->
-            this?.copyTo(output)
+    val file = File.createTempFile("module-install-", ".zip", ksuApp.cacheDir)
+    return try {
+        requireNotNull(ksuApp.contentResolver.openInputStream(uri)).use { input ->
+            me.weishu.kernelsu.data.registry.copyForInstall(input, file, expected)
         }
-        val cmd = "module install ${file.absolutePath}"
+        val cmd = "module install ${bootArgument(file.absolutePath)}"
         val result = flashWithIO("${getKsuDaemonPath()} $cmd", onStdout, onStderr)
-        Log.i("KernelSU", "install module $uri result: $result")
-
-        file.delete()
-
-        return FlashResult(result)
-    }
+        val pending = if (result.isSuccess) runCatching {
+            val modules = org.json.JSONArray(listModules())
+            (0 until modules.length()).any { i -> val item = modules.getJSONObject(i); item.optBoolean("update") || item.optBoolean("remove") }
+        }.getOrDefault(true) else false
+        FlashResult(result, pending)
+    } finally { file.delete() }
 }
 
 fun runModuleAction(
@@ -312,10 +310,13 @@ private fun bootPatchFlags(
     allowShell: Boolean,
     enableAdb: Boolean,
     forceBackup: Boolean,
+    blockModules: String = "",
 ): String = buildString {
     if (allowShell) append(" --allow-shell")
     if (enableAdb) append(" --enable-adbd")
     if (forceBackup) append(" --backup")
+    val names = me.weishu.kernelsu.core.utils.parseBootModuleBlocklist(blockModules)
+    if (names.isNotEmpty()) append(" --block-module ${bootArgument(names.joinToString(","))}")
 }
 
 fun installBoot(
@@ -330,6 +331,7 @@ fun installBoot(
     onStderr: (String) -> Unit,
     outputUri: Uri? = null,
     flashSourceImage: Boolean = false,
+    blockModules: String = "",
 ): FlashResult {
     var bootFile: File? = null
     var lkmFile: File? = null
@@ -345,7 +347,7 @@ fun installBoot(
         cmd += if (bootFile == null) " -f" else " -b ${bootArgument(bootFile.absolutePath)}"
         require(!flashSourceImage || (bootFile != null && !ota)) { "Local image write requires a source image and current-slot review" }
         if (flashSourceImage) cmd += " -f"
-        cmd += bootPatchFlags(allowShell, enableAdb, forceBackup)
+        cmd += bootPatchFlags(allowShell, enableAdb, forceBackup, blockModules)
         if (ota) cmd += " -u"
         if (lkmFile != null) cmd += " -m ${bootArgument(lkmFile.absolutePath)}"
         else if (lkm is LkmSelection.KmiString) cmd += " --kmi ${bootArgument(lkm.value)}"
@@ -382,6 +384,7 @@ fun downloadBoot(
     forceBackup: Boolean,
     onStdout: (String) -> Unit,
     onStderr: (String) -> Unit,
+    blockModules: String = "",
 ): FlashResult {
     val bootFile = File.createTempFile("download-boot-", ".img", ksuApp.cacheDir)
     val companion = if (partition == "boot") null else File.createTempFile("target-boot-", ".img", ksuApp.cacheDir)
@@ -426,7 +429,7 @@ fun downloadBoot(
 
     var cmd = "${getKsuDaemonPath()} boot-patch -b ${bootFile.absolutePath}"
     if (companion != null) cmd += " --target-boot ${companion.absolutePath}"
-    cmd += bootPatchFlags(allowShell, enableAdb, forceBackup)
+    cmd += bootPatchFlags(allowShell, enableAdb, forceBackup, blockModules)
 
     val lkmFile = writeLkmFile(lkm)
     if (lkmFile != null) {
@@ -645,4 +648,45 @@ fun launchApp(packageName: String, userId: Int? = null) {
 fun restartApp(packageName: String, userId: Int? = null) {
     forceStopApp(packageName, userId)
     launchApp(packageName, userId)
+}
+
+suspend fun getFeatureValue(feature: String): Long? = withContext(Dispatchers.IO) {
+    getRootShell().newJob().add("${getKsuDaemonPath()} feature get $feature").to(ArrayList<String>(), null).exec().out.firstOrNull { it.trim().startsWith("Value:") }?.substringAfter("Value:")?.trim()?.toLongOrNull()
+}
+
+private suspend fun readFeatureValue(args: String): Long? = withContext(Dispatchers.IO) {
+    val shell = getRootShell()
+    val out = shell.newJob()
+        .add("${getKsuDaemonPath()} feature get $args").to(ArrayList<String>(), null).exec().out
+    val valueLine = out.firstOrNull { it.trim().startsWith("Value:") } ?: return@withContext null
+    valueLine.substringAfter("Value:").trim().toLongOrNull()
+}
+
+
+fun runOneshotScript(
+    command: String, onStdout: (String) -> Unit, onStderr: (String) -> Unit
+): Int {
+    val stdoutCallback: CallbackList<String?> = object : CallbackList<String?>() {
+        override fun onAddElement(s: String?) {
+            onStdout(s ?: "")
+        }
+    }
+
+    val stderrCallback: CallbackList<String?> = object : CallbackList<String?>() {
+        override fun onAddElement(s: String?) {
+            onStderr(s ?: "")
+        }
+    }
+
+    val result = withNewRootShell(true) {
+        newJob().add(command).to(stdoutCallback, stderrCallback).exec()
+    }
+    Log.i(TAG, "one-shot script exit code: ${result.code}")
+    return result.code
+}
+
+
+fun removeAsRoot(path: String): Boolean {
+    val escaped = "'" + path.replace("'", "'\\''") + "'"
+    return ShellUtils.fastCmdResult(getRootShell(), "rm -rf $escaped")
 }

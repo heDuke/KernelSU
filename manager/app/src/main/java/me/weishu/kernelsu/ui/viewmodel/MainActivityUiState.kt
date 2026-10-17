@@ -10,5 +10,8 @@ data class MainActivityUiState(
     val pageScale: Float,
     val enableBlur: Boolean,
     val enableNavigationBadge: Boolean,
+    val enableSwipeDismiss: Boolean,
+    val pagerInterceptionMode: Int,
+    val moduleDescriptionMaxLines: Int = 4,
     val uiMode: UiMode,
 )

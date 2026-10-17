@@ -8,7 +8,8 @@ data class ReleaseAssetArg(
     val name: String,
     val downloadUrl: String,
     val size: Long,
-    val downloadCount: Int
+    val downloadCount: Int,
+    val sha256: String = "",
 ) : Parcelable
 
 @Parcelize
@@ -56,6 +57,7 @@ data class RepoModuleArg(
     val categories: List<String> = emptyList(),
     val managerRequirements: String = "",
     val kernelSuUnsupported: Boolean = false,
+    val isScript: Boolean = false,
     val minApi: Int? = null,
     val maxApi: Int? = null,
 ) : Parcelable
@@ -66,13 +68,13 @@ fun me.weishu.kernelsu.data.model.RepoModule.toModuleArg() = RepoModuleArg(
     latestRelease = latestRelease, latestReleaseTime = latestReleaseTime,
     releases = releaseHistory.map { release ->
         ReleaseArg(release.version, release.version, release.publishedAt,
-            listOf(ReleaseAssetArg(release.asset.name, release.asset.downloadUrl, release.asset.size, 0)), release.changelog)
+            listOf(ReleaseAssetArg(release.asset.name, release.asset.downloadUrl, release.asset.size, 0, release.asset.sha256)), release.changelog)
     }.ifEmpty { latestAsset?.let {
         listOf(ReleaseArg(latestRelease, latestRelease, latestReleaseTime,
-            listOf(ReleaseAssetArg(it.name, it.downloadUrl, it.size, 0)), ""))
+            listOf(ReleaseAssetArg(it.name, it.downloadUrl, it.size, 0, it.sha256)), ""))
     } ?: emptyList() },
     summary = summary, sourceName = sourceName, sourceId = sourceId, sourceUrl = sourceUrl,
-    latestVersionCode = latestVersionCode,
+    latestVersionCode = latestVersionCode, isScript = isScript,
     readmeUrl = readmeUrl, iconUrl = iconUrl, screenshots = screenshots,
     minApi = minApi, maxApi = maxApi, license = license, supportUrl = supportUrl, donateUrl = donateUrl,
     notes = notes, permissions = permissions, dependencies = dependencies,

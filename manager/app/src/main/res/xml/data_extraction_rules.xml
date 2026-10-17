@@ -9,11 +9,11 @@
         <include .../>
         <exclude .../>
         -->
+    <exclude domain="file" path="terminal-tasks/" />
+    <exclude domain="database" path="terminal-tasks.db" />
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+    <exclude domain="file" path="terminal-tasks/" />
+    <exclude domain="database" path="terminal-tasks.db" />
     </device-transfer>
-    -->
 </data-extraction-rules>

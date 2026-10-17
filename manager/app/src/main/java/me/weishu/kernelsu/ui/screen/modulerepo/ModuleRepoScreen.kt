@@ -4,6 +4,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.ksuApp
@@ -19,6 +20,7 @@ fun ModuleRepoScreen(embedded: Boolean = false, bottomInnerPadding: androidx.com
     val navigator = LocalNavigator.current
     val viewModel = viewModel<ModuleRepoViewModel>()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
     val sources by viewModel.sourceStates.collectAsStateWithLifecycle()
     val installed = viewModel<me.weishu.kernelsu.ui.viewmodel.ModuleViewModel>(key = "catalog-installed")
     val installedState by installed.uiState.collectAsStateWithLifecycle()
@@ -31,10 +33,19 @@ fun ModuleRepoScreen(embedded: Boolean = false, bottomInnerPadding: androidx.com
         onSearchStatusChange = viewModel::updateSearchStatus,
         onSetSortOrder = viewModel::setSortOrder,
         onSetSourceEnabled = viewModel::setSourceEnabled,
-        onOpenRepoDetail = { module -> ModuleInstallController.preview(module.toModuleArg().copy(
-            installedVersion = installedState.modules.firstOrNull { it.id == module.moduleId && !it.remove }?.version.orEmpty(),
-            installedVersionCode = installedState.modules.firstOrNull { it.id == module.moduleId && !it.remove }?.versionCode ?: 0,
-        )) },
+        onOpenRepoDetail = { module -> scope.launch {
+            val resolved = if (module.sourceId == "kernelsu") {
+                me.weishu.kernelsu.data.repository.OfficialRegistryRepository().fetchDetail(module.moduleId).map { detail ->
+                    module.copy(sourceUrl = detail.sourceUrl, license = detail.license.orEmpty(),
+                        supportUrl = detail.support.orEmpty(), readmeUrl = "https://modules.kernelsu.org/api/v1/modules/${module.moduleId}.json",
+                        releaseHistory = detail.releases, latestAsset = detail.releases.firstOrNull()?.asset).toModuleArg()
+                }
+            } else Result.success(module.toModuleArg())
+            resolved.onSuccess { arg -> ModuleInstallController.preview(arg.copy(
+                installedVersion = installedState.modules.firstOrNull { it.id == module.moduleId && !it.remove }?.version.orEmpty(),
+                installedVersionCode = installedState.modules.firstOrNull { it.id == module.moduleId && !it.remove }?.versionCode ?: 0))
+            }.onFailure { android.widget.Toast.makeText(ksuApp, it.message, android.widget.Toast.LENGTH_LONG).show() }
+        } },
     ), showBack = !embedded, bottomPadding = bottomInnerPadding)
 }
 
@@ -48,7 +59,11 @@ fun ModuleRepoDetailScreen(module: RepoModuleArg) {
     var attempt by remember(module) { mutableIntStateOf(0) }
     LaunchedEffect(module.readmeUrl, attempt) {
         loaded = false; error = null
-        if (module.readmeUrl.isNotBlank()) {
+        if (module.sourceId == "kernelsu") {
+            val result = me.weishu.kernelsu.data.repository.OfficialRegistryRepository().fetchDetail(module.moduleId)
+            readme = result.getOrNull()?.readmeHtml
+            error = result.exceptionOrNull()?.message
+        } else if (module.readmeUrl.isNotBlank()) {
             val result = withContext(Dispatchers.IO) {
                 runCatching {
                     ksuApp.okhttpClient.newCall(Request.Builder().url(module.readmeUrl).build()).execute().use {

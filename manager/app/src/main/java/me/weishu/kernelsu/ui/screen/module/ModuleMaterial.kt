@@ -59,6 +59,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.Extension
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Download
@@ -294,14 +298,6 @@ fun ModulePagerMaterial(
                 actions = {
                     RebootListPopup()
 
-                    val moduleRepoLabel = stringResource(R.string.settings_module_repo)
-                    IconButton(onClick = actions.onOpenModuleRepo) {
-                        Icon(
-                            imageVector = Icons.Outlined.TravelExplore,
-                            contentDescription = moduleRepoLabel,
-                        )
-                    }
-
                     var showDropdown by remember { mutableStateOf(false) }
                     IconButton(
                         onClick = { showDropdown = true }
@@ -310,59 +306,15 @@ fun ModulePagerMaterial(
                             imageVector = Icons.Filled.MoreVert,
                             contentDescription = stringResource(id = R.string.settings)
                         )
-                        DropdownMenuPopup(
-                            expanded = showDropdown,
-                            onDismissRequest = { showDropdown = false }
-                        ) {
-                            DropdownMenuGroup(shapes = MenuDefaults.groupShape(index = 0, count = 2)) {
-                                DropdownMenuItem(
-                                    selected = false,
-                                    text = { Text(moduleRepoLabel) },
-                                    onClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
-                                        showDropdown = false
-                                        actions.onOpenModuleRepo()
-                                    },
-                                    shapes = MenuDefaults.itemShape(index = 0, count = 1),
-                                )
-                            }
-
-                            Spacer(Modifier.height(MenuDefaults.GroupSpacing))
-
-                            DropdownMenuGroup(shapes = MenuDefaults.groupShape(index = 1, count = 2)) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.module_sort_action_first)) },
-                                    checked = uiState.sortActionFirst,
-                                    checkedLeadingIcon = {
-                                        Icon(
-                                            Icons.Filled.Check,
-                                            modifier = Modifier.size(MenuDefaults.LeadingIconSize),
-                                            contentDescription = null,
-                                        )
-                                    },
-                                    onCheckedChange = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
-                                        actions.onToggleSortActionFirst()
-                                    },
-                                    shapes = MenuDefaults.itemShape(index = 0, count = 2),
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.module_sort_enabled_first)) },
-                                    checked = uiState.sortEnabledFirst,
-                                    checkedLeadingIcon = {
-                                        Icon(
-                                            Icons.Filled.Check,
-                                            modifier = Modifier.size(MenuDefaults.LeadingIconSize),
-                                            contentDescription = null,
-                                        )
-                                    },
-                                    onCheckedChange = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
-                                        actions.onToggleSortEnabledFirst()
-                                    },
-                                    shapes = MenuDefaults.itemShape(index = 1, count = 2),
-                                )
-                            }
+                        androidx.compose.material3.DropdownMenu(expanded = showDropdown, onDismissRequest = { showDropdown = false }) {
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text(stringResource(R.string.module_sort_action_first)) },
+                                leadingIcon = { if (uiState.sortActionFirst) Icon(Icons.Filled.Check, null) },
+                                onClick = { showDropdown = false; actions.onToggleSortActionFirst() })
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text(stringResource(R.string.module_sort_enabled_first)) },
+                                leadingIcon = { if (uiState.sortEnabledFirst) Icon(Icons.Filled.Check, null) },
+                                onClick = { showDropdown = false; actions.onToggleSortEnabledFirst() })
                         }
                     }
                 },
@@ -416,20 +368,17 @@ fun ModulePagerMaterial(
                     actions.onOpenFlash(uris)
                 }
 
+                var chooseSource by remember { mutableStateOf(false) }
                 SmallExtendedFloatingActionButton(
-                    modifier = Modifier.padding(bottom = bottomInnerPadding),
-                    expanded = fabExpanded,
-                    onClick = {
-                        // Select the zip files to install
-                        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
-                            type = "application/zip"
-                            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-                        }
-                        selectZipLauncher.launch(intent)
-                    },
-                    icon = { Icon(Icons.Filled.Add, moduleInstall) },
-                    text = { Text(text = moduleInstall) },
-                )
+                    modifier = Modifier.padding(bottom = bottomInnerPadding), expanded = fabExpanded,
+                    onClick = { chooseSource = true },
+                    icon = { Icon(Icons.Filled.Add, moduleInstall) }, text = { Text(moduleInstall) })
+                if (chooseSource) me.weishu.kernelsu.ui.component.module.ModuleInstallSourceSheet(
+                    onDismiss = { chooseSource = false }, onLocal = {
+                        selectZipLauncher.launch(Intent(Intent.ACTION_GET_CONTENT).apply {
+                            type = "application/zip"; putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                        })
+                    })
             }
         },
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
@@ -489,7 +438,7 @@ fun ModulePagerMaterial(
                 modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
                 listState = listState,
                 displayModules = uiState.moduleList,
-                recommendedModules = uiState.visibleRecommendedModules,
+                recommendedModules = emptyList(),
                 pendingItems = uiState.pendingItems,
                 selectedPendingIds = uiState.selectedPendingIds,
                 isBatchProcessing = uiState.isBatchProcessing,
@@ -1023,47 +972,98 @@ private fun ModuleItem(
     onAddShortcut: (ShortcutType) -> Unit, onClick: () -> Unit,
     onExecuteAction: () -> Unit, onOpenDetails: () -> Unit, closeSearch: () -> Unit,
 ) {
-    Column {
-        androidx.compose.material3.ListItem(
-            modifier = Modifier.clickable(onClick = onOpenDetails),
-            headlineContent = { Text(module.name, style = MaterialTheme.typography.titleMedium) },
-            supportingContent = {
-                Column {
-                    Text("${module.version} · ${module.author}")
-                    Text(module.description)
-                    if (module.metamodule) Text("META", style = MaterialTheme.typography.labelLarge)
-                    if (module.remove || module.update) Text(stringResource(R.string.module_sheet_restart_required))
-                }
-            },
-            trailingContent = {
-                androidx.compose.material3.Switch(checked = module.enabled, enabled = !module.remove,
-                    onCheckedChange = onCheckChanged)
-            },
-        )
-        FlowRow(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (!module.remove && module.enabled) {
-                if (module.hasWebUi) {
-                    FilledTonalButton(onClick = { onClick(); closeSearch() }) { Text("WebUI") }
-                    androidx.compose.material3.TextButton(onClick = { onAddShortcut(ShortcutType.WebUI) }) {
-                        Text(stringResource(R.string.module_sheet_web_shortcut))
+    var expanded by remember(module.id) { mutableStateOf(false) }
+    var overflow by remember(module.id, module.description) { mutableStateOf(false) }
+    var more by remember(module.id) { mutableStateOf(false) }
+    val colors = MaterialTheme.colorScheme
+    val enabled = module.enabled && !module.remove
+    val scope = rememberCoroutineScope()
+    val sheet = androidx.compose.material3.rememberBottomSheetState(initialValue = SheetValue.Hidden)
+    val pending = module.remove || module.update
+    androidx.compose.material3.Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = androidx.compose.material3.CardDefaults.cardColors(
+            containerColor = if (enabled) colors.primaryContainer else colors.surfaceContainerLow,
+            contentColor = if (enabled) colors.onPrimaryContainer else colors.onSurface),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Surface(shape = MaterialTheme.shapes.large, color = if (enabled) colors.surface.copy(alpha = .65f) else colors.surfaceContainerHigh) {
+                    Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                        me.weishu.kernelsu.ui.component.module.InstalledModuleArtwork(module.id, module.versionCode, module.webUiIconPath ?: module.actionIconPath, Modifier.size(32.dp))
                     }
                 }
-                if (module.hasActionScript) {
-                    FilledTonalButton(onClick = { onExecuteAction(); closeSearch() }) { Text(stringResource(R.string.action)) }
-                    androidx.compose.material3.TextButton(onClick = { onAddShortcut(ShortcutType.Action) }) {
-                        Text(stringResource(R.string.module_sheet_action_shortcut))
-                    }
+                Column(Modifier.weight(1f).clickable(onClick = onOpenDetails)) {
+                    Text(module.name, style = MaterialTheme.typography.titleMedium)
+                    Text(listOf(module.version, module.author).filter(String::isNotBlank).joinToString(" · "),
+                        style = MaterialTheme.typography.bodySmall)
                 }
-                if (updateUrl.isNotBlank()) {
-                    androidx.compose.material3.Button(shapes = ButtonDefaults.shapes(), onClick = onUpdate) {
-                        Text(stringResource(R.string.module_update))
-                    }
+                IconButton(onClick = { more = true }) {
+                    Icon(Icons.Filled.MoreVert, stringResource(R.string.module_card_more))
                 }
             }
-            androidx.compose.material3.TextButton(onClick = onUninstallClicked) {
-                Text(stringResource(if (module.remove) R.string.undo else R.string.uninstall))
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                val status = when {
+                    module.remove -> stringResource(R.string.module_pending_uninstall)
+                    module.update -> stringResource(R.string.module_sheet_restart_required)
+                    enabled -> stringResource(R.string.module_card_enabled)
+                    else -> stringResource(R.string.module_card_disabled)
+                }
+                Text(status, Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+                androidx.compose.material3.Switch(checked = module.enabled, enabled = !module.remove,
+                    onCheckedChange = onCheckChanged,
+                    modifier = Modifier.semantics { contentDescription = module.name; stateDescription = status })
+            }
+            if (updateUrl.isNotBlank() && !module.remove) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(Icons.Outlined.Download, null, Modifier.size(16.dp))
+                    Text(stringResource(R.string.module_card_update_available), style = MaterialTheme.typography.labelMedium)
+                }
+            }
+            if (module.metamodule) Text("META", style = MaterialTheme.typography.labelMedium)
+            module.preinitWarning()?.let { Text(stringResource(it), color = colors.error, style = MaterialTheme.typography.labelMedium) }
+            if (module.description.isNotBlank()) {
+                Text(module.description, style = MaterialTheme.typography.bodyMedium,
+                    maxLines = if (expanded) Int.MAX_VALUE else if (enabled) 2 else 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    onTextLayout = { if (!expanded) overflow = it.hasVisualOverflow })
+                if (overflow || expanded) TextButton(onClick = { expanded = !expanded }) {
+                    Text(stringResource(if (expanded) R.string.module_card_collapse else R.string.module_card_expand))
+                }
+            }
+            if (enabled && !pending && (module.hasWebUi || module.hasActionScript)) {
+                Button(onClick = { if (module.hasWebUi) onClick() else onExecuteAction(); closeSearch() },
+                    shapes = ButtonDefaults.shapes()) {
+                    Icon(if (module.hasWebUi) Icons.Outlined.Code else Icons.Outlined.PlayArrow, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (module.hasWebUi) stringResource(R.string.module_card_open_webui) else stringResource(R.string.action))
+                }
             }
         }
-        HorizontalDivider(Modifier.padding(horizontal = 16.dp))
+    }
+    if (more) ModalBottomSheet(sheetState = sheet, onDismissRequest = { more = false }) {
+        fun choose(action: () -> Unit) { scope.launch { sheet.hide(); more = false; action() } }
+        Column(Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+            Text(module.name, Modifier.padding(horizontal = 24.dp, vertical = 12.dp), style = MaterialTheme.typography.headlineSmall)
+            @Composable fun item(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, error: Boolean = false, action: () -> Unit) {
+                androidx.compose.material3.ListItem(
+                    content = { Text(label, color = if (error) colors.error else colors.onSurface) },
+                    leadingContent = { Icon(icon, null, tint = if (error) colors.error else colors.onSurfaceVariant) },
+                    modifier = Modifier.clickable { choose(action) })
+            }
+            item(stringResource(R.string.module_card_details), Icons.Outlined.Info, action = onOpenDetails)
+            if (!module.remove) {
+                if (updateUrl.isNotBlank()) item(stringResource(R.string.module_update), Icons.Outlined.Download, action = onUpdate)
+                if (enabled && !pending) {
+                    if (module.hasWebUi && module.hasActionScript) item(stringResource(R.string.action), Icons.Outlined.PlayArrow, action = onExecuteAction)
+                    if (module.hasWebUi) item(stringResource(R.string.module_sheet_web_shortcut), Icons.Outlined.Code) { onAddShortcut(ShortcutType.WebUI) }
+                    if (module.hasActionScript) item(stringResource(R.string.module_sheet_action_shortcut), Icons.Outlined.PlayArrow) { onAddShortcut(ShortcutType.Action) }
+                }
+            }
+            HorizontalDivider(Modifier.padding(horizontal = 24.dp, vertical = 8.dp))
+            item(stringResource(if (module.remove) R.string.undo else R.string.uninstall), Icons.Outlined.Delete, !module.remove,
+                action = onUninstallClicked)
+        }
     }
 }

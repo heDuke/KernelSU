@@ -8,6 +8,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+
     <application
         android:name=".KernelSUApplication"
         android:allowBackup="true"
@@ -24,7 +26,7 @@
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.KernelSU"
+            android:theme="@style/Theme.KernelSU.Starting"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -91,11 +93,15 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <service android:name=".ui.service.TerminalTaskService" android:exported="false" android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="User-started noninteractive Root command execution with visible task controls" />
+        </service>
+
         <receiver
             android:name=".magica.BootCompletedReceiver"
             android:directBootAware="true"
             android:enabled="false"
-            android:exported="true"
+            android:exported="false"
             android:process=":magica_boot">
             <intent-filter>
                 <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />

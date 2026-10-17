@@ -24,6 +24,7 @@
 #include "policy/allowlist.h"
 #include "manager/manager_identity.h"
 #include "infra/su_mount_ns.h"
+#include "feature/shell_su_adb_only.h"
 
 #define FILE_MAGIC 0x7f4b5355 // ' KSU', u32
 #define FILE_FORMAT_VERSION 4 // u32
@@ -281,7 +282,7 @@ bool __ksu_is_allow_uid(uid_t uid)
     return false;
 }
 
-bool __ksu_is_allow_uid_for_current(uid_t uid)
+bool ksu_is_uid_granted_root(uid_t uid)
 {
     if (unlikely(uid == 0)) {
         // already root, but only allow our domain.
@@ -290,16 +291,20 @@ bool __ksu_is_allow_uid_for_current(uid_t uid)
     return __ksu_is_allow_uid(uid);
 }
 
+bool __ksu_is_allow_uid_for_current(uid_t uid)
+{
+    if (unlikely(uid == SHELL_UID) && !ksu_shell_su_allowed_for_current()) {
+        return false;
+    }
+    return ksu_is_uid_granted_root(uid);
+}
+
 bool ksu_uid_should_umount(uid_t uid)
 {
     struct app_profile *profile;
     bool res;
     if (likely(ksu_is_manager_appid_valid()) && unlikely(ksu_get_manager_appid() == uid % PER_USER_RANGE)) {
         // we should not umount on manager!
-        return false;
-    }
-    if (unlikely(uid == WEBVIEW_ZYGOTE_UID)) {
-        // we should not umount for webview zygote
         return false;
     }
 #ifdef CONFIG_KSU_DISABLE_POLICY
@@ -594,7 +599,7 @@ void ksu_prune_allowlist(bool (*is_uid_valid)(uid_t, char *, void *), void *data
         uid_t uid = np->profile.curr_uid;
         char *package = np->profile.key;
         // we use this uid for special cases, don't prune it!
-        bool is_preserved_uid = uid == KSU_APP_PROFILE_PRESERVE_UID;
+        bool is_preserved_uid = uid == KSU_APP_PROFILE_PRESERVE_UID || uid == WEBVIEW_ZYGOTE_UID;
         if (!is_preserved_uid && !is_uid_valid(uid, package, data)) {
             modified = true;
             pr_info("prune uid: %d, package: %s\n", uid, package);

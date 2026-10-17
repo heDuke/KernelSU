@@ -190,20 +190,6 @@ fun SettingPagerMaterial(
                 }
                 item {
                     SegmentedListItem(
-                        onClick = actions.onOpenModuleRepo,
-                        headlineContent = { Text(moduleRepo) },
-                        supportingContent = { Text(stringResource(id = R.string.settings_module_repo_summary)) },
-                        leadingContent = { Icon(Icons.Filled.Extension, moduleRepo) },
-                        trailingContent = {
-                            Icon(
-                                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                null
-                            )
-                        }
-                    )
-                }
-                item {
-                    SegmentedListItem(
                         onClick = actions.onOpenEnvCheck,
                         headlineContent = { Text(envCheck) },
                         supportingContent = { Text(stringResource(id = R.string.env_check_summary)) },
@@ -369,6 +355,13 @@ fun SettingPagerMaterial(
                         checked = uiState.isAdbRootEnabled,
                         onCheckedChange = actions.onSetAdbRootEnabled
                     )
+                }
+                item(visible = advancedExpanded && ksuValid && uiState.shellSuAdbOnlyStatus.isNotBlank()) {
+                    SegmentedSwitchItem(icon = Icons.Filled.Adb,
+                        title = stringResource(R.string.settings_shell_su_adb_only),
+                        summary = stringResource(R.string.settings_shell_su_adb_only_summary),
+                        enabled = uiState.shellSuAdbOnlyStatus == "supported",
+                        checked = uiState.isShellSuAdbOnlyEnabled, onCheckedChange = actions.onSetShellSuAdbOnlyEnabled)
                 }
                 item(visible = advancedExpanded && ksuValid) {
                     SegmentedSwitchItem(

@@ -43,7 +43,7 @@ class ModuleRepoViewModel(
 
     init {
         val ordinal = settingsRepo.moduleRepoSortOrder
-        val initial = RepoSort.entries.getOrElse(ordinal) { RepoSort.UPDATED }
+        val initial = RepoSort.fromStored(ordinal, null)
         _uiState.update {
             it.copy(
                 sortOrder = initial,
@@ -58,7 +58,6 @@ class ModuleRepoViewModel(
         if (list.isEmpty()) return list
         return when (order) {
             RepoSort.UPDATED -> list.sortedByDescending { it.latestReleaseTime }
-            RepoSort.CREATED -> list.sortedByDescending { it.createdAt }
             RepoSort.NAME -> {
                 val collator = Collator.getInstance(Locale.getDefault())
                 list.sortedWith(compareBy(collator) { it.moduleName })
@@ -170,7 +169,7 @@ class ModuleRepoViewModel(
 
     fun setSortOrder(order: RepoSort) {
         if (_uiState.value.sortOrder == order) return
-        settingsRepo.moduleRepoSortOrder = order.ordinal
+        settingsRepo.moduleRepoSortOrder = order.name
         viewModelScope.launch {
             val state = _uiState.value
             val (sortedModules, sortedSearch) = withContext(Dispatchers.Default) {

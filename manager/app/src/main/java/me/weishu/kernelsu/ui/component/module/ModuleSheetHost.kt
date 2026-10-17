@@ -36,6 +36,11 @@ import me.weishu.kernelsu.ui.util.reboot
 
 @Composable
 fun ModuleSheetHost(onViewDetails: (RepoModuleArg) -> Unit) {
+    val navigator = me.weishu.kernelsu.ui.navigation3.LocalNavigator.current
+    val script by ModuleInstallController.scriptNavigation.collectAsStateWithLifecycle()
+    LaunchedEffect(script) { script?.let { ModuleInstallController.dismiss(); ModuleInstallController.scriptNavigation.value = null; navigator.push(me.weishu.kernelsu.ui.navigation3.Route.ScriptRun(it)) } }
+    var scriptBusy by remember { mutableStateOf(false) }
+    var scriptError by remember { mutableStateOf<String?>(null) }
     val operation by ModuleInstallController.state.collectAsStateWithLifecycle()
     val mutationBusy by me.weishu.kernelsu.core.utils.ModuleMutationGate.busy.collectAsStateWithLifecycle()
     val preview by ModuleInstallController.previewOverlay.collectAsStateWithLifecycle()
@@ -49,6 +54,8 @@ fun ModuleSheetHost(onViewDetails: (RepoModuleArg) -> Unit) {
     var expandedImage by remember(state.preview) { mutableStateOf<String?>(null) }
     val downloads by DownloadManager.downloads.collectAsStateWithLifecycle()
     val module = state.preview
+    val assets = module?.releases?.firstOrNull()?.assets.orEmpty()
+    var selectedAsset by remember(module) { mutableStateOf(assets.singleOrNull()) }
     val title = when (state.stage) {
         ModuleSheetStage.PREVIEW -> stringResource(R.string.module_sheet_preview)
         ModuleSheetStage.REVIEW -> stringResource(R.string.module_sheet_confirm)
@@ -100,7 +107,13 @@ fun ModuleSheetHost(onViewDetails: (RepoModuleArg) -> Unit) {
                         Text(listOf(module.latestRelease, module.sourceName).filter(String::isNotBlank).joinToString(" · "),
                             style = MaterialTheme.typography.bodyMedium)
                         if (module.installedVersion.isNotBlank()) Text(stringResource(R.string.module_sheet_installed_version, module.installedVersion))
-                        Text(sizeLabel(module.releases.firstOrNull()?.assets?.firstOrNull()?.size ?: 0))
+                        if (selectedAsset?.size?.let { it > 0 } == true) Text(sizeLabel(selectedAsset!!.size))
+                        if (assets.size > 1) assets.forEach { asset ->
+                            ListItem(headlineContent = { Text(asset.name) },
+                                leadingContent = { RadioButton(selected = selectedAsset == asset, onClick = { selectedAsset = asset }) },
+                                modifier = Modifier.clickable { selectedAsset = asset },
+                                supportingContent = { if (asset.size > 0) Text(sizeLabel(asset.size)) })
+                        }
                         CompatibilityText(module.minApi, module.maxApi, module.kernelSuUnsupported)
                         if (module.metamodule) Text("META", style = MaterialTheme.typography.labelLarge)
                     }
@@ -109,7 +122,7 @@ fun ModuleSheetHost(onViewDetails: (RepoModuleArg) -> Unit) {
                             if (expandedImage != null) {
                                 ModuleArtwork(expandedImage!!, stringResource(R.string.module_sheet_screenshot, 1),
                                     Modifier.fillMaxWidth().height(260.dp), screenshot = true)
-                                TextButton(shapes = ButtonDefaults.shapes(), onClick = { expandedImage = null }) { Text(stringResource(R.string.module_sheet_overview)) }
+                        TextButton(shapes = ButtonDefaults.shapes(), onClick = { expandedImage = null }) { Text(stringResource(R.string.module_sheet_overview)) }
                             } else {
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                     itemsIndexed(module.screenshots) { index, image ->
@@ -142,7 +155,7 @@ fun ModuleSheetHost(onViewDetails: (RepoModuleArg) -> Unit) {
                             Text(target.name, style = MaterialTheme.typography.titleMedium)
                             if (target.version.isNotBlank()) Text(target.version)
                             Text(target.source.ifBlank { stringResource(R.string.module_sheet_local) }, style = MaterialTheme.typography.bodyMedium)
-                            Text(sizeLabel(target.size))
+                            if (target.size > 0) Text(sizeLabel(target.size))
                             CompatibilityText(target.minApi, target.maxApi, target.kernelSuUnsupported)
                         }
                     }
@@ -188,9 +201,18 @@ fun ModuleSheetHost(onViewDetails: (RepoModuleArg) -> Unit) {
             Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 when (state.stage) {
                     ModuleSheetStage.PREVIEW -> {
-                        Button(shapes = ButtonDefaults.shapes(), onClick = ModuleInstallController::reviewPreview,
-                            enabled = module?.releases?.firstOrNull()?.assets?.firstOrNull()?.downloadUrl?.isNotBlank() == true && !operation.busy && !mutationBusy && !module.kernelSuUnsupported && Natives.isManager && !Natives.isSafeMode,
+                        if (scriptBusy) LinearProgressIndicator(Modifier.fillMaxWidth())
+                        scriptError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                        if (assets.isNotEmpty()) Button(shapes = ButtonDefaults.shapes(), onClick = {
+                            if (module?.isScript == true) scope.launch {
+                                scriptBusy = true; scriptError = null
+                                runCatching { ModuleInstallController.prepareScript(module, selectedAsset) }.onFailure { scriptError = it.message }
+                                scriptBusy = false
+                            } else ModuleInstallController.reviewPreview(selectedAsset)
+                        },
+                            enabled = selectedAsset?.downloadUrl?.isNotBlank() == true && !operation.busy && !mutationBusy && !scriptBusy && module?.kernelSuUnsupported == false && Natives.isManager && !Natives.isSafeMode,
                             modifier = Modifier.fillMaxWidth()) { Text(stringResource(when {
+                            module?.isScript == true -> R.string.script_run
                             module?.installedVersion?.isNotBlank() == true && module.installedVersion == module.latestRelease -> R.string.module_sheet_reinstall
                             module?.installedVersionCode?.let { it > 0 && module.latestVersionCode > it } == true -> R.string.module_update
                             else -> R.string.install
@@ -225,9 +247,10 @@ fun ModuleTaskStatus() {
 
 @Composable
 private fun CompatibilityText(minApi: Int?, maxApi: Int?, unsupported: Boolean = false) {
+    if (minApi == null && maxApi == null && !unsupported) return
     if (unsupported) { Text(stringResource(R.string.module_sheet_kernel_su_unsupported), color = MaterialTheme.colorScheme.error); return }
     val incompatible = moduleCompatibility(Build.VERSION.SDK_INT, minApi, maxApi) == ModuleCompatibility.INCOMPATIBLE
-    Text(stringResource(if (incompatible) R.string.module_sheet_incompatible else R.string.module_sheet_compatibility_unknown),
+    if (incompatible) Text(stringResource(R.string.module_sheet_incompatible),
         color = if (incompatible) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
         style = MaterialTheme.typography.bodyMedium)
     if (minApi != null || maxApi != null) {

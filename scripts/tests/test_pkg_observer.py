@@ -36,6 +36,19 @@ typedef uint32_t u32;
 #define PTR_ERR(p) ((int)(intptr_t)(p))
 #define pr_info(...) ((void)0)
 #define pr_err(...) ((void)0)
+#define pr_warn(...) ((void)0)
+#define PF_EXITING 1
+#define PF_KTHREAD 2
+#define TWA_RESUME 1
+#define kfree(p) free(p)
+struct callback_head { void (*func)(struct callback_head *); };
+static struct { int flags; } task;
+#define current (&task)
+static struct callback_head *deferred;
+static int defer_error;
+static int task_work_add(void *owner, struct callback_head *cb, int mode) {
+ (void)owner; (void)mode; if (defer_error) return -ESRCH; assert(!deferred); deferred = cb; return 0;
+}
 struct inode { int refs; };
 struct dentry { struct inode *inode; };
 struct path { struct dentry *dentry; void *mnt; };
@@ -48,7 +61,8 @@ struct fsnotify_ops {
 static struct inode node;
 static struct dentry dent = { &node };
 static int fault, groups, marks, paths;
-static void track_throne(bool value) { (void)value; }
+static int scans;
+static void track_throne(bool value) { (void)value; scans++; }
 static int kern_path(const char *name,int flags,struct path *path) {
  (void)name; (void)flags;
  if (fault == 2) return -ENOENT;
@@ -86,6 +100,17 @@ static void *cycle(void *unused) {
  return NULL;
 }
 int main(void) {
+ struct qstr changed = { 13, "packages.list" };
+ assert(ksu_handle_inode_event(NULL, FS_CREATE, NULL, NULL, &changed, 0) == 0);
+ assert(scans == 0 && deferred);
+ struct callback_head *cb = deferred; deferred = NULL; cb->func(cb);
+ assert(scans == 1);
+ ksu_defer_track_throne(); cb = deferred; deferred = NULL;
+ task.flags = PF_EXITING; cb->func(cb); assert(scans == 1);
+ task.flags = PF_KTHREAD; ksu_defer_track_throne(); assert(scans == 2 && !deferred);
+ task.flags = 0; defer_error = 1; ksu_defer_track_throne(); assert(scans == 3 && !deferred);
+ defer_error = 0; fault = 3; ksu_defer_track_throne(); assert(scans == 4 && !deferred);
+ fault = 0;
  ksu_observer_exit(); balanced();
  const int expected[] = {0,-ENOMEM,-ENOENT,-ENOMEM,-ENOMEM};
  for (fault=1;fault<=4;fault++) {
@@ -102,7 +127,7 @@ int main(void) {
  assert(pthread_create(&second,NULL,cycle,NULL) == 0);
  assert(pthread_join(first,NULL) == 0 && pthread_join(second,NULL) == 0);
  ksu_observer_exit(); balanced();
- puts("PASS: early unload, group/path/mark failures, repeat init/exit, concurrent lifecycle");
+ puts("PASS: early unload, group/path/mark failures, repeat init/exit, concurrent lifecycle, deferred namespace scan and failure fallback");
 }
 '''
 

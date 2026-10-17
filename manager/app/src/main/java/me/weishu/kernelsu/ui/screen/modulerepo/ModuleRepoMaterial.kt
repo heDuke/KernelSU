@@ -99,7 +99,6 @@ fun ModuleRepoScreenMaterial(state: ModuleRepoUiState, actions: ModuleRepoAction
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp))
             LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(listOf(RepoSort.UPDATED to R.string.module_repos_sort_updated,
-                    RepoSort.CREATED to R.string.module_repos_sort_created,
                     RepoSort.NAME to R.string.module_repos_sort_name,
                     RepoSort.STARS to R.string.module_repos_sort_stars), key = { it.first }) { (order, label) ->
                     FilterChip(selected = state.sortOrder == order, onClick = { actions.onSetSortOrder(order) },
@@ -159,9 +158,13 @@ fun ModuleRepoDetailScreenMaterial(
     var downloadMessage by remember(module) { mutableStateOf<String?>(null) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     fun review(asset: ReleaseAssetArg, version: String) {
+        if (module.isScript) {
+            scope.launch { runCatching { ModuleInstallController.prepareScript(module, asset) }.onFailure { downloadMessage = it.message } }
+            return
+        }
         ModuleInstallController.review(listOf(ModuleInstallTarget(asset.name, downloadUrl = asset.downloadUrl,
-            version = version, source = module.sourceName.ifBlank { module.sourceUrl }, moduleId = module.moduleId,
-            size = asset.size, minApi = module.minApi, maxApi = module.maxApi,
+            version = version, versionCode = if (version == module.latestRelease) module.latestVersionCode else 0, source = module.sourceName.ifBlank { module.sourceUrl }, moduleId = module.moduleId,
+            size = asset.size, sha256 = asset.sha256, minApi = module.minApi, maxApi = module.maxApi,
             kernelSuUnsupported = module.kernelSuUnsupported, dependencies = module.dependencies)), module)
     }
     Scaffold(modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection), topBar = {
@@ -188,15 +191,15 @@ fun ModuleRepoDetailScreenMaterial(
                         if (module.installedVersion.isNotBlank()) Text(stringResource(R.string.module_sheet_installed_version, module.installedVersion))
                     }
                 }
-                val asset = state.detailReleases.firstOrNull()?.assets?.firstOrNull()
+                val asset = state.detailReleases.firstOrNull()?.assets?.singleOrNull()
                 if (asset != null) {
                     Button(shapes = ButtonDefaults.shapes(), enabled = !module.kernelSuUnsupported, onClick = { review(asset, state.detailReleases.firstOrNull()?.name.orEmpty()) }, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.install))
+                        Text(stringResource(if (module.isScript) R.string.script_run else R.string.install))
                     }
                     TextButton(shapes = ButtonDefaults.shapes(), onClick = {
                         scope.launch {
                             downloadMessage = context.getString(R.string.module_sheet_downloading)
-                            val uri = download(asset.downloadUrl, asset.name)
+                            val uri = download(asset.downloadUrl, asset.name, expected = asset.sha256.takeIf { it.isNotBlank() }?.let { me.weishu.kernelsu.data.registry.ExpectedFile(asset.size, it) })
                             downloadMessage = if (uri != null) context.getString(R.string.module_sheet_downloaded)
                                 else context.getString(R.string.module_pending_download_failed, asset.name)
                         }
@@ -205,11 +208,11 @@ fun ModuleRepoDetailScreenMaterial(
                 downloadMessage?.let { Text(it) }
             }
             item {
-                Text(module.summary.ifBlank { stringResource(R.string.module_sheet_no_introduction) })
-                ListItem(headlineContent = { Text(stringResource(R.string.module_sheet_source)) },
+                if (module.summary.isNotBlank()) Text(module.summary)
+                if (module.sourceName.isNotBlank() || module.sourceUrl.isNotBlank()) ListItem(headlineContent = { Text(stringResource(R.string.module_sheet_source)) },
                     supportingContent = { Text(module.sourceName.ifBlank { module.sourceUrl }) })
                 ListItem(headlineContent = { Text("ID") }, supportingContent = { Text(module.moduleId) })
-                Text(stringResource(if (module.kernelSuUnsupported) R.string.module_sheet_kernel_su_unsupported else R.string.module_sheet_compatibility_unknown), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (module.kernelSuUnsupported) Text(stringResource(R.string.module_sheet_kernel_su_unsupported), color = MaterialTheme.colorScheme.error)
             }
             item {
                 PrimaryTabRow(selectedTabIndex = tab) {
@@ -226,31 +229,48 @@ fun ModuleRepoDetailScreenMaterial(
                             Text(readmeError, color = MaterialTheme.colorScheme.error)
                             TextButton(shapes = ButtonDefaults.shapes(), onClick = onRetryReadme) { Text(stringResource(R.string.network_retry)) }
                         }
-                        !state.readmeHtml.isNullOrBlank() -> GithubMarkdown(state.readmeHtml, isMarkdown = true)
+                        !state.readmeHtml.isNullOrBlank() -> GithubMarkdown(content = state.readmeHtml, isMarkdown = module.sourceId != "kernelsu", restrictedBaseUrl = if (module.sourceId == "kernelsu") "https://modules.kernelsu.org/" else module.readmeUrl.takeIf { it.isNotBlank() })
                         else -> Text(stringResource(R.string.module_sheet_no_introduction))
                     }
                 }
                 1 -> {
                     if (state.detailReleases.isEmpty()) item { Text(stringResource(R.string.module_repos_no_releases)) }
                     items(state.detailReleases, key = { it.tagName }) { release ->
-                        Card(Modifier.fillMaxWidth()) {
+                        var expanded by remember(release.tagName) { mutableStateOf(false) }
+                        Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerLow) {
                             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(release.name, style = MaterialTheme.typography.titleLarge)
-                                Text(release.publishedAt)
-                                if (release.descriptionHTML.startsWith("https://") || release.descriptionHTML.startsWith("http://")) {
-                                    TextButton(onClick = { actions.onOpenUrl(release.descriptionHTML) }) { Text(stringResource(R.string.module_sheet_changelog)) }
-                                } else if (release.descriptionHTML.isNotBlank()) Text(release.descriptionHTML)
-                                release.assets.forEach { asset ->
-                                    Text(asset.name, style = MaterialTheme.typography.titleMedium)
-                                    Text(sizeLabel(asset.size))
-                                    Button(shapes = ButtonDefaults.shapes(), onClick = { review(asset, release.name) }) { Text(stringResource(R.string.install)) }
+                                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text(release.name.ifBlank { release.tagName }, style = MaterialTheme.typography.titleMedium)
+                                        if (release.publishedAt.isNotBlank()) Text(release.publishedAt, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    if (release.assets.size == 1) FilledTonalButton(onClick = { review(release.assets.single(), release.name) }, enabled = !module.kernelSuUnsupported) {
+                                        Text(stringResource(if (module.isScript) R.string.script_run else R.string.install))
+                                    }
+                                }
+                                if (release.assets.size == 1) {
+                                    val file = release.assets.single()
+                                    Text(listOf(file.name, file.size.takeIf { it > 0 }?.let { sizeLabel(it) }.orEmpty()).filter(String::isNotBlank).joinToString(" · "),
+                                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                } else release.assets.forEach { file ->
+                                    ListItem(content = { Text(file.name) }, supportingContent = { if (file.size > 0) Text(sizeLabel(file.size)) },
+                                        trailingContent = { TextButton(onClick = { review(file, release.name) }, enabled = !module.kernelSuUnsupported) { Text(stringResource(R.string.install)) } })
+                                }
+                                if (release.descriptionHTML.isNotBlank()) {
+                                    TextButton(onClick = { expanded = !expanded }) { Text(stringResource(R.string.module_sheet_changelog)) }
+                                    if (expanded) {
+                                        if (release.descriptionHTML.startsWith("https://") || release.descriptionHTML.startsWith("http://")) {
+                                            TextButton(onClick = { actions.onOpenUrl(release.descriptionHTML) }) { Text(stringResource(R.string.module_card_details)) }
+                                        } else GithubMarkdown(content = release.descriptionHTML, isMarkdown = module.sourceId != "kernelsu",
+                                            restrictedBaseUrl = if (module.sourceId == "kernelsu") "https://modules.kernelsu.org/" else module.readmeUrl.takeIf { it.isNotBlank() })
+                                    }
                                 }
                             }
                         }
                     }
                 }
                 2 -> item {
-                    ListItem(headlineContent = { Text(stringResource(R.string.module_sheet_repository_flag)) },
+                    if (module.repositoryVerified != null) ListItem(headlineContent = { Text(stringResource(R.string.module_sheet_repository_flag)) },
                         supportingContent = { Text(stringResource(when(module.repositoryVerified) {
                             true -> R.string.module_sheet_repository_flag_yes
                             false -> R.string.module_sheet_repository_flag_no
@@ -269,11 +289,11 @@ fun ModuleRepoDetailScreenMaterial(
                         supportingContent = { Text(module.dependencies.joinToString("\n")) })
                     if (module.supportUrl.isNotBlank()) TextButton(onClick = { actions.onOpenUrl(module.supportUrl) }) { Text(stringResource(R.string.module_sheet_support)) }
                     if (module.donateUrl.isNotBlank()) TextButton(onClick = { actions.onOpenUrl(module.donateUrl) }) { Text(stringResource(R.string.module_sheet_donate)) }
-                    Text(module.sourceUrl)
+                    if (module.sourceUrl.isNotBlank()) Text(module.sourceUrl)
                     if (module.sourceUrl.isNotBlank()) TextButton(shapes = ButtonDefaults.shapes(), onClick = actions.onOpenWebUrl) {
                         Text(stringResource(R.string.module_sheet_source))
                     }
-                    Text(module.latestReleaseTime)
+                    if (module.latestReleaseTime.isNotBlank()) Text(module.latestReleaseTime)
                     module.authorsList.filter { it.link.isNotBlank() }.forEach { author ->
                         TextButton(shapes = ButtonDefaults.shapes(), onClick = { actions.onOpenUrl(author.link) }) { Text(author.name) }
                     }

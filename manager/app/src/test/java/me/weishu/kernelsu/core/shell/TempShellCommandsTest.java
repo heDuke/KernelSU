@@ -10,6 +10,17 @@ import me.weishu.kernelsu.core.shell.TempShellCommandsKt;
 
 /** Linux-host probe of generated commands, signalling only this probe's new process group. */
 public class TempShellCommandsTest {
+    private static void assertTerminated(Path stat, String failure) throws Exception {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+        do {
+            try {
+                String value = Files.readString(stat);
+                if (value.substring(value.lastIndexOf(')') + 2).startsWith("Z ")) return;
+            } catch (NoSuchFileException ended) { return; }
+            Thread.sleep(10);
+        } while (System.nanoTime() < deadline);
+        throw new AssertionError(failure);
+    }
     @Test public void normalShellExitAlsoCleansBackgroundJobs() throws Exception {
         assumeTrue(Files.isExecutable(Path.of("/bin/sh")) && Files.isExecutable(Path.of("/usr/bin/setsid")));
         Process shell = new ProcessBuilder("/bin/sh").start();
@@ -27,11 +38,7 @@ public class TempShellCommandsTest {
             int child = Integer.parseInt(childLine.substring(6));
             if (!shell.waitFor(5, TimeUnit.SECONDS)) throw new AssertionError("Session leader did not exit");
             Path stat = Path.of("/proc", Integer.toString(child), "stat");
-            if (Files.exists(stat)) {
-                String value = Files.readString(stat);
-                if (!value.substring(value.lastIndexOf(')') + 2).startsWith("Z "))
-                    throw new AssertionError("Background command outlived its session");
-            }
+            assertTerminated(stat, "Background command outlived its session");
         } finally { shell.destroyForcibly(); readerThread.shutdownNow(); }
     }
 
@@ -66,11 +73,7 @@ public class TempShellCommandsTest {
             if (signal.exitValue() != 0 || !shell.waitFor(5, TimeUnit.SECONDS))
                 throw new AssertionError("Owned process group did not exit; helper=" + signal.exitValue() + "; stderr=" + signalError);
             Path stat = Path.of("/proc", Integer.toString(child), "stat");
-            if (Files.exists(stat)) {
-                String value = Files.readString(stat);
-                if (!value.substring(value.lastIndexOf(')') + 2).startsWith("Z "))
-                    throw new AssertionError("Command descendant still running");
-            }
+            assertTerminated(stat, "Command descendant still running");
 
         } finally {
             shell.destroyForcibly();

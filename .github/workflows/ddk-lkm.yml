@@ -87,12 +87,15 @@ jobs:
         if [ -n "$EXPECTED_SIZE2" ]; then
           EXTRA_ARGS="$EXTRA_ARGS KSU_EXPECTED_SIZE2=$EXPECTED_SIZE2 KSU_EXPECTED_HASH2=$EXPECTED_HASH2"
         fi
+        if [ -n "$EXPECTED_SIZE2" ] && [ -z "$EXPECTED_SIZE" ]; then
+          EXTRA_ARGS="$EXTRA_ARGS KSU_EXPECTED_SIZE=$EXPECTED_SIZE2 KSU_EXPECTED_HASH=$EXPECTED_HASH2 KSU_IS_PR_BUILD=1 KSU_PACKAGE_NAME=me.weishu.kernelsu.pr"
+        fi
         if [ -n "$MANAGER_PACKAGE" ]; then
-          EXTRA_ARGS="$EXTRA_ARGS KSU_MANAGER_PACKAGE=$MANAGER_PACKAGE"
+          EXTRA_ARGS="$EXTRA_ARGS KSU_PACKAGE_NAME=$MANAGER_PACKAGE"
         fi
         echo "EXTRA_ARGS=$EXTRA_ARGS"
         CONFIG_KSU=m CC=clang make KSU_KMI=${{ inputs.kmi }} $EXTRA_ARGS
-        
+
         echo "=== Build completed ==="
 
         # Create output directory in GitHub workspace
@@ -102,7 +105,7 @@ jobs:
         # Copy with KMI-specific naming
         OUTPUT_NAME="${{ inputs.kmi }}_kernelsu.ko"
         cp kernelsu.ko "$OUT_DIR/$OUTPUT_NAME"
-        
+
         echo "Copied to: $OUT_DIR/$OUTPUT_NAME"
         ls -la "$OUT_DIR/$OUTPUT_NAME"
         echo "Size: $(du -h "$OUT_DIR/$OUTPUT_NAME" | cut -f1)"
@@ -142,7 +145,7 @@ jobs:
         fi
         make O=$KDIR modules_prepare
         popd
-        
+
         SELINUX_PATH=security/selinux
         mkdir -p $KDIR/$SELINUX_PATH
         cp /opt/ddk/kdir/$kmi/$SELINUX_PATH/*.h $KDIR/$SELINUX_PATH
@@ -172,15 +175,18 @@ jobs:
         if [ -n "$EXPECTED_SIZE2" ]; then
           EXTRA_ARGS="$EXTRA_ARGS KSU_EXPECTED_SIZE2=$EXPECTED_SIZE2 KSU_EXPECTED_HASH2=$EXPECTED_HASH2"
         fi
+        if [ -n "$EXPECTED_SIZE2" ] && [ -z "$EXPECTED_SIZE" ]; then
+          EXTRA_ARGS="$EXTRA_ARGS KSU_EXPECTED_SIZE=$EXPECTED_SIZE2 KSU_EXPECTED_HASH=$EXPECTED_HASH2 KSU_IS_PR_BUILD=1 KSU_PACKAGE_NAME=me.weishu.kernelsu.pr"
+        fi
         if [ -n "$MANAGER_PACKAGE" ]; then
-          EXTRA_ARGS="$EXTRA_ARGS KSU_MANAGER_PACKAGE=$MANAGER_PACKAGE"
+          EXTRA_ARGS="$EXTRA_ARGS KSU_PACKAGE_NAME=$MANAGER_PACKAGE"
         fi
         echo "EXTRA_ARGS=$EXTRA_ARGS"
-        
+
         MDIR=$(realpath .)
 
         make -C $KDIR M=$MDIR compile_commands.json modules CONFIG_KSU=m CONFIG_KSU_X86_PATCH_SYSCALL_DISPATCHER=y KSU_KMI=${{ inputs.kmi }} $EXTRA_ARGS
-        
+
         echo "=== Build completed ==="
 
         # Create output directory in GitHub workspace
@@ -190,13 +196,13 @@ jobs:
         # Copy with KMI-specific naming
         OUTPUT_NAME="${{ inputs.kmi }}_kernelsu.ko"
         cp kernelsu.ko "$OUT_DIR/$OUTPUT_NAME"
-        
+
         echo "Copied to: $OUT_DIR/$OUTPUT_NAME"
         ls -la "$OUT_DIR/$OUTPUT_NAME"
         echo "Size: $(du -h "$OUT_DIR/$OUTPUT_NAME" | cut -f1)"
         llvm-strip -d "$OUT_DIR/$OUTPUT_NAME"
         echo "Size after stripping: $(du -h "$OUT_DIR/$OUTPUT_NAME" | cut -f1)"
-        
+
     - name: Upload x64 kernelsu.ko artifact
       uses: actions/upload-artifact@v7
       with:

@@ -478,14 +478,13 @@ private fun TopBar(
                         DropdownMenuGroup(shapes = MenuDefaults.groupShapes()) {
                             menuItems.forEachIndexed { index, (resId, action) ->
                                 DropdownMenuItem(
-                                    selected = false,
                                     onClick = {
                                         haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
                                         showDropdown = false
                                         action(packageName, userId)
                                     },
                                     text = { Text(stringResource(id = resId)) },
-                                    shapes = MenuDefaults.itemShape(index = index, count = menuItems.size),
+
                                 )
                             }
                         }

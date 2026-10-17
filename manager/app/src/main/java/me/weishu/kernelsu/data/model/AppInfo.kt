@@ -10,7 +10,9 @@ data class AppInfo(
     val label: String,
     val packageInfo: PackageInfo,
     val profile: Natives.Profile?,
+    val special: Boolean = false,
 ) : Parcelable {
+    val displayIdentifier: String get() = packageInfo.packageName
     val packageName: String
         get() = packageInfo.packageName
     val uid: Int

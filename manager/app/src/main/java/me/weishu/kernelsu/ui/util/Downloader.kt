@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onEach
+import me.weishu.kernelsu.data.registry.ExpectedFile
 import me.weishu.kernelsu.ksuApp
 import me.weishu.kernelsu.ui.util.module.LatestVersionInfo
 import okhttp3.Request
@@ -18,7 +19,8 @@ suspend fun download(
     fileName: String,
     onDownloaded: (Uri) -> Unit = {},
     onDownloading: () -> Unit = {},
-    onProgress: (Int) -> Unit = {}
+    onProgress: (Int) -> Unit = {},
+    expected: ExpectedFile? = null,
 ): Uri? {
     onDownloading()
 
@@ -26,6 +28,7 @@ suspend fun download(
         context = ksuApp,
         url = url,
         fileName = fileName,
+        expected = expected,
     )
 
     val terminal = DownloadManager.downloads

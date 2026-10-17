@@ -48,6 +48,9 @@ class MainActivityViewModel(
             pageScale = settingRepo.pageScale,
             enableBlur = settingRepo.enableBlur,
             enableNavigationBadge = settingRepo.enableNavigationBadge,
+            enableSwipeDismiss = settingRepo.enableSwipeDismiss,
+            pagerInterceptionMode = settingRepo.pagerInterceptionMode,
+            moduleDescriptionMaxLines = settingRepo.moduleDescriptionMaxLines,
             uiMode = UiMode.fromValue(settingRepo.uiMode),
         )
     }
@@ -59,8 +62,11 @@ class MainActivityViewModel(
             "color_style",
             "color_spec",
             "page_scale",
+            "module_description_max_lines",
             "enable_blur",
             "enable_navigation_badge",
+            "enable_swipe_dismiss",
+            "pager_interception_mode",
             "ui_mode",
         )
     }
