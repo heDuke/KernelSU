@@ -23,7 +23,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
@@ -147,7 +146,6 @@ fun HomePagerMaterial(state: HomeUiState, actions: HomeActions, bottomInnerPaddi
     val panel = panelName?.let { runCatching { HomePanel.valueOf(it) }.getOrNull() }
     val layout = if (editing) runCatching { DashboardLayout.parse(draft) }.getOrDefault(settings.layout) else settings.layout
     val selected = DashboardCard.entries.firstOrNull { it.name == selectedCard } ?: DashboardCard.Status
-    val scroll = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     fun open(p: HomePanel) { panelName = p.name }
     fun edit() {
         selectedCard = settings.layout.cards.first().name
@@ -403,6 +401,8 @@ fun HomePagerMaterial(state: HomeUiState, actions: HomeActions, bottomInnerPaddi
         val columns = if (maxWidth >= 360.dp && LocalDensity.current.fontScale <= 1.3f) 2 else 1
         Scaffold(snackbarHost = { SnackbarHost(snackbar) }, containerColor = MaterialTheme.colorScheme.surfaceContainer,
             contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), topBar = {
+            // Edit mode keeps a contextual action bar only. The former brand/home TopAppBar
+            // strip (HuskySU / 首页) is intentionally omitted — page title lives in content.
             if (editing) {
                 Column {
                     TopAppBar(windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), title = { Text(stringResource(R.string.home_sheet_edit_selected, stringResource(selected.titleId())), maxLines = 1, overflow = TextOverflow.Ellipsis) },
@@ -454,17 +454,18 @@ fun HomePagerMaterial(state: HomeUiState, actions: HomeActions, bottomInnerPaddi
                     }
                     error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 16.dp), maxLines = 2) }
                 }
-            } else {
-                LargeFlexibleTopAppBar(title = { Text(stringResource(R.string.home)) }, colors = me.weishu.kernelsu.ui.component.material.expressiveTopAppBarColors(),
-                    windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), scrollBehavior = scroll, actions = {
-                    IconButton(onClick = actions.onRefresh) { Icon(Icons.Outlined.Refresh, stringResource(R.string.dashboard_refresh)) }
-                    IconButton(onClick = ::edit) { Icon(Icons.Outlined.Edit, stringResource(R.string.dashboard_edit)) }
-                })
             }
         }) { padding ->
-            LazyColumn(state = listState, modifier = Modifier.padding(padding).nestedScroll(scroll.nestedScrollConnection),
+            LazyColumn(state = listState, modifier = Modifier.padding(padding),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomInnerPadding + 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (!editing) item(key = "page_header") {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("HuskySU", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f).semantics { heading() })
+                        IconButton(onClick = actions.onRefresh) { Icon(Icons.Outlined.Refresh, stringResource(R.string.dashboard_refresh)) }
+                        IconButton(onClick = ::edit) { Icon(Icons.Outlined.Edit, stringResource(R.string.dashboard_edit)) }
+                    }
+                }
                 if (editing) item(key = "edit_hint") {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(stringResource(R.string.dashboard_inline_hint), style = MaterialTheme.typography.bodyMedium)
