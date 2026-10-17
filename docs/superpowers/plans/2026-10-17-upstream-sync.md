@@ -189,6 +189,55 @@ the bounded temporary-session lifecycle and process cleanup behavior.
   keyboard-open layout, preset insertion without execution and preserved scroll
   position through code review, previews or automated checks. No PC acceptance step.
 
+### 4c. Managed background commands and command favorites
+
+The user additionally requested background task management and frequently used
+command favorites. This extends the terminal plan with an explicit managed job
+mode; it does not silently extend every temporary Root session's lifetime.
+
+- [ ] Add discoverable Tasks and Favorites entries near the composer, using native
+  icon buttons with labels/tooltips and an active-task count where applicable.
+  Open each collection in an expressive Bottom Sheet with clear empty states.
+- [ ] Offer foreground or background execution before submitting a command. Keep
+  ordinary temporary sessions and their existing exit/background-timeout cleanup;
+  background commands run in separate owned task processes. Do not rerun a command
+  to simulate transferring an already running interactive session to the background.
+- [ ] Give managed jobs an owner independent of TerminalViewModel and screen
+  lifetime. Define Android foreground-service eligibility/type, notification and
+  start restrictions against the supported SDK before implementation; do not
+  incorrectly label arbitrary Root commands as download/data-sync work.
+- [ ] Display queued, starting, running, completed, failed, canceled and interrupted
+  states from observed process events. Include task name, submitted command,
+  start time, elapsed time and exit code when available. Never infer a command's
+  percentage or successful completion merely from an active shell or closed pipe.
+- [ ] Allow reopening a task's live output, copying/sharing its log, canceling a
+  queued task and requesting stop of a running owned process group. A re-run is a
+  new explicit execution. Do not offer pause/resume without real job-control support.
+- [ ] While jobs are active, provide an ongoing notification with a task summary
+  and Open tasks action; stop actions must identify their exact owned task.
+  Remove the active-service state when all tasks finish. Reopening the page must
+  attach to the existing task rather than submit it again.
+- [ ] Persist bounded task metadata and logs, with configurable retention and
+  conservative concurrency/queue/output limits. Do not rely on WorkManager retries
+  for arbitrary commands or automatically restart commands after process death,
+  force-stop or reboot. Reconcile unknown survivors as interrupted/unconfirmed,
+  rather than pretending completion or sending signals to a reused PID.
+- [ ] Retain the Root identity handshake and private process-group ownership checks
+  for managed jobs. Specify worker-death cleanup/reconciliation before enabling
+  background execution; a service alone does not guarantee process survival.
+- [ ] Let users favorite the current input with a name, exact command and optional
+  group. Support search, rename, edit, reorder, remove and pinning selected favorites
+  above the composer. Keep built-in presets distinct from editable personal items.
+- [ ] Store favorites locally in app-private storage; preserve whitespace and shell
+  quoting, enforce command/count limits and update atomically. Selecting a favorite
+  fills the composer for review, never auto-executes or grants background execution.
+  Saving, editing, opening or deleting a favorite must not launch a Root command.
+- [ ] Add regressions for screen recreation and task reattachment, queue limits,
+  output bounds, exit status, owned-group cancellation, stale/reused PID rejection,
+  service/worker death and no automatic replay. Cover favorite persistence, ordering,
+  exact quoting, empty/oversized input and selection without execution. Use automated
+  process/lifecycle checks and code review; do not add PC acceptance requirements.
+
 ## Verification and rollout
 
 Per user request, PC Codex handoff and physical-device acceptance are removed
