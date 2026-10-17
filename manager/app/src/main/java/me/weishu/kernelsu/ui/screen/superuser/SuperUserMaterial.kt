@@ -9,10 +9,13 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Article
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -22,10 +25,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -157,7 +163,8 @@ fun SuperUserPagerMaterial(uiState: SuperUserUiState, actions: SuperUserActions,
                 items(uiState.visibleGroups, key = { it.uid }) { group ->
                     SuperUserAppRow(group, uiState.savingUid == group.uid, enabled,
                         onOpen = { selectedUid = group.uid },
-                        onGrantChange = { setAuthorization(group, it) })
+                        onGrantChange = { setAuthorization(group, it) },
+                        confirmed = uiState.error == null && !uiState.isRefreshing)
                 }
             }
         }
@@ -175,57 +182,140 @@ fun SuperUserPagerMaterial(uiState: SuperUserUiState, actions: SuperUserActions,
 }
 
 @Composable
-private fun SuperUserOverview(state: SuperUserUiState, onFilter: (SuperUserFilter) -> Unit) {
+internal fun SuperUserOverview(state: SuperUserUiState, onFilter: (SuperUserFilter) -> Unit) {
     val granted = state.groupedApps.filter { it.anyAllowSu }
+    val custom = state.groupedApps.filter { it.anyCustom }
     val colors = MaterialTheme.colorScheme
     val confirmed = state.hasLoaded && !state.isRefreshing && state.error == null
-    Card(shape = MaterialTheme.shapes.extraLarge,
-        colors = CardDefaults.cardColors(containerColor = if (confirmed) colors.primaryContainer else colors.surfaceContainerHigh,
-            contentColor = if (confirmed) colors.onPrimaryContainer else colors.onSurface)) {
-        Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.su_overview), style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.semantics { heading() })
-            if (state.hasLoaded && (!state.isRefreshing || state.groupedApps.isNotEmpty()) &&
-                (state.error == null || state.groupedApps.isNotEmpty())) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilledTonalButton(onClick = { onFilter(SuperUserFilter.Granted) }) {
-                        Text(stringResource(R.string.su_group_count, granted.size, granted.sumOf { it.apps.size }))
-                    }
-                    FilledTonalButton(onClick = { onFilter(SuperUserFilter.Custom) }) {
-                        Text(stringResource(R.string.su_custom_count, state.groupedApps.count { it.anyCustom }))
-                    }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(stringResource(R.string.su_overview), style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.semantics { heading() })
+        if (state.hasLoaded && (!state.isRefreshing || state.groupedApps.isNotEmpty()) &&
+            (state.error == null || state.groupedApps.isNotEmpty())) {
+            val largeText = LocalDensity.current.fontScale >= 1.5f
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                val metrics: @Composable RowScope.() -> Unit = {
+                    SuperUserMetric(granted.size, granted.sumOf { it.apps.size },
+                        stringResource(R.string.su_metric_granted), confirmed, primary = true,
+                        onClick = { onFilter(SuperUserFilter.Granted) }, modifier = Modifier.weight(1f))
+                    SuperUserMetric(custom.size, custom.sumOf { it.apps.size },
+                        stringResource(R.string.su_metric_custom), confirmed, primary = false,
+                        onClick = { onFilter(SuperUserFilter.Custom) }, modifier = Modifier.weight(1f))
                 }
-                Text(stringResource(if (state.error != null || state.isRefreshing) R.string.su_previous_snapshot else R.string.su_count_scope),
-                    style = MaterialTheme.typography.bodySmall)
-            } else Text(stringResource(if (state.error != null) R.string.su_state_unknown else R.string.su_loading))
+                if (largeText || maxWidth < 340.dp) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SuperUserMetric(granted.size, granted.sumOf { it.apps.size },
+                            stringResource(R.string.su_metric_granted), confirmed, primary = true,
+                            onClick = { onFilter(SuperUserFilter.Granted) })
+                        SuperUserMetric(custom.size, custom.sumOf { it.apps.size },
+                            stringResource(R.string.su_metric_custom), confirmed, primary = false,
+                            onClick = { onFilter(SuperUserFilter.Custom) })
+                    }
+                } else Row(horizontalArrangement = Arrangement.spacedBy(12.dp), content = metrics)
+            }
+            Text(stringResource(if (confirmed) R.string.su_scope_compact else R.string.su_previous_snapshot),
+                style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+        } else {
+            Card(colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerHigh)) {
+                Row(Modifier.fillMaxWidth().padding(20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    if (state.isRefreshing || !state.hasLoaded) CircularProgressIndicator(Modifier.size(24.dp))
+                    Text(stringResource(if (state.error != null) R.string.su_state_unknown else R.string.su_loading))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SuperUserMetric(groups: Int, applications: Int, label: String, confirmed: Boolean,
+                            primary: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    val container = when {
+        !confirmed -> colors.surfaceContainerHigh
+        primary -> colors.primaryContainer
+        else -> colors.secondaryContainer
+    }
+    val foreground = when {
+        !confirmed -> colors.onSurface
+        primary -> colors.onPrimaryContainer
+        else -> colors.onSecondaryContainer
+    }
+    Card(onClick = onClick, modifier = modifier.fillMaxWidth(), shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(containerColor = container, contentColor = foreground)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(label, style = MaterialTheme.typography.labelLarge)
+            Text(groups.toString(), style = MaterialTheme.typography.headlineLarge)
+            Text(stringResource(R.string.su_metric_apps, applications), style = MaterialTheme.typography.bodySmall)
         }
     }
 }
 
 @Composable
 internal fun SuperUserAppRow(group: GroupedApps, saving: Boolean, enabled: Boolean,
-                             onOpen: () -> Unit, onGrantChange: ((Boolean) -> Unit)? = null) {
-    val description = stringResource(R.string.su_toggle_description, group.primary.label)
+                             onOpen: () -> Unit, onGrantChange: ((Boolean) -> Unit)? = null,
+                             confirmed: Boolean = true) {
+    val description = if (group.apps.size > 1) stringResource(R.string.su_toggle_shared_description, group.uid, group.apps.size)
+        else stringResource(R.string.su_toggle_description, group.primary.label)
+    val grantLabel = stringResource(if (group.anyAllowSu) R.string.app_profile_granted else R.string.app_profile_not_granted)
+    val status = when {
+        saving -> stringResource(R.string.su_saving_authorization)
+        !confirmed -> stringResource(R.string.su_previous_authorization, grantLabel)
+        else -> grantLabel
+    }
+    val largeText = LocalDensity.current.fontScale >= 1.5f
+    val openLabel = stringResource(R.string.su_open_details)
     Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainer) {
-        ListItem(modifier = Modifier.clickable(onClick = onOpen),
-            colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-            leadingContent = { AppIconImage(packageInfo = group.primary.packageInfo, label = group.primary.label, modifier = Modifier.size(48.dp)) },
-            content = { Text(group.primary.label, maxLines = 2, overflow = TextOverflow.Ellipsis) },
-            supportingContent = {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(group.primary.packageName, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text(buildList {
-                        add(stringResource(if (group.anyAllowSu) R.string.app_profile_granted else R.string.app_profile_not_granted))
-                        if (group.apps.size > 1) add(stringResource(R.string.su_shared_count, group.apps.size))
-                        if (group.anyCustom) add(stringResource(R.string.superuser_tag_custom))
-                        if (group.uid / 100000 != 0) add(stringResource(R.string.superuser_tag_user, group.uid / 100000))
-                    }.joinToString(" · "), style = MaterialTheme.typography.labelMedium)
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val separateControl = onGrantChange != null && (largeText || maxWidth < 340.dp)
+            val control: @Composable () -> Unit = {
+                if (saving) CircularProgressIndicator(Modifier.size(24.dp).semantics { contentDescription = status })
+                else if (onGrantChange != null) Switch(checked = group.anyAllowSu, onCheckedChange = onGrantChange,
+                    enabled = enabled, modifier = Modifier.semantics {
+                        contentDescription = description
+                        stateDescription = status
+                    })
+            }
+            Column {
+                ListItem(modifier = Modifier.clickable(role = Role.Button, onClickLabel = openLabel, onClick = onOpen),
+                    colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                    leadingContent = { AppIconImage(packageInfo = group.primary.packageInfo, label = group.primary.label, modifier = Modifier.size(44.dp)) },
+                    overlineContent = {
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(if (group.anyAllowSu) Icons.Outlined.Shield else Icons.Outlined.Block, null, Modifier.size(16.dp))
+                            Text(status, style = MaterialTheme.typography.labelMedium)
+                        }
+                    },
+                    content = {
+                        Text(if (group.apps.size > 1) stringResource(R.string.su_shared_headline, group.primary.label, group.apps.size)
+                            else group.primary.label, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    },
+                    supportingContent = {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(group.primary.packageName, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            val metadata = buildList {
+                                if (group.apps.size > 1) add(stringResource(R.string.su_shared_uid_short, group.uid))
+                                if (group.anyCustom) add(stringResource(R.string.superuser_tag_custom))
+                                if (group.uid / 100000 != 0) add(stringResource(R.string.superuser_tag_user, group.uid / 100000))
+                            }
+                            if (metadata.isNotEmpty()) Text(metadata.joinToString(" · "), style = MaterialTheme.typography.labelMedium)
+                        }
+                    },
+                    trailingContent = when {
+                        separateControl -> null
+                        onGrantChange != null -> control
+                        else -> ({ Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.size(20.dp)) })
+                    })
+                if (separateControl) {
+                    HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(stringResource(R.string.su_access_control), Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+                        control()
+                    }
                 }
-            }, trailingContent = if (onGrantChange != null) ({
-                if (saving) CircularProgressIndicator(Modifier.size(24.dp))
-                else Switch(checked = group.anyAllowSu, onCheckedChange = onGrantChange, enabled = enabled,
-                    modifier = Modifier.semantics { contentDescription = description })
-            }) else null)
+            }
+        }
     }
 }
 
@@ -244,7 +334,8 @@ private fun SuperUserSearchResults(state: SuperUserUiState, groups: List<Grouped
             item { Text(stringResource(R.string.su_no_search_results), style = MaterialTheme.typography.bodyMedium) }
         }
         items(groups, key = { it.uid }) { group ->
-            SuperUserAppRow(group, false, false, onOpen = { onOpen(group) })
+            SuperUserAppRow(group, false, false, onOpen = { onOpen(group) },
+                confirmed = state.error == null && !state.isRefreshing)
             // A match on any shared member keeps the complete UID group available.
             if (group.matchedPackageNames.isNotEmpty()) group.apps.filter {
                 it.packageName in group.matchedPackageNames && it.packageName != group.primary.packageName

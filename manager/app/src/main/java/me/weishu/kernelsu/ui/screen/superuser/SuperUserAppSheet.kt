@@ -8,7 +8,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -16,6 +17,10 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import me.weishu.kernelsu.R
 import me.weishu.kernelsu.data.model.SuperUserException
 import me.weishu.kernelsu.data.model.SuperUserFailure
@@ -23,14 +28,25 @@ import me.weishu.kernelsu.ui.component.AppIconImage
 
 @Composable
 internal fun SuperUserAppSheet(group: GroupedApps, state: SuperUserUiState, onDismiss: () -> Unit,
-                               onGrantChange: (Boolean) -> Unit, onOpenProfile: () -> Unit) {
-    val enabled = !state.isRefreshing && state.savingUid == null && state.error == null
-    val known = state.error == null
+                               onGrantChange: (Boolean) -> Unit, onOpenProfile: () -> Unit,
+                               sheetState: SheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden)) {
+    val saving = state.savingUid == group.uid
+    val enabled = state.hasLoaded && !state.isRefreshing && state.savingUid == null && state.error == null
+    val known = state.hasLoaded && !state.isRefreshing && !saving && state.error == null
     val colors = MaterialTheme.colorScheme
     val profile = group.primary.profile
-    val grantDescription = stringResource(R.string.su_toggle_description, group.primary.label)
+    val grantDescription = if (group.apps.size > 1) stringResource(R.string.su_toggle_shared_description, group.uid, group.apps.size)
+        else stringResource(R.string.su_toggle_description, group.primary.label)
+    val grantStatus = stringResource(when {
+        saving -> R.string.su_saving_authorization
+        state.isRefreshing -> R.string.su_state_rechecking
+        !known -> R.string.su_state_unknown
+        group.anyAllowSu -> R.string.app_profile_granted
+        else -> R.string.app_profile_not_granted
+    })
+    var showAllMembers by rememberSaveable(group.uid) { mutableStateOf(false) }
     ModalBottomSheet(onDismissRequest = onDismiss,
-        sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden),
+        sheetState = sheetState,
         containerColor = colors.surfaceContainerLow) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             Column(Modifier.fillMaxWidth().heightIn(max = maxHeight)) {
@@ -39,69 +55,92 @@ internal fun SuperUserAppSheet(group: GroupedApps, state: SuperUserUiState, onDi
                     IconButton(onClick = onDismiss) { Icon(Icons.Outlined.Close, stringResource(R.string.close)) }
                 }
                 Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    verticalArrangement = Arrangement.spacedBy(20.dp)) {
                     Card(shape = MaterialTheme.shapes.extraLarge,
                         colors = CardDefaults.cardColors(
                             containerColor = if (known && group.anyAllowSu) colors.primaryContainer else colors.surfaceContainerHigh,
                             contentColor = if (known && group.anyAllowSu) colors.onPrimaryContainer else colors.onSurface)) {
                         Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            AppIconImage(packageInfo = group.primary.packageInfo, label = group.primary.label, modifier = Modifier.size(56.dp))
-                            Text(group.primary.label, style = MaterialTheme.typography.headlineSmall)
+                            if (LocalDensity.current.fontScale >= 1.5f) {
+                                AppIconImage(packageInfo = group.primary.packageInfo, label = group.primary.label, modifier = Modifier.size(56.dp))
+                                Text(group.primary.label, style = MaterialTheme.typography.headlineSmall)
+                            } else Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                AppIconImage(packageInfo = group.primary.packageInfo, label = group.primary.label, modifier = Modifier.size(56.dp))
+                                Text(group.primary.label, Modifier.weight(1f), style = MaterialTheme.typography.headlineSmall)
+                            }
                             SelectionContainer { Text(group.primary.packageName, style = MaterialTheme.typography.bodyMedium) }
-                            Text(stringResource(when {
-                                !known -> R.string.su_state_unknown
-                                group.anyAllowSu -> R.string.app_profile_granted
-                                else -> R.string.app_profile_not_granted
-                            }), style = MaterialTheme.typography.titleMedium)
-                            if (group.apps.size > 1) Text(stringResource(R.string.su_shared_explanation, group.apps.size))
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Outlined.Shield, null, Modifier.size(24.dp))
+                                Text(grantStatus, Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite }, style = MaterialTheme.typography.titleMedium)
+                                if (saving) CircularProgressIndicator(Modifier.size(24.dp).semantics { contentDescription = grantStatus })
+                                else Switch(checked = group.anyAllowSu, onCheckedChange = onGrantChange, enabled = enabled,
+                                    modifier = Modifier.semantics { contentDescription = grantDescription; stateDescription = grantStatus })
+                            }
+                            Text(stringResource(if (group.apps.size > 1) R.string.su_shared_explanation else R.string.su_single_uid_scope,
+                                if (group.apps.size > 1) group.apps.size else group.uid), style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                     if (state.error != null) Text(superUserFailureMessage(state.error), color = colors.error)
                     state.mutationError?.let { Text(superUserFailureMessage(it), color = colors.error) }
-                    Card(colors = CardDefaults.cardColors(containerColor = colors.surfaceContainer)) {
-                        ListItem(colors = ListItemDefaults.colors(containerColor = colors.surfaceContainer),
-                            content = { Text(stringResource(R.string.superuser)) },
-                            supportingContent = { Text(stringResource(R.string.su_grant_explanation)) },
-                            trailingContent = {
-                                if (state.savingUid == group.uid) CircularProgressIndicator(Modifier.size(24.dp))
-                                else Switch(checked = group.anyAllowSu, onCheckedChange = onGrantChange, enabled = enabled,
-                                    modifier = Modifier.semantics { contentDescription = grantDescription })
-                            })
-                        ListItem(colors = ListItemDefaults.colors(containerColor = colors.surfaceContainer),
-                            content = { Text(stringResource(R.string.profile)) },
-                            supportingContent = {
-                                Text(when {
-                                    profile == null || !known -> stringResource(R.string.su_state_unknown)
-                                    group.anyAllowSu && profile.rootUseDefault -> stringResource(R.string.profile_default)
-                                    group.anyAllowSu && profile.rootTemplate != null -> stringResource(R.string.su_template_name, profile.rootTemplate)
-                                    !group.anyAllowSu && profile.nonRootUseDefault -> stringResource(R.string.profile_default)
-                                    else -> stringResource(R.string.profile_custom)
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(R.string.su_configuration_section), style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+                        Card(colors = CardDefaults.cardColors(containerColor = colors.surfaceContainer)) {
+                            ListItem(colors = ListItemDefaults.colors(containerColor = colors.surfaceContainer),
+                                content = { Text(stringResource(R.string.profile)) },
+                                supportingContent = {
+                                    Text(when {
+                                        profile == null || !known -> stringResource(R.string.su_state_unknown)
+                                        group.anyAllowSu && profile.rootUseDefault -> stringResource(R.string.profile_default)
+                                        group.anyAllowSu && profile.rootTemplate != null -> stringResource(R.string.su_template_name, profile.rootTemplate)
+                                        !group.anyAllowSu && profile.nonRootUseDefault -> stringResource(R.string.profile_default)
+                                        else -> stringResource(R.string.profile_custom)
+                                    })
                                 })
-                            })
-                        ListItem(colors = ListItemDefaults.colors(containerColor = colors.surfaceContainer),
-                            content = { Text(stringResource(R.string.su_unmount_policy)) },
-                            supportingContent = { Text(stringResource(when {
-                                !known -> R.string.su_state_unknown
-                                group.shouldUmount -> R.string.su_unmount_enabled
-                                else -> R.string.su_unmount_disabled
-                            })) })
+                            ListItem(colors = ListItemDefaults.colors(containerColor = colors.surfaceContainer),
+                                content = { Text(stringResource(R.string.su_unmount_policy)) },
+                                supportingContent = { Text(stringResource(when {
+                                    !known -> R.string.su_state_unknown
+                                    group.shouldUmount -> R.string.su_unmount_enabled
+                                    else -> R.string.su_unmount_disabled
+                                })) })
+                        }
                     }
-                    Text(stringResource(R.string.su_identity), style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
-                    Card(colors = CardDefaults.cardColors(containerColor = colors.surfaceContainer)) {
-                        SuperUserFact(stringResource(R.string.su_uid_user), "${group.uid} · ${group.uid / 100000}")
-                        if (group.apps.size == 1) SuperUserFact(stringResource(R.string.su_version),
-                            "${group.primary.packageInfo.versionName.orEmpty()} (${group.primary.packageInfo.longVersionCode})")
-                        group.apps.firstNotNullOfOrNull { it.packageInfo.sharedUserId }?.let {
-                            SuperUserFact(stringResource(R.string.su_shared_id), it)
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(R.string.su_identity), style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+                        Card(colors = CardDefaults.cardColors(containerColor = colors.surfaceContainer)) {
+                            SuperUserFact("UID", group.uid.toString())
+                            SuperUserFact(stringResource(R.string.su_identity_user), (group.uid / 100000).toString())
+                            if (group.apps.size == 1) SuperUserFact(stringResource(R.string.su_version),
+                                stringResource(R.string.su_identity_version_value,
+                                    group.primary.packageInfo.versionName?.takeIf { it.isNotBlank() } ?: stringResource(R.string.dashboard_unknown),
+                                    group.primary.packageInfo.longVersionCode))
+                            group.apps.firstNotNullOfOrNull { it.packageInfo.sharedUserId }?.let {
+                                SuperUserFact(stringResource(R.string.su_shared_id), it)
+                            }
                         }
                     }
                     if (group.apps.size > 1) {
-                        Text(stringResource(R.string.su_affected_apps), style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
-                        Card(colors = CardDefaults.cardColors(containerColor = colors.surfaceContainer)) {
-                            group.apps.forEach { app ->
-                                ListItem(colors = ListItemDefaults.colors(containerColor = colors.surfaceContainer),
-                                    content = { Text(app.label) }, supportingContent = { SelectionContainer { Text(app.packageName) } },
-                                    leadingContent = { AppIconImage(packageInfo = app.packageInfo, label = app.label, modifier = Modifier.size(40.dp)) })
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(stringResource(R.string.su_affected_count, group.apps.size), style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.semantics { heading() })
+                            Card(colors = CardDefaults.cardColors(containerColor = colors.surfaceContainer)) {
+                                val members = if (showAllMembers) group.apps else group.apps.take(3)
+                                members.forEach { app ->
+                                    ListItem(colors = ListItemDefaults.colors(containerColor = colors.surfaceContainer),
+                                        content = { Text(app.label) },
+                                        supportingContent = {
+                                            SelectionContainer {
+                                                Text(app.packageName + "\n" + stringResource(R.string.su_identity_version_value,
+                                                    app.packageInfo.versionName?.takeIf { it.isNotBlank() } ?: stringResource(R.string.dashboard_unknown),
+                                                    app.packageInfo.longVersionCode))
+                                            }
+                                        },
+                                        leadingContent = { AppIconImage(packageInfo = app.packageInfo, label = app.label, modifier = Modifier.size(40.dp)) })
+                                }
+                                if (group.apps.size > 3) TextButton(onClick = { showAllMembers = !showAllMembers },
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
+                                    Text(stringResource(if (showAllMembers) R.string.su_collapse_members else R.string.su_show_all_members, group.apps.size))
+                                }
                             }
                         }
                     }
@@ -134,9 +173,12 @@ internal fun SuperUserGrantConfirmation(group: GroupedApps, enabled: Boolean, on
                 Text(stringResource(R.string.su_grant_explanation))
                 Text(stringResource(R.string.su_confirm_identity, group.uid, group.uid / 100000))
                 if (group.apps.size > 1) Text(stringResource(R.string.su_shared_explanation, group.apps.size))
-                group.apps.forEach { app ->
-                    Text(app.label, style = MaterialTheme.typography.titleSmall)
-                    Text(app.packageName, style = MaterialTheme.typography.bodySmall)
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
+                    group.apps.forEach { app ->
+                        ListItem(colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                            content = { Text(app.label) }, supportingContent = { Text(app.packageName) },
+                            leadingContent = { AppIconImage(packageInfo = app.packageInfo, label = app.label, modifier = Modifier.size(32.dp)) })
+                    }
                 }
             }
         },

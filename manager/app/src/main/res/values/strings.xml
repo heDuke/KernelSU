@@ -819,7 +819,7 @@
     <string name="su_shared_explanation">These %1$d apps share a UID. Changing authorization affects all of them.</string>
     <string name="su_grant_explanation">Superuser access permits privileged operations on system files and data. Grant it only to apps you trust.</string>
     <string name="su_template_name">Template · %1$s</string>
-    <string name="su_unmount_policy">Module unmount policy</string>
+    <string name="su_unmount_policy">Module mount policy</string>
     <string name="su_unmount_enabled">Module mounts are detached for this UID. Installed modules are kept.</string>
     <string name="su_unmount_disabled">Module mounts are kept for this UID.</string>
     <string name="su_identity">App identity</string>
@@ -871,4 +871,25 @@
     <string name="su_diagnostics">Show diagnostics</string>
     <string name="su_hide_diagnostics">Hide diagnostics</string>
     <string name="su_copy_diagnostics">Copy diagnostics</string>
+
+    <!-- Superuser information hierarchy and responsive controls. -->
+    <string name="su_metric_granted">Granted UID groups</string>
+    <string name="su_metric_custom">Custom profile groups</string>
+    <string name="su_metric_apps">Includes %1$d apps</string>
+    <string name="su_scope_compact">Current user/system-app scope. Shared UIDs count as one group.</string>
+    <string name="su_toggle_shared_description">Superuser access for all %2$d apps sharing UID %1$d</string>
+    <string name="su_saving_authorization">Saving authorization…</string>
+    <string name="su_previous_authorization">Previous state: %1$s</string>
+    <string name="su_open_details">Open app authorization details</string>
+    <string name="su_shared_headline">%1$s and shared apps (%2$d total)</string>
+    <string name="su_shared_uid_short">Shared UID %1$d</string>
+    <string name="su_access_control">Superuser access</string>
+    <string name="su_state_rechecking">Checking authorization…</string>
+    <string name="su_single_uid_scope">Authorization applies to UID %1$d.</string>
+    <string name="su_configuration_section">Profile and module mounts</string>
+    <string name="su_identity_user">Android user</string>
+    <string name="su_identity_version_value">%1$s (%2$d)</string>
+    <string name="su_affected_count">Affected apps (%1$d)</string>
+    <string name="su_collapse_members">Show fewer apps</string>
+    <string name="su_show_all_members">Show all %1$d apps</string>
 </resources>

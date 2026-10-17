@@ -814,7 +814,7 @@ KernelSU 完成后，请回到系统更新点击重新启动。
     <string name="su_shared_explanation">这 %1$d 个应用共享 UID，修改授权会同时影响它们。</string>
     <string name="su_grant_explanation">超级用户权限允许执行涉及系统文件和数据的高权限操作，请仅授予可信任的应用。</string>
     <string name="su_template_name">模板 · %1$s</string>
-    <string name="su_unmount_policy">模块卸载策略</string>
+    <string name="su_unmount_policy">模块挂载策略</string>
     <string name="su_unmount_enabled">为此 UID 解除模块挂载，保留已安装模块。</string>
     <string name="su_unmount_disabled">为此 UID 保留模块挂载。</string>
     <string name="su_identity">应用身份</string>
@@ -866,4 +866,25 @@ KernelSU 完成后，请回到系统更新点击重新启动。
     <string name="su_diagnostics">诊断信息</string>
     <string name="su_hide_diagnostics">收起诊断信息</string>
     <string name="su_copy_diagnostics">复制诊断信息</string>
+
+    <!-- Superuser information hierarchy and responsive controls. -->
+    <string name="su_metric_granted">已授权组</string>
+    <string name="su_metric_custom">自定义配置组</string>
+    <string name="su_metric_apps">包含 %1$d 个应用</string>
+    <string name="su_scope_compact">统计当前用户及系统应用范围，共享 UID 按组计数。</string>
+    <string name="su_toggle_shared_description">共享 UID %1$d 下全部 %2$d 个应用的超级用户权限</string>
+    <string name="su_saving_authorization">正在保存授权…</string>
+    <string name="su_previous_authorization">上次读取：%1$s</string>
+    <string name="su_open_details">查看应用授权详情</string>
+    <string name="su_shared_headline">%1$s 等 %2$d 个应用</string>
+    <string name="su_shared_uid_short">共享 UID %1$d</string>
+    <string name="su_access_control">超级用户权限</string>
+    <string name="su_state_rechecking">正在确认授权状态…</string>
+    <string name="su_single_uid_scope">授权以 UID %1$d 为单位生效。</string>
+    <string name="su_configuration_section">配置与模块挂载</string>
+    <string name="su_identity_user">Android 用户</string>
+    <string name="su_identity_version_value">%1$s（%2$d）</string>
+    <string name="su_affected_count">受影响应用（%1$d）</string>
+    <string name="su_collapse_members">收起应用列表</string>
+    <string name="su_show_all_members">查看全部 %1$d 个应用</string>
 </resources>
