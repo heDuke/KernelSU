@@ -26,7 +26,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LargeFlexibleTopAppBar
+import me.weishu.kernelsu.ui.component.material.ExpressivePageHeader
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -72,7 +72,7 @@ internal fun ScriptRunScreenMaterial(
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
     ExpressiveScaffold(
-        topBar = { TopBar(onBack = actions.onBack, scrollBehavior = scrollBehavior) },
+        topBar = { TopBar(onBack = actions.onBack) },
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { innerPadding ->
         val prepared = state.prepared
@@ -301,13 +301,13 @@ private fun SourceSection(prepared: PreparedScript) {
 @Composable
 private fun TopBar(
     onBack: () -> Unit,
-    scrollBehavior: TopAppBarScrollBehavior,
+    scrollBehavior: TopAppBarScrollBehavior? = null,
 ) {
-    LargeFlexibleTopAppBar(
+    ExpressivePageHeader(
         title = { Text(stringResource(R.string.script_run_title)) },
         navigationIcon = { TopBarBackButton(onClick = onBack) },
-        colors = expressiveTopAppBarColors(),
+
         windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
-        scrollBehavior = scrollBehavior
+
     )
 }
