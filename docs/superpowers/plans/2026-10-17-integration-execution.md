@@ -39,13 +39,13 @@ assets.
 | Check | Result / scope |
 | --- | --- |
 | Manager clean assembleRelease and JVM tests | Passed; 186 tests, two optional fixture tests initially skipped |
-| Manager real image/module fixtures | Passed: all 186 tests, no skips, using authentic 4K/16K researched images and pinned candidate |
+| Manager real image/module fixtures | Passed: all 187 tests, no skips, using authentic 4K/16K researched images and pinned candidate |
 | Android ARM64 Rust check, strict Clippy, fmt | Passed, including the new task supervisor; x86_64 Android check also passed |
 | Native host tests | Contracts 7, supervisor 5, loader 6 passed; the separate pinned-candidate loader test also passed |
 | Supervisor boundaries | Framed stdout cannot spoof exit, real nonzero exit, EOF cleanup, ordinary descendants after completion, TERM-to-KILL grace period |
 | Python release/Canary regressions | 13 passed with real candidate/image/config and built module fixtures; observer C harness also passed |
 | Observer harness | Failure cleanup, repeated/concurrent lifecycle, deferred task-work scan, exiting task and allocation/task-work failure fallback |
-| Experimental loader | Unmodified source; 10 host tests passed, one optional target-proof fixture test initially skipped |
+| Experimental loader | Unmodified source; 10 host tests passed; the separate real target-proof fixture test also passed |
 | ARM64 android14-6.1 kernel | Built successfully with real preinit runner/blob and explicit production signer/package |
 | Website | bun install and production docs build passed; generated alternative lockfile was not committed |
 | Source hygiene | Conflict markers removed; XML checked; diff whitespace checks passed |
@@ -76,6 +76,12 @@ Generic production KMI compilation does not certify ZP11.260918.007 private ABI/
 or cold-boot behavior. The earlier pinned 4K candidate's offline checks remain
 separate evidence. The production package and sole trusted signer remain unchanged;
 the separate old `.pr` package is not removed or overwritten.
+
+A final follow-up removes duplicated legacy sorting in the repository ViewModel:
+it delegates to the fixture-tested epoch/star-aware provider sorter, preserving
+chronology across localized date labels and putting unknown star counts last.
+Release-note generation was updated to reflect the delivered features and omit the
+removed PC handoff.
 
 Final source merge/push, two-KMI/two-ABI CI and public-asset verification are recorded
 in the delivery addendum after the candidate completes them. Retain husky-v32650 as

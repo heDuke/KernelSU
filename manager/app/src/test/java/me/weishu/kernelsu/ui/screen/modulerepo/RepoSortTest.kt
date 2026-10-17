@@ -11,6 +11,15 @@ import java.util.Locale
 class RepoSortTest {
 
     @Test
+    fun mixedProvidersSortByMetadataRatherThanDisplayText() {
+        val old = module("legacy", 50, 100).copy(latestReleaseTime = "2026-10-01")
+        val recent = module("registry", 200, 200).copy(latestReleaseTime = "1 Oct 2026")
+        val unknown = module("unknown", null, 300).copy(latestReleaseTime = "Unavailable")
+        assertEquals(listOf("unknown", "registry", "legacy"), RepoSort.UPDATED.sort(listOf(old, recent, unknown)).map { it.moduleId })
+        assertEquals(listOf("registry", "legacy", "unknown"), RepoSort.STARS.sort(listOf(old, recent, unknown)).map { it.moduleId })
+    }
+
+    @Test
     fun storedNameWins() {
         assertEquals(RepoSort.NAME, RepoSort.fromStored("NAME", 0))
         assertEquals(RepoSort.UPDATED, RepoSort.fromStored("UPDATED", 2))

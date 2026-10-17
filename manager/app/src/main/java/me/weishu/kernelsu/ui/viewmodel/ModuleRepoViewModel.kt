@@ -22,7 +22,6 @@ import me.weishu.kernelsu.ui.screen.modulerepo.ModuleRepoUiState
 import me.weishu.kernelsu.ui.screen.modulerepo.RepoSort
 import me.weishu.kernelsu.ui.util.PinyinUtil
 import me.weishu.kernelsu.ui.util.isNetworkAvailable
-import java.text.Collator
 import java.util.Locale
 
 class ModuleRepoViewModel(
@@ -54,18 +53,7 @@ class ModuleRepoViewModel(
         viewModelScope.launchSearchQueryCollector(searchQuery, ::applySearchText)
     }
 
-    private fun sortModules(list: List<RepoModule>, order: RepoSort): List<RepoModule> {
-        if (list.isEmpty()) return list
-        return when (order) {
-            RepoSort.UPDATED -> list.sortedByDescending { it.latestReleaseTime }
-            RepoSort.NAME -> {
-                val collator = Collator.getInstance(Locale.getDefault())
-                list.sortedWith(compareBy(collator) { it.moduleName })
-            }
-
-            RepoSort.STARS -> list.sortedByDescending { it.stargazerCount }
-        }
-    }
+    private fun sortModules(list: List<RepoModule>, order: RepoSort): List<RepoModule> = order.sort(list)
 
     private fun filterModules(modules: List<RepoModule>, text: String): List<RepoModule> {
         if (text.isEmpty()) return emptyList()

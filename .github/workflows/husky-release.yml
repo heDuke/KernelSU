@@ -288,17 +288,18 @@ jobs:
           - Package: \`me.weishu.kernelsu.husky.fork\`
           - KMI: \`android14-6.1\` + \`android16-6.12\` (OTA inactive slot)
           - Assets: \`HuskySU.apk\`, \`android14-6.1_kernelsu.ko\`, \`android16-6.12_kernelsu.ko\`
-          - Manager: configurable home dashboard, native Material 3 Expressive information sheets and explicit install/restore review
-          - Superuser: remembered Granted/All/Custom filters, UID-aware application sheets, grant confirmation and explicitly saved profiles
-          - Fix: refresh Manager authorization flags and report driver, Manager authorization, UAPI, Root shell and service failures separately; diagnostics can be copied locally
-          - Recovery: read-only backup inspection, reviewed image identity checks and accurate pending-reboot state
-          - Compatibility: independent Manager/driver build numbers are distinct from interface incompatibility; LKM updates require verified exact kernel release, KMI and page-size metadata
-          - Production package/certificate verified; manifest and SHA256SUMS included
-          - APK embeds its production source commit; Manager DEX, resources, manifest and assets are verified unchanged by repacking
-          - Generic LKM builds require exact target validation. They are not the pinned ZP11.260918.007 / 6.1.172 Canary candidate.
-          - Canary private-ABI/CFI, cold-boot/recovery and full visual acceptance remain incomplete. Independent experimental loading remains disabled.
-          - Device-side cause of the reported Superuser read block still requires fresh diagnostics or PC verification. Production signing does not replace interface or Manager-authorization checks.
-          - This APK uses the existing production signer. A test-signed APK with the same package name must be uninstalled before installation; uninstalling clears Manager-local settings.
+          - Native Material 3 Expressive dashboard, grouped Superuser application list and enabled/disabled module cards with one main action and a More sheet
+          - Remote/Local module installation, explicit ZIP selection, preview/install Bottom Sheets and compact version history; missing metadata stays hidden
+          - Expressive noninteractive terminal, exact multiline favorites/groups/pins, explicit managed background mode, ongoing notification and bounded private history/logs
+          - Background jobs use owned native process groups and observed exit/signal status; process loss never automatically replays commands. Deliberately detached Root descendants are outside supervision.
+          - Upstream UAPI 6, preinit, eligible hot install, verified one-shot script confirmation, opt-in boot module blocking and shell-root/ADB controls
+          - Older LKM interfaces disable unsupported writes and need a matching driver upgrade; production signing does not bypass authorization or exact-target validation
+          - Optional official module registry adapter defaults off after HTTP 403 during integration; existing MMRL sources remain available
+          - Both userspace ABIs and production KMI targets are rebuilt from this commit
+          - Sole trusted production signer, embedded source identity, unchanged repacked Manager payloads, manifest and SHA256SUMS are verified before publication
+          - Generic KMI builds require exact kernel release/page-size validation. They are not the pinned ZP11.260918.007 / 6.1.172 Canary candidate.
+          - Canary private ABI/CFI, cold boot/recovery, Android service/notification instrumentation and device visual acceptance remain unverified. Independent experimental loading remains disabled.
+          - Existing production installations retain the production signer; the old .pr package is a separate application.
 
           Based on [KernelSU](https://github.com/tiann/KernelSU). See docs/README Credits.
 
