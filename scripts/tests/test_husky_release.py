@@ -3,7 +3,11 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+import json
+from zipfile import ZipFile
+import warnings
 from unittest.mock import patch
+from scripts import manager_build_identity as identity
 
 spec = importlib.util.spec_from_file_location("release", Path(__file__).parents[1] / "verify_husky_release.py")
 release = importlib.util.module_from_spec(spec)
@@ -53,6 +57,78 @@ class ProductionIdentityTest(unittest.TestCase):
         mutated = data.replace(original, original[:-1] + (b"x" if original[-1:] != b"x" else b"y"), 1)
         with self.assertRaises(ValueError):
             release.module_target("android14-6.1_kernelsu.ko", mutated)
+
+
+class ManagerContentTest(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.directory = Path(self.temp.name)
+        self.source = {"schema_version": 1, "source_commit": "a" * 40, "package": identity.PACKAGE,
+                       "version_code": 32650, "version_name": "fixture", "channel": "production"}
+        self.payloads = {"AndroidManifest.xml": b"manifest", "resources.arsc": b"resources",
+                         "classes.dex": b"code", "res/drawable/icon.xml": b"icon",
+                         identity.IDENTITY_ASSET: json.dumps(self.source).encode()}
+
+    def apk(self, name, payloads=None, native=b"old native"):
+        path = self.directory / name
+        with ZipFile(path, "w") as archive:
+            for key, data in (self.payloads if payloads is None else payloads).items():
+                archive.writestr(key, data)
+            archive.writestr("lib/arm64-v8a/libksud.so", native)
+        return path
+
+    def test_native_replacement_keeps_manager_payloads(self):
+        source = self.apk("source.apk")
+        result = self.apk("result.apk", native=b"new native")
+        self.assertEqual(len(identity.verify_repack(source, result)), len(self.payloads))
+        self.assertEqual(identity.verify_source(result, "a" * 40, 32650, "fixture"), self.source)
+
+    def test_reject_changed_manager_code_resources_and_assets(self):
+        source = self.apk("source.apk")
+        for name in self.payloads:
+            with self.subTest(name=name):
+                changed = self.payloads | {name: b"stale build content"}
+                with self.assertRaises(ValueError):
+                    identity.verify_repack(source, self.apk("result.apk", changed))
+
+    def test_reject_wrong_source_version_or_channel(self):
+        for key, value in {"source_commit": "b" * 40, "version_code": 32638,
+                           "version_name": "old", "package": "me.weishu.kernelsu.pr",
+                           "channel": "test"}.items():
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                contents = self.payloads | {identity.IDENTITY_ASSET: json.dumps(self.source | {key: value}).encode()}
+                identity.verify_source(self.apk("wrong.apk", contents), "a" * 40, 32650, "fixture")
+        without_identity = {k: v for k, v in self.payloads.items() if k != identity.IDENTITY_ASSET}
+        with self.assertRaises(ValueError):
+            identity.verify_source(self.apk("missing.apk", without_identity), "a" * 40, 32650, "fixture")
+
+    def test_reject_missing_code_duplicate_entries_or_ambiguous_apks(self):
+        with self.assertRaises(ValueError):
+            identity.single_apk(self.directory)
+        source = self.apk("source.apk")
+        self.assertEqual(identity.single_apk(self.directory), source)
+        missing = {k: v for k, v in self.payloads.items() if k != "classes.dex"}
+        with self.assertRaises(ValueError):
+            identity.manager_payloads(self.apk("missing.apk", missing))
+        with self.assertRaises(ValueError):
+            identity.single_apk(self.directory)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            with ZipFile(source, "a") as archive:
+                archive.writestr("classes.dex", b"duplicate")
+        with self.assertRaises(ValueError):
+            identity.manager_payloads(source)
+
+    def test_source_writer_requires_requested_checkout(self):
+        output = self.directory / "identity.json"
+        with patch.object(identity.subprocess, "check_output", return_value="a" * 40):
+            with self.assertRaises(ValueError):
+                identity.write_identity(output, "b" * 40)
+        self.assertFalse(output.exists())
+        with patch.object(identity.subprocess, "check_output", side_effect=["a" * 40, "2650", "fixture"]):
+            identity.write_identity(output, "a" * 40)
+        self.assertEqual(json.loads(output.read_text()), self.source)
 
 
 if __name__ == "__main__":

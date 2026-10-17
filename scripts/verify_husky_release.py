@@ -14,6 +14,7 @@ from zipfile import ZipFile
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from repack_apk import find_android_tool  # noqa: E402
 from scripts.audit_canary_lkm import Elf  # noqa: E402
+from scripts.manager_build_identity import verify_source, verify_repack, single_apk, manager_payloads, payload_fingerprint  # noqa: E402
 
 PACKAGE = "me.weishu.kernelsu.husky.fork"
 TRUSTED_CERTIFICATE = "b37ef4db671d6d1dd44d1b42efdd63effece3265649734a9d665ff5939c59553"
@@ -73,7 +74,7 @@ def module_target(name, data):
     return {**describe(name, data), "kmi": info["ksu_kmi"], "kernel_release": release, "page_size": 1 << shift}
 
 
-def verify_release(directory, certificate, version_code, commit):
+def verify_release(directory, certificate, version_code, commit, input_directory=None):
     if re.fullmatch(r"[0-9a-f]{40}", commit) is None:
         raise ValueError("Release must identify a full source commit")
     apk = directory / "HuskySU.apk"
@@ -91,6 +92,9 @@ def verify_release(directory, certificate, version_code, commit):
         signer_output.strip().splitlines(),
         run_tool("aapt2", "dump", "badging", apk), certificate, version_code,
     )
+    build_identity = verify_source(apk, commit, version_code, metadata["version_name"])
+    ui_payloads = (verify_repack(single_apk(input_directory), apk)
+                   if input_directory is not None else manager_payloads(apk))
     native = []
     with ZipFile(apk) as archive:
         for arch, machine in (("arm64-v8a", 183), ("x86_64", 62)):
@@ -107,6 +111,8 @@ def verify_release(directory, certificate, version_code, commit):
         targets.append(module_target(name, data))
     manifest = {
         "schema_version": 2, "source_commit": commit, "manager": metadata,
+        "manager_build_identity": build_identity, "manager_payloads_sha256": payload_fingerprint(ui_payloads),
+        "manager_payload_count": len(ui_payloads),
         "native_payloads": native, "assets": assets,
         "module_targets": targets,
         "module_scope": "Generic KMI builds; exact target validation required. Not the pinned ZP11.260918.007 / 6.1.172 Canary candidate.",
@@ -125,9 +131,10 @@ def verify_release(directory, certificate, version_code, commit):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", type=Path)
+    parser.add_argument("--input-directory", type=Path)
     args = parser.parse_args()
     verify_release(args.directory, os.environ["EXPECTED_CERTIFICATE"],
-                   int(os.environ["EXPECTED_VERSION_CODE"]), os.environ["GITHUB_SHA"])
+                   int(os.environ["EXPECTED_VERSION_CODE"]), os.environ["GITHUB_SHA"], args.input_directory)
 
 
 if __name__ == "__main__":

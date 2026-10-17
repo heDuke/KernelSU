@@ -123,6 +123,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Embed production source identity
+        run: |
+          python3 ../scripts/manager_build_identity.py \
+            app/src/main/assets/husky-build.json --commit "$GITHUB_SHA"
+
       - name: Write production signing key
         env:
           KEYSTORE: ${{ secrets.KEYSTORE }}
@@ -210,7 +215,7 @@ jobs:
       - name: Place manager apk and ksud
         run: |
           mkdir -p manager/app/build/outputs/apk/release
-          APK=$(find artifacts/manager-gradle -type f -name '*.apk' | head -n 1)
+          APK=$(python3 -c 'from pathlib import Path; from scripts.manager_build_identity import single_apk; print(single_apk(Path("artifacts/manager-gradle")))')
           test -n "$APK"
           cp -f "$APK" manager/app/build/outputs/apk/release/
 
@@ -255,7 +260,7 @@ jobs:
           EXPECTED_VERSION_CODE: ${{ needs.prepare-signing.outputs.version_code }}
         run: |
           python3 -m unittest discover -s scripts/tests -p test_husky_release.py
-          python3 scripts/verify_husky_release.py dist-husky
+          python3 scripts/verify_husky_release.py dist-husky --input-directory artifacts/manager-gradle
 
       - uses: actions/upload-artifact@v7
         with:
@@ -288,6 +293,7 @@ jobs:
           - Recovery: read-only backup inspection, reviewed image identity checks and accurate pending-reboot state
           - Compatibility: independent Manager/driver build numbers are distinct from interface incompatibility; LKM updates require verified exact kernel release, KMI and page-size metadata
           - Production package/certificate verified; manifest and SHA256SUMS included
+          - APK embeds its production source commit; Manager DEX, resources, manifest and assets are verified unchanged by repacking
           - Generic LKM builds require exact target validation. They are not the pinned ZP11.260918.007 / 6.1.172 Canary candidate.
           - Canary private-ABI/CFI, cold-boot/recovery and full visual acceptance remain incomplete. Independent experimental loading remains disabled.
           - Device-side cause of the reported Superuser read block still requires fresh diagnostics or PC verification. Production signing does not replace interface or Manager-authorization checks.
