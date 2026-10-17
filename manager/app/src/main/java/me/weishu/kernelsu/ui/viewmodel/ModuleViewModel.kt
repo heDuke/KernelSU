@@ -44,6 +44,7 @@ import me.weishu.kernelsu.ui.screen.module.ModuleUiState
 import me.weishu.kernelsu.ui.screen.module.reconcilePendingSelection
 import me.weishu.kernelsu.ui.util.PinyinUtil
 import me.weishu.kernelsu.ui.util.hasMagisk
+import me.weishu.kernelsu.ui.util.message
 import okhttp3.Request
 import java.text.Collator
 import java.util.Locale
@@ -143,10 +144,22 @@ class ModuleViewModel(
         viewModelScope.launch {
             val magiskInstalled = withContext(Dispatchers.IO) { hasMagisk() }
             val isSafeMode = Natives.isSafeMode
+            val gate = withContext(Dispatchers.IO) {
+                me.weishu.kernelsu.core.utils.evaluateRootGate(
+                    me.weishu.kernelsu.core.utils.RootOperation.ModuleMutation,
+                    me.weishu.kernelsu.ui.util.currentRootGateFacts(checkRoot = false).copy(rootAvailable = true),
+                )
+            }
+            val interfaceReason = when (gate) {
+                is me.weishu.kernelsu.core.utils.RootGateResult.KernelOutdated,
+                is me.weishu.kernelsu.core.utils.RootGateResult.ManagerOutdated -> gate.message(ksuApp)
+                else -> null
+            }
             _uiState.update {
                 it.copy(
                     magiskInstalled = magiskInstalled,
                     isSafeMode = isSafeMode,
+                    interfaceBlockedReason = interfaceReason,
                 )
             }
         }

@@ -446,6 +446,7 @@ fun ModulePagerMaterial(
                 updateInfoMap = uiState.updateInfo,
                 actions = actions,
                 installRecommendedEnabled = uiState.installButtonVisible && !uiState.isBatchProcessing,
+                mutationsBlockedReason = uiState.interfaceBlockedReason,
                 showEmptyPlaceholder = true,
                 onClickModule = { module ->
                     if (module.hasWebUi) {
@@ -487,6 +488,7 @@ private fun ModuleList(
     updateInfoMap: Map<String, ModuleUpdateInfo>,
     actions: ModuleActions,
     installRecommendedEnabled: Boolean = false,
+    mutationsBlockedReason: String? = null,
     showEmptyPlaceholder: Boolean = false,
     onClickModule: (Module) -> Unit,
     onModuleAddShortcut: (Module, ShortcutType) -> Unit,
@@ -503,6 +505,19 @@ private fun ModuleList(
             bottom = 16.dp + bottomInnerPadding + 56.dp + 16.dp
         ),
     ) {
+        if (mutationsBlockedReason != null) {
+            item(key = "interface_blocked", contentType = "banner") {
+                androidx.compose.material3.Card(
+                    colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(stringResource(R.string.module_interface_blocked_title), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onErrorContainer)
+                        Text(mutationsBlockedReason, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onErrorContainer)
+                    }
+                }
+            }
+        }
         if (showPendingCard && pendingItems.isNotEmpty()) {
             item(key = "pending_todo", contentType = "pending_todo") {
                 Column {
@@ -559,7 +574,7 @@ private fun ModuleList(
 
             ModuleItem(
                 module = module,
-                updateUrl = moduleUpdateInfo.downloadUrl,
+                updateUrl = if (mutationsBlockedReason == null) moduleUpdateInfo.downloadUrl else "",
                 onUninstallClicked = {
                     if (module.remove) {
                         actions.onUndoUninstallModule(module)
