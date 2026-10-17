@@ -200,7 +200,8 @@ fun HomePagerMaterial(state: HomeUiState, actions: HomeActions, bottomInnerPaddi
     }
     val unknown = stringResource(R.string.dashboard_unknown)
     val mode = when (state.lkmMode) { true -> "LKM"; false -> "GKI"; null -> unknown }
-    val moduleKnown = modules.hasLoaded && modules.loadError == null && state.isFullFeatured
+    val moduleKnown = modules.hasLoaded && modules.loadError == null && state.canReadModules
+    val uapiText = stringResource(R.string.dashboard_uapi_versions, state.kernelUAPIVersion?.toString() ?: unknown, state.managerUAPIVersion.toString())
     val enabled = modules.modules.count { it.enabled && !it.remove }
     val disabled = modules.modules.count { !it.enabled && !it.remove }
     val pending = if (moduleKnown) modules.modules.count { it.update || it.remove } else 0
@@ -218,7 +219,8 @@ fun HomePagerMaterial(state: HomeUiState, actions: HomeActions, bottomInnerPaddi
         }
         if (state.isSafeMode) add(HomeTodo(stringResource(R.string.dashboard_safe_mode), stringResource(R.string.dashboard_safe_mode_note)) { open(HomePanel.Status) })
         if (state.showRootWarning) add(HomeTodo(stringResource(R.string.dashboard_root_missing)) { open(HomePanel.Access) })
-        if (state.showVersionMismatchWarning) add(HomeTodo(stringResource(R.string.dashboard_interface_mismatch)) { open(HomePanel.Versions) })
+        if (state.canUpgradeKernelModule) add(HomeTodo(stringResource(R.string.home_upgrade_kernel_module), stringResource(R.string.home_upgrade_kernel_module_note), actions.onUpgradeKernelModule))
+        if (state.showVersionMismatchWarning || state.requiresNewManager) add(HomeTodo(stringResource(R.string.dashboard_interface_mismatch), uapiText) { open(HomePanel.Versions) })
         if (state.hasUpdate) add(HomeTodo(stringResource(R.string.dashboard_update_manager)) { open(HomePanel.Versions) })
         if (state.huskyUpdateStatus == HuskyUpdateStatus.Available) add(HomeTodo(stringResource(R.string.dashboard_update_driver), state.huskyRelease?.tag.orEmpty()) { open(HomePanel.Versions) })
         if (updates > 0) add(HomeTodo(stringResource(R.string.module_update) + " \u00b7 $updates", open = actions.onOpenModules))
@@ -239,7 +241,7 @@ fun HomePagerMaterial(state: HomeUiState, actions: HomeActions, bottomInnerPaddi
                 row.forEach { shortcut ->
                     val privileged = shortcut in listOf(DashboardShortcut.Reboot, DashboardShortcut.DisableModules, DashboardShortcut.RestoreModules)
                     FilledTonalButton(onClick = { runShortcut(shortcut) }, shapes = ButtonDefaults.shapes(),
-                        enabled = !LocalDashboardActionsDisabled.current && (!privileged || state.operationBlockReason(allowSafeMode = shortcut == DashboardShortcut.Reboot) == null) && (shortcut != DashboardShortcut.CheckUpdates || !state.huskyBusy), modifier = Modifier.weight(1f)) {
+                        enabled = !LocalDashboardActionsDisabled.current && (!privileged || state.operationBlockReason(allowSafeMode = shortcut == DashboardShortcut.Reboot, repair = shortcut == DashboardShortcut.Reboot) == null) && (shortcut != DashboardShortcut.CheckUpdates || !state.huskyBusy), modifier = Modifier.weight(1f)) {
                         Text(stringResource(shortcut.titleId()))
                     }
                 }
@@ -260,13 +262,17 @@ fun HomePagerMaterial(state: HomeUiState, actions: HomeActions, bottomInnerPaddi
                 else Text(state.systemInfo.deviceModel, style = MaterialTheme.typography.bodyMedium)
                 if (!compact) Text(if (state.isSafeMode) stringResource(R.string.dashboard_safe_mode_note) else state.envReport?.items?.firstOrNull { it.group == EnvCheckGroup.Root && it.severity != EnvCheckSeverity.Pass }?.detail.orEmpty(),
                     maxLines = if (expanded) Int.MAX_VALUE else 2, overflow = TextOverflow.Ellipsis)
+                if (state.canUpgradeKernelModule) {
+                    if (!compact) Text(uapiText, style = MaterialTheme.typography.bodySmall)
+                    Button(enabled = !LocalDashboardActionsDisabled.current, onClick = actions.onUpgradeKernelModule, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.home_upgrade_kernel_module)) }
+                }
             }
             DashboardCard.Access -> {
                 Text(stringResource(if (!state.loaded) R.string.dashboard_loading else if (state.isManager) R.string.dashboard_permission_ok else R.string.dashboard_permission_missing), style = MaterialTheme.typography.titleLarge)
                 Text(if (state.lkmMode == null) stringResource(R.string.dashboard_mode_unknown) else mode, style = MaterialTheme.typography.bodyMedium)
                 if (!compact) Text(stringResource(if (state.isRootAvailable) R.string.dashboard_root_ok else R.string.dashboard_root_missing))
                 if (!compact && state.isLateLoadMode) Text(stringResource(R.string.jailbreak_reboot_warning))
-                if (expanded) DashboardInfo("UAPI", "Manager ${state.managerUAPIVersion} \u00b7 Kernel ${state.kernelUAPIVersion ?: unknown}")
+                if (!compact) Text(uapiText, style = MaterialTheme.typography.bodySmall)
             }
             DashboardCard.Runtime -> {
                 DashboardRuntimeValues(state, active)
@@ -310,7 +316,7 @@ fun HomePagerMaterial(state: HomeUiState, actions: HomeActions, bottomInnerPaddi
                 }
             }
             DashboardCard.Modules -> {
-                Text(if (moduleKnown) modules.modules.size.toString() else unknown, style = MaterialTheme.typography.headlineMedium)
+                Text(if (!moduleKnown) unknown else if (state.modulesReadOnly) modules.modules.size.toString() + " \u00b7 " + stringResource(R.string.dashboard_read_only) else modules.modules.size.toString(), style = MaterialTheme.typography.headlineMedium)
                 if (moduleKnown) {
                     if (state.isSafeMode) Text(stringResource(R.string.dashboard_safe_mode))
                     if (compact) Text(stringResource(if (state.isSafeMode) R.string.dashboard_module_counts_safe else R.string.dashboard_module_counts, enabled, disabled), style = MaterialTheme.typography.bodyMedium)
@@ -332,7 +338,7 @@ fun HomePagerMaterial(state: HomeUiState, actions: HomeActions, bottomInnerPaddi
                 info(R.string.dashboard_build, Build.ID)
                 if (!compact) {
                     info(R.string.dashboard_kernel, state.systemInfo.kernelVersion)
-                    info(R.string.dashboard_page_size, state.pageSize?.let { "$it B" } ?: unknown)
+                    info(R.string.dashboard_page_size, state.pageSize?.let { "$it B" } ?: state.pageSizeError?.let { stringResource(R.string.dashboard_page_size_failed, it) } ?: unknown)
                 }
                 if (expanded) {
                     info(R.string.dashboard_architecture, Build.SUPPORTED_ABIS.joinToString())
@@ -345,6 +351,7 @@ fun HomePagerMaterial(state: HomeUiState, actions: HomeActions, bottomInnerPaddi
             DashboardCard.Compatibility -> {
                 Text(stringResource(state.compatibilityTitleId()), style = MaterialTheme.typography.titleLarge)
                 Text(stringResource(R.string.home_sheet_compatibility_scope), maxLines = if (expanded) Int.MAX_VALUE else 2, overflow = TextOverflow.Ellipsis)
+                DashboardInfo(stringResource(R.string.dashboard_interface), uapiText)
                 if (!compact) Text(stringResource(R.string.dashboard_validation_note), style = MaterialTheme.typography.bodySmall)
                 if (expanded) {
                     Text(stringResource(R.string.dashboard_target_note))
@@ -394,10 +401,11 @@ fun HomePagerMaterial(state: HomeUiState, actions: HomeActions, bottomInnerPaddi
     }
     BoxWithConstraints {
         val columns = if (maxWidth >= 360.dp && LocalDensity.current.fontScale <= 1.3f) 2 else 1
-        Scaffold(snackbarHost = { SnackbarHost(snackbar) }, topBar = {
+        Scaffold(snackbarHost = { SnackbarHost(snackbar) }, containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), topBar = {
             if (editing) {
                 Column {
-                    TopAppBar(title = { Text(stringResource(R.string.home_sheet_edit_selected, stringResource(selected.titleId())), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    TopAppBar(windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), title = { Text(stringResource(R.string.home_sheet_edit_selected, stringResource(selected.titleId())), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         navigationIcon = {
                             IconButton(enabled = !saving, onClick = ::cancelEdit) { Icon(Icons.Outlined.Close, stringResource(android.R.string.cancel)) }
                         }, actions = {
@@ -447,7 +455,8 @@ fun HomePagerMaterial(state: HomeUiState, actions: HomeActions, bottomInnerPaddi
                     error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 16.dp), maxLines = 2) }
                 }
             } else {
-                TopAppBar(title = { Text("HuskySU", style = MaterialTheme.typography.headlineSmall) }, scrollBehavior = scroll, actions = {
+                LargeFlexibleTopAppBar(title = { Text(stringResource(R.string.home)) }, colors = me.weishu.kernelsu.ui.component.material.expressiveTopAppBarColors(),
+                    windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal), scrollBehavior = scroll, actions = {
                     IconButton(onClick = actions.onRefresh) { Icon(Icons.Outlined.Refresh, stringResource(R.string.dashboard_refresh)) }
                     IconButton(onClick = ::edit) { Icon(Icons.Outlined.Edit, stringResource(R.string.dashboard_edit)) }
                 })
@@ -606,7 +615,7 @@ fun HomePagerMaterial(state: HomeUiState, actions: HomeActions, bottomInnerPaddi
                 }
             },
             dismissButton = { TextButton(onClick = { confirmation = null }) { Text(stringResource(android.R.string.cancel)) } },
-            confirmButton = { TextButton(enabled = state.operationBlockReason(allowSafeMode = shortcut == DashboardShortcut.Reboot) == null &&
+            confirmButton = { TextButton(enabled = state.operationBlockReason(allowSafeMode = shortcut == DashboardShortcut.Reboot, repair = shortcut == DashboardShortcut.Reboot) == null &&
                 (shortcut == DashboardShortcut.Reboot || reviewed?.targets?.isNotEmpty() == true), onClick = {
                     confirmation = null
                     if (shortcut == DashboardShortcut.Reboot) actions.onReboot() else reviewed?.let(actions.onApplyModuleBatch)
@@ -698,7 +707,8 @@ internal fun DashboardRuntimeValues(state: HomeUiState, active: Boolean, hero: B
             while (true) { now = SystemClock.elapsedRealtime(); delay(1000) }
         }
     }
-    val value = state.runtime.observedSince?.takeIf { state.loaded && state.runtimeError == null }?.let { duration(now - it) }
+    val value = if (state.runtimePaused && state.runtimeError == null) stringResource(R.string.dashboard_runtime_paused)
+        else state.runtime.observedSince?.takeIf { state.loaded && state.runtimeError == null }?.let { duration(now - it) }
         ?: stringResource(R.string.dashboard_unknown)
     if (hero) HomeStateCard(value, stringResource(R.string.dashboard_observation_note), Icons.Outlined.Schedule,
         if (state.runtime.observedSince != null && state.runtimeError == null) HomeTone.Primary else HomeTone.Neutral)

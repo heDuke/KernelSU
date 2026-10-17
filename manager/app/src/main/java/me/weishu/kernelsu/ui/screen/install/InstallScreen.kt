@@ -35,6 +35,7 @@ import me.weishu.kernelsu.ui.screen.home.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.FactCheck
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.util.message
 import me.weishu.kernelsu.ui.component.choosekmidialog.ChooseKmiDialog
 import me.weishu.kernelsu.ui.component.dialog.DownloadDialog
 import me.weishu.kernelsu.ui.component.dialog.rememberLoadingDialog
@@ -191,7 +192,10 @@ fun InstallScreen(preselectedLkm: Uri? = null, preferOta: Boolean = false, check
                 val module = (selection as? LkmSelection.LkmUri)?.uri?.let { stageBootInput(context, it, true) }
                 module?.let { inputs[it.uri.toString()] = it.sha256 }
                 val frozenSelection = module?.let { LkmSelection.LkmUri(it.uri) } ?: selection
-                val page = withContext(kotlinx.coroutines.Dispatchers.IO) { runCatching { me.weishu.kernelsu.ui.util.getKernelPageSize() }.getOrNull() }
+                val pageResult = withContext(kotlinx.coroutines.Dispatchers.IO) { runCatching { me.weishu.kernelsu.ui.util.getKernelPageSize() } }
+                pageResult.exceptionOrNull()?.let { android.util.Log.w("KernelSU", "Kernel page size unavailable", it) }
+                val page = pageResult.getOrNull()
+                val pageError = pageResult.exceptionOrNull()?.let { it.message ?: it.javaClass.simpleName }
                 val release = android.system.Os.uname().release
                 val chosenSlot = withContext(kotlinx.coroutines.Dispatchers.IO) { getSlotSuffix(chosenOta) }
                 if (isAbDevice == true) require(chosenSlot in setOf("_a", "_b")) { "Cannot determine the target slot" }
@@ -213,6 +217,11 @@ fun InstallScreen(preselectedLkm: Uri? = null, preferOta: Boolean = false, check
                     allowShell = chosenShell, enableAdb = chosenAdb, backup = method is InstallMethod.SelectFile && chosenBackup,
                     outputUri = if (image != null) chosenOutput else null, flashSourceImage = chosenLocalFlash, blockModules = chosenBlockModules)
                 val unknown = resources.getString(R.string.dashboard_unknown)
+                val gateFacts = withContext(kotlinx.coroutines.Dispatchers.IO) { me.weishu.kernelsu.ui.util.currentRootGateFacts() }
+                val kernelUapiText = gateFacts.kernelUapi?.toString() ?: unknown
+                val managerUapiText = gateFacts.managerUapi.toString()
+                val gateReason = if (direct) me.weishu.kernelsu.core.utils.evaluateRootGate(me.weishu.kernelsu.core.utils.RootOperation.BootPatch, gateFacts).message(context) else null
+                val pageText = page?.toString() ?: pageError?.let { resources.getString(R.string.dashboard_page_size_failed, it) } ?: unknown
                 val report = buildString {
                     appendLine(resources.getString(R.string.dashboard_review))
                     appendLine(resources.getString(method.label))
@@ -221,7 +230,9 @@ fun InstallScreen(preselectedLkm: Uri? = null, preferOta: Boolean = false, check
                     appendLine("${resources.getString(R.string.dashboard_build)}: ${android.os.Build.ID}")
                     appendLine("${resources.getString(R.string.dashboard_kernel)}: $release")
                     appendLine("KMI: $currentKmi")
-                    appendLine("${resources.getString(R.string.dashboard_page_size)}: ${page ?: unknown}")
+                    appendLine(resources.getString(R.string.dashboard_uapi_versions, kernelUapiText, managerUapiText))
+                    gateReason?.let { appendLine(it) }
+                    appendLine("${resources.getString(R.string.dashboard_page_size)}: $pageText")
                     appendLine("${resources.getString(R.string.dashboard_restore_target)}: ${partition ?: unknown} $chosenSlot")
                     appendLine("${resources.getString(R.string.dashboard_output)}: " + resources.getString(if (chosenLocalFlash) R.string.dashboard_patch_flash_output else if (direct) R.string.dashboard_direct_output else R.string.dashboard_local_output))
                     if (image != null) appendLine("output_uri=${chosenOutput ?: resources.getString(R.string.dashboard_default_output)}")
@@ -250,12 +261,14 @@ fun InstallScreen(preselectedLkm: Uri? = null, preferOta: Boolean = false, check
                 val summary = linkedMapOf(
                     resources.getString(R.string.home_sheet_operation) to resources.getString(method.label),
                     resources.getString(R.string.dashboard_device) to android.os.Build.MODEL,
+                    resources.getString(R.string.dashboard_interface) to resources.getString(R.string.dashboard_uapi_versions, kernelUapiText, managerUapiText),
                     resources.getString(R.string.dashboard_restore_target) to "${partition ?: unknown} ${chosenSlot.ifBlank { unknown }}",
                     resources.getString(R.string.dashboard_output) to resources.getString(if (readOnly) R.string.dashboard_check_only else if (chosenLocalFlash) R.string.dashboard_patch_flash_output else if (direct) R.string.dashboard_direct_output else R.string.dashboard_local_output),
                     resources.getString(R.string.home_sheet_backup_policy) to resources.getString(if (chosenBackup) R.string.home_sheet_backup_required else R.string.home_sheet_backup_backend))
                 if (outputName != null) summary[resources.getString(R.string.dashboard_output)] = outputName
+                gateReason?.let { summary[resources.getString(R.string.dashboard_blocked_reason)] = it }
                 listOfNotNull(image, module).forEachIndexed { index, input -> summary[resources.getString(R.string.dashboard_file) + " ${index + 1}"] = input.name + " · " + android.text.format.Formatter.formatFileSize(context, input.bytes) }
-                review = InstallReviewSnapshot(operation, report, inputs, !conflict, readOnly,
+                review = InstallReviewSnapshot(operation, report, inputs, !conflict && gateReason == null, readOnly,
                     expectedSlot = chosenSlot, expectedRelease = release, expectedFingerprint = android.os.Build.FINGERPRINT, summary = summary)
             } catch (error: Exception) {
                 releaseReviewedInputs(context, inputs)
@@ -444,7 +457,8 @@ fun InstallScreen(preselectedLkm: Uri? = null, preferOta: Boolean = false, check
                                 val op = snapshot.operation
                                 check(android.os.Build.FINGERPRINT == snapshot.expectedFingerprint && android.system.Os.uname().release == snapshot.expectedRelease) { "Device/build changed; review again" }
                                 check(withContext(kotlinx.coroutines.Dispatchers.IO) { getSlotSuffix(op.ota) } == snapshot.expectedSlot) { "Target slot changed; review again" }
-                                check(withContext(kotlinx.coroutines.Dispatchers.IO) { me.weishu.kernelsu.Natives.isManager && !me.weishu.kernelsu.Natives.isSafeMode && !me.weishu.kernelsu.Natives.requireNewKernel() && rootAvailable() }) { resources.getString(R.string.dashboard_permission_missing) }
+                                val gate = withContext(kotlinx.coroutines.Dispatchers.IO) { me.weishu.kernelsu.ui.util.currentRootGate(me.weishu.kernelsu.core.utils.RootOperation.BootPatch) }
+                                gate.message(context)?.let { reason -> error(reason) }
                             }
                             review = null
                             navigator.push(Route.Flash(snapshot.operation))
