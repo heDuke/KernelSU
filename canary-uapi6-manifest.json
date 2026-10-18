@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "kind": "engineering_candidate",
+  "source_commit": "2d916ab754975ade73036dca3233b9b6584fd1a1",
+  "version_code": 32766,
+  "kernel_uapi": 6,
+  "uapi_header_sha256": "5096fcb9e5ba303e6805f2d4afc808194913c75a562fb6ab94df18a3ed4ed2ea",
+  "target_kernel_source": "3fc92ed75e44bfb2b12bc625fad7a054b939f8a6",
+  "module": {
+    "name": "HuskySU-UAPI6-v32766-ZP11.260918.007-4K.ko",
+    "size": 809496,
+    "sha256": "1b8aceff680c951cd5cbefd826775340c201f8a9a7db78bd6c3b13b09825cbd8"
+  },
+  "audit": {
+    "support_state": "offline_checked_candidate",
+    "device_tested": false,
+    "build_id": "ZP11.260918.007",
+    "kernel_release": "6.1.172-android14-11-g3fc92ed75e44-ab16169542",
+    "page_size_bytes": 4096,
+    "module_sha256": "1b8aceff680c951cd5cbefd826775340c201f8a9a7db78bd6c3b13b09825cbd8",
+    "symbols_resolved": 230,
+    "symbol_versions_checked": 149,
+    "cfi_ids_compared": 1,
+    "manager_package": "me.weishu.kernelsu.husky.fork",
+    "manager_certificate_sha256": "b37ef4db671d6d1dd44d1b42efdd63effece3265649734a9d665ff5939c59553"
+  },
+  "device_tested": false,
+  "independent_experimental_loader_enabled": false,
+  "paired_manager_release": "https://github.com/heDuke/KernelSU/releases/tag/husky-v32766",
+  "inputs_sha256": {
+    "Image": "e75276559886e2aba2c7d3d9d82aa0c835f4cf4b9566d179eaea9846294710ea",
+    "vmlinux": "cb179992de8e54de5d17587dfbd661b9ee8218d6f0b2a64ab4ac78addc5f89b4",
+    "Module.symvers": "8ddcd0842039fdcb0d5421c2bf1b01d1065c0894b7487a4686d9d1b3f9d3aa71",
+    ".config": "b4ba7450f12f2b6cb04f1b19b312ac448213854f7868baa7c4fa975194a8a343"
+  }
+}
