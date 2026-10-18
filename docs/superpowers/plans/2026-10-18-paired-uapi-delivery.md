@@ -82,3 +82,18 @@ refresh/edit actions and status-bar safe insets.
 Local clean assembleRelease passed. Compiled MainActivity bytecode confirms the
 installer runs before ComponentActivity.onCreate. No emulator/device visual
 verification was available; this correction is newer than production v32766.
+
+History inspection attributes the mismatch to integration cec8cc4e: it brought in
+the upstream starting theme while retaining the fork Activity implementation
+without its splash installer. The correction is source
+`b418c2288df492df7e1018f5e9dc2f1ffb459dd1`, published as
+[husky-v32768](https://github.com/heDuke/KernelSU/releases/tag/husky-v32768).
+[Production run 39085671451](https://github.com/heDuke/KernelSU/actions/runs/39085671451)
+passed all eight jobs. Public assets were independently downloaded: the sole
+production signer, fork package/version, embedded source, both userspace ABIs,
+generic module identities and checksums passed; regenerated manifest/checksums
+matched the published bytes exactly. APK SHA-256:
+`94485e033fb3e51ad4814f0141fa150cd659f5544c808d1dfcdb667ebd11d244`.
+Existing matching UAPI-6 Canary installations only need the APK update for this
+window fix; no replacement LKM or new Canary candidate is needed. Device visual
+confirmation remains outstanding.
