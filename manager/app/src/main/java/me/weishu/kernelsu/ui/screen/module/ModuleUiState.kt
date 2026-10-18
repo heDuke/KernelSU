@@ -84,9 +84,11 @@ data class ModuleUiState(
     val recommendedModules: List<RecommendedModule> = emptyList(),
     val selectedPendingIds: Set<String> = emptySet(),
     val isBatchProcessing: Boolean = false,
+    /** Localized reason when ksud would reject module mutations because of a kernel interface mismatch. */
+    val interfaceBlockedReason: String? = null,
 ) {
     val installButtonVisible: Boolean
-        get() = !(isSafeMode || magiskInstalled)
+        get() = !(isSafeMode || magiskInstalled) && interfaceBlockedReason == null
 
     val visibleRecommendedModules: List<RecommendedModule>
         get() {

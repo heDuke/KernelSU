@@ -14,9 +14,12 @@ Two integration omissions were found:
 
 ## Implementation and verification
 
-- [x] Add a narrow, pure reviewed-boot-write policy: matching positive interfaces,
-  or the explicitly reviewed 2 -> 6 transition; authorization, working Root and
-  safe-mode restrictions remain mandatory. Unknown/future mismatches stay blocked.
+- [x] Reconcile remote main 25d4ac96, which independently implements the upgrade
+  repair through a central RootGate. Retain that implementation and its UI/CI
+  updates; remove the duplicate local BootUpgradePolicy. Authorized, working Root
+  can patch a replacement boot image when the kernel is older, while module writes
+  require a matching known interface. A newer kernel still requires a newer Manager.
+  Unknown interfaces never unlock module mutations. Safe mode remains blocked.
 - [x] Apply it only after staged file digests, device/build identity and target slot
   have been rechecked. Preserve target release/KMI/page-size validation. Module,
   profile and ordinary driver mutation gates are unchanged.
@@ -54,3 +57,13 @@ verified. Regenerated manifest/checksums matched published bytes exactly.
 APK SHA-256: `e43874483d580c1c2df84d34c224531f4654a3648a578d3ced5b3038435a6255`.
 That production release contains generic KMI modules, not the pinned Canary target.
 Its successful packaging does not resolve the interface mismatch in the screenshot.
+
+Remote integration preserves PR #3/#4 ancestry and the shared Expressive page
+header/layout changes. The initial local candidate (5cf5b999, version 32763) passed
+230 import and 149 CRC checks, but final delivery will be rebuilt at the merged
+source/version rather than mislabeling that intermediate output.
+
+Merged-source regression: 197 JVM tests passed with no skips, using authentic
+Canary image/module fixtures. RootGate tests cover the observed 2 -> 6 repair,
+legacy metadata, authorization/Root/safe-mode precedence, newer-kernel rejection
+and unknown-interface module-write rejection. Clean assembleRelease and all JVM tests passed after resolving the merge.

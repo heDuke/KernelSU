@@ -16,7 +16,7 @@ import androidx.compose.material.icons.outlined.HealthAndSafety
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.LargeFlexibleTopAppBar
+import me.weishu.kernelsu.ui.component.material.ExpressivePageHeader
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -53,11 +53,10 @@ fun EnvCheckScreenMaterial(
 
     ExpressiveScaffold(
         topBar = {
-            LargeFlexibleTopAppBar(
+            ExpressivePageHeader(
                 title = { Text(stringResource(R.string.env_check_title)) },
                 navigationIcon = { TopBarBackButton(onClick = actions.onBack) },
-                colors = expressiveTopAppBarColors(),
-                scrollBehavior = scrollBehavior,
+
             )
         },
     ) { innerPadding ->

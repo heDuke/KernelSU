@@ -20,6 +20,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.material.ExpressivePageHeader
 import me.weishu.kernelsu.ui.component.markdown.GithubMarkdown
 import me.weishu.kernelsu.ui.component.module.ModuleArtwork
 import me.weishu.kernelsu.ui.component.module.ModuleInstallController
@@ -61,12 +62,12 @@ fun ModuleRepoScreenMaterial(state: ModuleRepoUiState, actions: ModuleRepoAction
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            LargeFlexibleTopAppBar(title = { Text(stringResource(R.string.module_repos)) },
+            ExpressivePageHeader(title = { Text(stringResource(R.string.module_repos)) },
                 navigationIcon = { if (showBack) IconButton(shapes = IconButtonDefaults.shapes(), onClick = actions.onBack) {
                     Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.module_sheet_back))
                 } }, actions = { IconButton(shapes = IconButtonDefaults.shapes(), onClick = actions.onRefresh, enabled = !state.isRefreshing) {
                     Icon(Icons.Outlined.Refresh, stringResource(R.string.network_retry))
-                } }, scrollBehavior = scrollBehavior)
+                } })
         },
     ) { padding ->
         PullToRefreshBox(isRefreshing = state.isRefreshing, onRefresh = actions.onRefresh,
@@ -168,7 +169,7 @@ fun ModuleRepoDetailScreenMaterial(
             kernelSuUnsupported = module.kernelSuUnsupported, dependencies = module.dependencies)), module)
     }
     Scaffold(modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection), topBar = {
-        LargeFlexibleTopAppBar(title = { Text(module.moduleName) },
+        ExpressivePageHeader(title = { Text(module.moduleName) },
             navigationIcon = { IconButton(shapes = IconButtonDefaults.shapes(), onClick = actions.onBack) {
                 Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.module_sheet_back))
             } }, actions = { IconButton(shapes = IconButtonDefaults.shapes(), onClick = {
@@ -176,8 +177,7 @@ fun ModuleRepoDetailScreenMaterial(
                     type = "text/plain"; putExtra(Intent.EXTRA_TEXT,
                         listOf(module.moduleName, module.latestRelease, module.sourceUrl).filter(String::isNotBlank).joinToString("\n"))
                 }, null))
-            }) { Icon(Icons.Outlined.Share, stringResource(R.string.module_sheet_share)) } },
-            scrollBehavior = scrollBehavior)
+            }) { Icon(Icons.Outlined.Share, stringResource(R.string.module_sheet_share)) } })
     }) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)) {

@@ -1058,4 +1058,18 @@ KernelSU 完成后，请回到系统更新点击重新启动。
     <string name="terminal_limits_total_log">日志总量（MiB）</string>
     <string name="terminal_notifications_off">通知未启用，可在此查看和停止运行任务。</string>
     <string name="terminal_task_signal">被信号 %1$d 终止</string>
+  <string name="root_gate_not_manager">未获得管理权限：HuskySU 未被识别为 root 管理器。</string>
+  <string name="root_gate_safe_mode">当前处于安全模式，正常重启前无法修改启动分区。</string>
+  <string name="root_gate_root_unavailable">无法获得 root shell，请为 Manager 授予 root 后重试。</string>
+  <string name="root_gate_kernel_outdated">内核接口 %1$d 低于 Manager 接口 %2$d，请先升级内核模块。</string>
+  <string name="root_gate_manager_outdated">内核接口 %1$d 高于 Manager 接口 %2$d，请先更新 Manager。</string>
+  <string name="home_upgrade_kernel_module">升级内核模块</string>
+  <string name="home_upgrade_kernel_module_note">刷入当前 Manager 附带的 LKM，同时更新 /data/adb/ksud；完成后请重启。</string>
+  <string name="dashboard_read_only">只读</string>
+  <string name="dashboard_interface">接口</string>
+  <string name="dashboard_blocked_reason">阻止原因</string>
+  <string name="dashboard_uapi_versions">内核接口 %1$s · Manager 接口 %2$s</string>
+  <string name="dashboard_runtime_paused">存在异常，暂停计时</string>
+  <string name="dashboard_page_size_failed">页大小获取失败：%s</string>
+  <string name="module_interface_blocked_title">模块变更已禁用</string>
 </resources>

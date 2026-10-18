@@ -1,5 +1,6 @@
 package me.weishu.kernelsu.ui.component.module
 
+import me.weishu.kernelsu.ui.util.message
 import android.net.Uri
 import android.os.Build
 import kotlinx.coroutines.CoroutineScope
@@ -143,7 +144,10 @@ internal object ModuleInstallController {
         scope.launch {
             var restartRequired = false
             try {
-                check(Natives.isManager && !Natives.isSafeMode && !Natives.checkUAPIMismatch()) { "Module installation is unavailable in this root state." }
+                val gate = me.weishu.kernelsu.core.utils.evaluateRootGate(me.weishu.kernelsu.core.utils.RootOperation.ModuleMutation,
+                    me.weishu.kernelsu.ui.util.currentRootGateFacts(checkRoot = false).copy(rootAvailable = true))
+                gate.message(ksuApp)?.let { error(it) }
+                check(!Natives.checkUAPIMismatch()) { ksuApp.getString(me.weishu.kernelsu.R.string.dashboard_interface_mismatch) }
                 check(!withContext(Dispatchers.IO) { hasMagisk() }) { "Remove the conflicting root provider before installing modules." }
                 val installed = me.weishu.kernelsu.data.repository.ModuleRepositoryImpl().getModules().getOrThrow().associateBy { it.id }
                 val registry = me.weishu.kernelsu.data.repository.OfficialRegistryRepository()

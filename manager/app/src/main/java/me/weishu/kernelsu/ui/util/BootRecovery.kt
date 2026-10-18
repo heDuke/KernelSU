@@ -1,6 +1,5 @@
 package me.weishu.kernelsu.ui.util
 
-import me.weishu.kernelsu.Natives
 import me.weishu.kernelsu.ksuApp
 import org.json.JSONObject
 
@@ -9,7 +8,7 @@ internal data class RecoveryReadiness(val image: String, val imageSha256: String
 
 /** Read-only native inspection; the restore backend rechecks the reviewed image hash. */
 internal fun inspectRecovery(): RecoveryReadiness {
-    check(Natives.isManager && !Natives.isSafeMode && !Natives.requireNewKernel() && rootAvailable()) { "Recovery inspection is unavailable" }
+    currentRootGate(me.weishu.kernelsu.core.utils.RootOperation.BootPatch).message(ksuApp)?.let { error(it) }
     val daemon = ksuApp.applicationInfo.nativeLibraryDir + "/libksud.so"
     val quoted = "'" + daemon.replace("'", "'\\''") + "'"
     val result = getRootShell().newJob().add("$quoted boot-info recovery-check").exec()

@@ -21,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.weishu.kernelsu.R
+import me.weishu.kernelsu.ui.component.material.ExpressivePageHeader
 import me.weishu.kernelsu.data.model.ExperimentalLoaderSettings
 import me.weishu.kernelsu.ui.navigation3.LocalNavigator
 import java.io.File
@@ -79,7 +80,7 @@ fun ExperimentalLoaderSettingsScreen() {
         } }, dismissButton = { TextButton(onClick = { reset = false }) { Text(stringResource(R.string.module_sheet_cancel)) } })
     val effective = draft.effective()
     Scaffold(topBar = {
-        LargeFlexibleTopAppBar(title = { Text(stringResource(R.string.loader_preferences_title)) },
+        ExpressivePageHeader(title = { Text(stringResource(R.string.loader_preferences_title)) },
             navigationIcon = { IconButton(onClick = { navigator.pop() }) {
                 Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.module_sheet_back))
             } })
