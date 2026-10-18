@@ -72,7 +72,7 @@ internal fun ScriptRunScreenMaterial(
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
     ExpressiveScaffold(
-        topBar = { TopBar(onBack = actions.onBack) },
+        topBar = { TopBar(onBack = actions.onBack, scrollBehavior = scrollBehavior) },
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     ) { innerPadding ->
         val prepared = state.prepared
@@ -301,7 +301,7 @@ private fun SourceSection(prepared: PreparedScript) {
 @Composable
 private fun TopBar(
     onBack: () -> Unit,
-    scrollBehavior: TopAppBarScrollBehavior? = null,
+    scrollBehavior: TopAppBarScrollBehavior,
 ) {
     ExpressivePageHeader(
         scrollBehavior = scrollBehavior,

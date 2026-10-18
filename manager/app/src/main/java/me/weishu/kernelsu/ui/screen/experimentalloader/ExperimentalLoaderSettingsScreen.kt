@@ -81,6 +81,7 @@ fun ExperimentalLoaderSettingsScreen() {
     val effective = draft.effective()
     Scaffold(topBar = {
         ExpressivePageHeader(title = { Text(stringResource(R.string.loader_preferences_title)) },
+            scrollBehavior = null,
             navigationIcon = { IconButton(onClick = { navigator.pop() }) {
                 Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.module_sheet_back))
             } })

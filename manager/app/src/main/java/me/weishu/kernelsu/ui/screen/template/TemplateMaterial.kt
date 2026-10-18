@@ -130,7 +130,7 @@ fun AppProfileTemplateScreenMaterial(
                 onBack = actions.onBack,
                 onImport = actions.onImport,
                 onExport = actions.onExport,
-
+                scrollBehavior = scrollBehavior,
             )
         },
         snackbarHost = { SnackBarHost(hostState = snackBarHost) },
@@ -378,7 +378,7 @@ private fun TopBar(
     onBack: () -> Unit,
     onImport: () -> Unit = {},
     onExport: () -> Unit = {},
-    scrollBehavior: TopAppBarScrollBehavior? = null
+    scrollBehavior: TopAppBarScrollBehavior
 ) {
     val haptic = LocalHapticFeedback.current
     ExpressivePageHeader(

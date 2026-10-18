@@ -79,7 +79,7 @@ internal fun InstallScreenMaterial(
         topBar = {
             TopBar(
                 onBack = actions.onBack,
-
+                scrollBehavior = scrollBehavior,
             )
         },
         snackbarHost = { SnackBarHost(hostState = snackBarHost, modifier = Modifier.safeDrawingPadding()) },
@@ -356,7 +356,7 @@ private fun SelectInstallMethod(
 @Composable
 private fun TopBar(
     onBack: () -> Unit = {},
-    scrollBehavior: TopAppBarScrollBehavior? = null
+    scrollBehavior: TopAppBarScrollBehavior
 ) {
     ExpressivePageHeader(
         scrollBehavior = scrollBehavior,

@@ -441,7 +441,7 @@ fun SettingPagerMaterial(
 
 @Composable
 private fun TopBar(
-    scrollBehavior: TopAppBarScrollBehavior? = null
+    scrollBehavior: TopAppBarScrollBehavior
 ) {
     ExpressivePageHeader(
         scrollBehavior = scrollBehavior,

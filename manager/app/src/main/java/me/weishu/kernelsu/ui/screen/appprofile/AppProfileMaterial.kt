@@ -103,7 +103,7 @@ fun AppProfileScreenMaterial(
                 onSave = actions.onSave,
                 canSave = state.hasChanges && !state.isSaving,
                 isSaving = state.isSaving,
-
+                scrollBehavior = scrollBehavior,
                 isUidGroup = state.isUidGroup,
                 packageName = state.packageName,
                 userId = state.uid / 100000,
@@ -437,7 +437,7 @@ private fun TopBar(
     onSave: () -> Unit,
     canSave: Boolean,
     isSaving: Boolean,
-    scrollBehavior: TopAppBarScrollBehavior? = null,
+    scrollBehavior: TopAppBarScrollBehavior,
     isUidGroup: Boolean = false,
     packageName: String = "",
     userId: Int = 0,

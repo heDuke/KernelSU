@@ -26,7 +26,7 @@ fun ExpressivePageHeader(
     windowInsets: WindowInsets = WindowInsets.safeDrawing.only(
         WindowInsetsSides.Top + WindowInsetsSides.Horizontal,
     ),
-    scrollBehavior: TopAppBarScrollBehavior? = null,
+    scrollBehavior: TopAppBarScrollBehavior?,
 ) {
     LargeFlexibleTopAppBar(
         title = title,

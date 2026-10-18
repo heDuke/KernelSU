@@ -71,7 +71,7 @@ fun TemplateEditorScreenMaterial(
                 onBack = actions.onBack,
                 onDelete = actions.onDelete,
                 onSave = actions.onSave,
-
+                scrollBehavior = scrollBehavior,
             )
         },
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
@@ -252,7 +252,7 @@ private fun TopBar(
     onBack: () -> Unit,
     onDelete: () -> Unit = {},
     onSave: () -> Unit = {},
-    scrollBehavior: TopAppBarScrollBehavior? = null
+    scrollBehavior: TopAppBarScrollBehavior
 ) {
     ExpressivePageHeader(
         scrollBehavior = scrollBehavior,
