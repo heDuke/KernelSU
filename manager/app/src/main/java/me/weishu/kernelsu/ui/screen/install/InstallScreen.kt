@@ -444,7 +444,15 @@ fun InstallScreen(preselectedLkm: Uri? = null, preferOta: Boolean = false, check
                                 val op = snapshot.operation
                                 check(android.os.Build.FINGERPRINT == snapshot.expectedFingerprint && android.system.Os.uname().release == snapshot.expectedRelease) { "Device/build changed; review again" }
                                 check(withContext(kotlinx.coroutines.Dispatchers.IO) { getSlotSuffix(op.ota) } == snapshot.expectedSlot) { "Target slot changed; review again" }
-                                check(withContext(kotlinx.coroutines.Dispatchers.IO) { me.weishu.kernelsu.Natives.isManager && !me.weishu.kernelsu.Natives.isSafeMode && !me.weishu.kernelsu.Natives.requireNewKernel() && rootAvailable() }) { resources.getString(R.string.dashboard_permission_missing) }
+                                check(withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                    me.weishu.kernelsu.core.utils.canWriteReviewedBootImage(
+                                        managerAuthorized = me.weishu.kernelsu.Natives.isManager,
+                                        rootAvailable = rootAvailable(),
+                                        safeMode = me.weishu.kernelsu.Natives.isSafeMode,
+                                        kernelUapi = me.weishu.kernelsu.Natives.kernelUAPIVersion,
+                                        managerUapi = me.weishu.kernelsu.Natives.managerUAPIVersion,
+                                    )
+                                }) { resources.getString(R.string.dashboard_permission_missing) }
                             }
                             review = null
                             navigator.push(Route.Flash(snapshot.operation))

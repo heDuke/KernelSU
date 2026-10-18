@@ -216,14 +216,31 @@ mod tests {
             .filter(|s| s.st_shndx == 0)
             .map(|s| before.strtab.get_at(s.st_name).unwrap().to_owned())
             .collect();
-        assert_eq!(names.len(), 206);
-        let values = names
+        assert!(
+            !names.is_empty(),
+            "Fixture must have real undefined imports"
+        );
+        let expected: BTreeMap<_, _> = names
             .iter()
             .enumerate()
-            .map(|(i, name)| Ok((name.clone(), 0xffff000000000000 + i as u64)));
+            .map(|(i, name)| (name.clone(), 0xffff000000000000 + i as u64))
+            .collect();
+        let values = expected
+            .iter()
+            .map(|(name, address)| Ok((name.clone(), *address)));
         let result = prepare(&data, || Ok(values)).unwrap();
         let after = Elf::parse(&result).unwrap();
         assert!(after.syms.iter().skip(1).all(|s| s.st_shndx != 0));
+        for symbol in after.syms.iter().skip(1) {
+            if let Some(address) = after
+                .strtab
+                .get_at(symbol.st_name)
+                .and_then(|name| expected.get(name))
+            {
+                assert_eq!(symbol.st_value, *address);
+                assert_eq!(symbol.st_shndx, section_header::SHN_ABS as usize);
+            }
+        }
         for name in [".modinfo", "__versions", ".BTF"] {
             let section = before
                 .section_headers

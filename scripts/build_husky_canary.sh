@@ -37,7 +37,7 @@ export PATH="$clang_dir:$PATH" ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
 # reference against this exact official vmlinux. Keep all generated CRCs.
 make -C "$prepared_dir" M="$repo_dir/kernel" -j4 LLVM=1 CC=clang CONFIG_KSU=m \
   KSU_KMI=android14-6.1 KERNELRELEASE="$target_release" KBUILD_MODPOST_WARN=1 \
-  KSU_MANAGER_PACKAGE=me.weishu.kernelsu.husky.fork KSU_EXPECTED_SIZE=875 \
+  KSU_PACKAGE_NAME=me.weishu.kernelsu.husky.fork KSU_EXPECTED_SIZE=875 \
   KSU_EXPECTED_HASH=b37ef4db671d6d1dd44d1b42efdd63effece3265649734a9d665ff5939c59553 modules
 module="$output_dir/android14-6.1_4k_ZP11.260918.007_candidate.ko"
 cp "$repo_dir/kernel/kernelsu.ko" "$module"

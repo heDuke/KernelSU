@@ -12,6 +12,8 @@ IMAGE_SHA256 = "e75276559886e2aba2c7d3d9d82aa0c835f4cf4b9566d179eaea9846294710ea
 VMLINUX_SHA256 = "cb179992de8e54de5d17587dfbd661b9ee8218d6f0b2a64ab4ac78addc5f89b4"
 SYMVERS_SHA256 = "8ddcd0842039fdcb0d5421c2bf1b01d1065c0894b7487a4686d9d1b3f9d3aa71"
 CONFIG_SHA256 = "b4ba7450f12f2b6cb04f1b19b312ac448213854f7868baa7c4fa975194a8a343"
+MANAGER_PACKAGE = "me.weishu.kernelsu.husky.fork"
+MANAGER_CERTIFICATE = "b37ef4db671d6d1dd44d1b42efdd63effece3265649734a9d665ff5939c59553"
 
 
 def digest(path):
@@ -68,6 +70,8 @@ def audit(module, vmlinux, symvers, image, config):
                            (image, IMAGE_SHA256), (config, CONFIG_SHA256)]:
         require(digest(path) == expected, "target input digest mismatch: " + str(path))
     ko = Elf(Path(module).read_bytes())
+    require(MANAGER_PACKAGE.encode() + b"\0" in ko.data, "production Manager package absent")
+    require(MANAGER_CERTIFICATE.encode() + b"\0" in ko.data, "production Manager certificate absent")
     require(struct.unpack_from("<H", ko.data, 16)[0] == 1, "module is not ET_REL")
     info = {}
     for entry in ko.section_data(ko.sections[".modinfo"]).split(b"\0"):
@@ -111,7 +115,8 @@ def audit(module, vmlinux, symvers, image, config):
     return {"support_state": "offline_checked_candidate", "device_tested": False,
             "build_id": "ZP11.260918.007", "kernel_release": RELEASE, "page_size_bytes": 4096,
             "module_sha256": digest(module), "symbols_resolved": len(unresolved),
-            "symbol_versions_checked": len(versions), "cfi_ids_compared": len(cfi)}
+            "symbol_versions_checked": len(versions), "cfi_ids_compared": len(cfi),
+            "manager_package": MANAGER_PACKAGE, "manager_certificate_sha256": MANAGER_CERTIFICATE}
 
 
 def main():

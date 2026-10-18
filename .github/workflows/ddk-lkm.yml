@@ -33,7 +33,7 @@ on:
         default: ''
         type: string
       manager_package:
-        description: 'KSU_MANAGER_PACKAGE applicationId'
+        description: 'KSU_PACKAGE_NAME applicationId'
         required: false
         default: ''
         type: string

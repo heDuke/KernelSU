@@ -26,6 +26,17 @@ class CandidateAuditTest(unittest.TestCase):
         self.assertGreater(result["symbol_versions_checked"], 0)
         self.assertFalse(result["device_tested"])
 
+    def test_rejects_missing_production_manager_identity(self):
+        original = self.module.read_bytes()
+        for value in (audit.MANAGER_PACKAGE, audit.MANAGER_CERTIFICATE):
+            self.assertIn(value.encode() + b"\0", original)
+            changed = original.replace(value.encode(), b"x" * len(value))
+            with tempfile.TemporaryDirectory() as directory:
+                module = Path(directory) / "wrong-identity.ko"
+                module.write_bytes(changed)
+                with self.assertRaisesRegex(ValueError, "production Manager"):
+                    audit.audit(module, **self.inputs)
+
     def test_wrong_pages_and_crc(self):
         original = self.module.read_bytes()
         elf = audit.Elf(original)
