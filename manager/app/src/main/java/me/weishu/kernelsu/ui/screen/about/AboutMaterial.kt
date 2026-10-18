@@ -51,6 +51,7 @@ fun AboutScreenMaterial(
     ExpressiveScaffold(
         topBar = {
             ExpressivePageHeader(
+                scrollBehavior = scrollBehavior,
                 title = { Text(state.title) },
                 navigationIcon = {
                     TopBarBackButton(onClick = actions.onBack)

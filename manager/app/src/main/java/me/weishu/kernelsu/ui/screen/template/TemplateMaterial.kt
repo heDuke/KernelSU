@@ -382,6 +382,7 @@ private fun TopBar(
 ) {
     val haptic = LocalHapticFeedback.current
     ExpressivePageHeader(
+        scrollBehavior = scrollBehavior,
         title = {
             Text(stringResource(R.string.settings_profile_template))
         },

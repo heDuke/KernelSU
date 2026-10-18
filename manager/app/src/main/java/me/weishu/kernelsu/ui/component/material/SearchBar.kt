@@ -189,8 +189,9 @@ fun SearchAppBar(
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
-            // Single-row page header — avoids LargeFlexibleTopAppBar's empty collapsed strip.
+            // Keep the measured app bar and nested-scroll connection on the same behavior.
             ExpressivePageHeader(
+                scrollBehavior = scrollBehavior,
                 title = title,
                 navigationIcon = navigationIcon,
                 actions = actions,

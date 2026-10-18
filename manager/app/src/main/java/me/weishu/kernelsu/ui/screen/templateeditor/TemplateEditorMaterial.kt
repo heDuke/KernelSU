@@ -255,6 +255,7 @@ private fun TopBar(
     scrollBehavior: TopAppBarScrollBehavior? = null
 ) {
     ExpressivePageHeader(
+        scrollBehavior = scrollBehavior,
         title = {
             Column {
                 Text(title)

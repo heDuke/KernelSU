@@ -304,6 +304,7 @@ private fun TopBar(
     scrollBehavior: TopAppBarScrollBehavior? = null,
 ) {
     ExpressivePageHeader(
+        scrollBehavior = scrollBehavior,
         title = { Text(stringResource(R.string.script_run_title)) },
         navigationIcon = { TopBarBackButton(onClick = onBack) },
 

@@ -62,7 +62,9 @@ fun ModuleRepoScreenMaterial(state: ModuleRepoUiState, actions: ModuleRepoAction
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            ExpressivePageHeader(title = { Text(stringResource(R.string.module_repos)) },
+            ExpressivePageHeader(
+                scrollBehavior = scrollBehavior,
+                title = { Text(stringResource(R.string.module_repos)) },
                 navigationIcon = { if (showBack) IconButton(shapes = IconButtonDefaults.shapes(), onClick = actions.onBack) {
                     Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.module_sheet_back))
                 } }, actions = { IconButton(shapes = IconButtonDefaults.shapes(), onClick = actions.onRefresh, enabled = !state.isRefreshing) {
@@ -169,7 +171,9 @@ fun ModuleRepoDetailScreenMaterial(
             kernelSuUnsupported = module.kernelSuUnsupported, dependencies = module.dependencies)), module)
     }
     Scaffold(modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection), topBar = {
-        ExpressivePageHeader(title = { Text(module.moduleName) },
+        ExpressivePageHeader(
+            scrollBehavior = scrollBehavior,
+            title = { Text(module.moduleName) },
             navigationIcon = { IconButton(shapes = IconButtonDefaults.shapes(), onClick = actions.onBack) {
                 Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.module_sheet_back))
             } }, actions = { IconButton(shapes = IconButtonDefaults.shapes(), onClick = {

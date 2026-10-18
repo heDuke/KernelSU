@@ -444,6 +444,7 @@ private fun TopBar(
     scrollBehavior: TopAppBarScrollBehavior? = null
 ) {
     ExpressivePageHeader(
+        scrollBehavior = scrollBehavior,
         title = { Text(stringResource(R.string.settings)) },
 
         windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),

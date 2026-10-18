@@ -54,6 +54,7 @@ fun EnvCheckScreenMaterial(
     ExpressiveScaffold(
         topBar = {
             ExpressivePageHeader(
+                scrollBehavior = scrollBehavior,
                 title = { Text(stringResource(R.string.env_check_title)) },
                 navigationIcon = { TopBarBackButton(onClick = actions.onBack) },
 
