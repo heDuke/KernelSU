@@ -468,7 +468,7 @@ from this synchronization plan and are not prerequisites for merging or publishi
 Record unverified device behavior accurately; automated checks alone do not prove
 cold-boot, recovery or Canary private-ABI/CFI compatibility.
 
-- [ ] Kernel: build supported production KMI/architectures and run module identity
+- [x] Kernel: build supported production KMI/architectures and run module identity
   audits; exercise package/signature rejection and exact-target failures.
 - [x] Rust: run Android cargo ndk check, clippy, then fmt for changed workspaces;
   run loader, kallsyms, archive/config, module lifecycle and host process regressions.
@@ -477,9 +477,9 @@ cold-boot, recovery or Canary private-ABI/CFI compatibility.
   parsing/integrity, script confirmation and hot-install fallback.
 - [ ] Review light/dark, large font, keyboard, navigation and Bottom Sheet flows.
   Report which checks used code review, previews or automated tests.
-- [ ] Merge into main after the required automated checks and code review pass;
+- [x] Merge into main after the required automated checks and code review pass;
   retain ancestry and a reviewed record of intentional deviations.
-- [ ] Publish a new production release only after the candidate passes. Independently
+- [x] Publish a new production release only after the candidate passes. Independently
   verify its downloaded APK/certificate/provenance/checksums as for husky-v32650.
   Retain known-good source, APK and matching native assets as recovery references;
   follow the version-code/data-migration recovery contract above.
@@ -487,3 +487,7 @@ cold-boot, recovery or Canary private-ABI/CFI compatibility.
 Upstream application code is now integrated on the isolated branch. The execution
 record distinguishes passed host/JVM/build checks from unavailable Android runtime
 instrumentation; checked implementation items are not claims of device validation.
+
+Final production delivery, subsequent remote merge, UAPI upgrade repair and
+Canary engineering output: [delivery record](2026-10-18-paired-uapi-delivery.md).
+Unavailable Android runtime instrumentation remains a disclosed limitation.

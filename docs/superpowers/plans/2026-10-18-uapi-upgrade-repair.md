@@ -25,14 +25,14 @@ Two integration omissions were found:
   profile and ordinary driver mutation gates are unchanged.
 - [x] Correct the Canary build flag. Require the production Manager package and
   certificate to be present in the audited ELF and reject mutated identities.
-- [ ] Build and audit a new UAPI-6 candidate against the pinned official 4K source,
+- [x] Build and audit a new UAPI-6 candidate against the pinned official 4K source,
   Image, vmlinux, config and Module.symvers. Retain its actual source/digest record.
 - [x] Run Manager regression/release packaging and real-fixture audit tests.
   Local Manager: 189 passed, no skips; Python: 14 passed, including identity
   rejection. Android Rust check/strict Clippy/fmt and all seven loader regressions
   passed. The real-import fixture verifies each rewritten address and no longer
   assumes that every kernel build imports exactly 206 symbols.
-- [ ] Commit/push the repair and publish/verify the production APK from that commit.
+- [x] Commit/push the repair and publish/verify the production APK from that commit.
 
 Working target is the earlier researched Pixel 8 Pro ZP11.260918.007 4K kernel
 `6.1.172-android14-11-g3fc92ed75e44-ab16169542`. The new screenshot does not itself
@@ -67,3 +67,5 @@ Merged-source regression: 197 JVM tests passed with no skips, using authentic
 Canary image/module fixtures. RootGate tests cover the observed 2 -> 6 repair,
 legacy metadata, authorization/Root/safe-mode precedence, newer-kernel rejection
 and unknown-interface module-write rejection. Clean assembleRelease and all JVM tests passed after resolving the merge.
+
+Final delivery and public-file checks: [paired delivery record](2026-10-18-paired-uapi-delivery.md).
