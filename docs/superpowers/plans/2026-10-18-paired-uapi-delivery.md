@@ -64,3 +64,21 @@ recovery remain unverified. No device operation was executed. Independent
 experimental loading remains disabled. Per the user, no PC/device acceptance gate
 blocks automated publication; this does not convert missing runtime evidence into
 a successful device test.
+
+## Native title-bar follow-up
+
+The later 2735.jpg device screenshot still shows a blank native title bar above
+the in-content HuskySU heading. Version 32766 removed the Compose duplicate but
+did not resolve this separate window-decor problem. Clearing the Activity title
+only hid its text.
+
+MainActivity declares Theme.KernelSU.Starting but omitted installSplashScreen().
+On API 31+, the resolved splash theme inherits the platform DayNight theme;
+postSplashScreenTheme is applied by the AndroidX installer, not automatically by
+the manifest. Call the installer before super.onCreate so the existing normal
+NoActionBar theme is applied before window decor creation. Keep the page heading,
+refresh/edit actions and status-bar safe insets.
+
+Local clean assembleRelease passed. Compiled MainActivity bytecode confirms the
+installer runs before ComponentActivity.onCreate. No emulator/device visual
+verification was available; this correction is newer than production v32766.
